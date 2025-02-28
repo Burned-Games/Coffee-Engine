@@ -28,7 +28,7 @@ ________
         -- Add cleanup code here
     end
 
-The variables created as public with the following nomenclature, will appear on the inspector inside the Script Component, **on Runtime mode*:
+The variables created as public with the following nomenclature, will appear on the inspector inside the Script Component, **on Runtime mode**:
 
 .. code-block:: Lua
     :linenos: 
