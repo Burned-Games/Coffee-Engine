@@ -97,7 +97,23 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Manual</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Scripting</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Scripting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#editor">Editor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#how-to-implement-a-script-component">How to implement a Script Component?</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#lua">Lua</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#logging-functions">Logging functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#input-functions">Input functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mathematics-functions-glm">Mathematics functions (GLM)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#entity-functions">Entity functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#components">Components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scenes">Scenes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#script-execution">Script Execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Class reference:</span></p>
 <ul>
@@ -3554,11 +3570,285 @@
              
   <section id="scripting">
 <span id="id1"></span><h1>Scripting<a class="headerlink" href="#scripting" title="Link to this heading"></a></h1>
-<div class="highlight-lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="c1">-- esto es un codeblock de ejemplo</span>
-<span class="linenos">2</span>
-<span class="linenos">3</span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello World&quot;</span><span class="p">)</span>
+<p>This scripting guide shows how to implement and use a Script Component in the game engine, detailing the available functions in Lua.</p>
+<section id="editor">
+<h2>Editor<a class="headerlink" href="#editor" title="Link to this heading"></a></h2>
+<section id="how-to-implement-a-script-component">
+<h3>How to implement a Script Component?<a class="headerlink" href="#how-to-implement-a-script-component" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p>Create a new project <strong>(in an empty folder)</strong> and save the current scene</p></li>
+<li><p>Create an Entity and add to it a Script Component</p></li>
+<li><p>Open the script from where you saved it, and the following should appear</p></li>
+</ol>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kr">function</span><span class="w"> </span><span class="nf">on_ready</span><span class="p">()</span>
+<span class="linenos"> 2</span><span class="w">    </span><span class="c1">-- Add initialization code here</span>
+<span class="linenos"> 3</span><span class="kr">end</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span><span class="kr">function</span><span class="w"> </span><span class="nf">on_update</span><span class="p">(</span><span class="nv">dt</span><span class="p">)</span>
+<span class="linenos"> 6</span><span class="w">    </span><span class="c1">-- Add update code here</span>
+<span class="linenos"> 7</span><span class="kr">end</span>
+<span class="linenos"> 8</span>
+<span class="linenos"> 9</span><span class="kr">function</span><span class="w"> </span><span class="nf">on_exit</span><span class="p">()</span>
+<span class="linenos">10</span><span class="w">    </span><span class="c1">-- Add cleanup code here</span>
+<span class="linenos">11</span><span class="kr">end</span>
 </pre></div>
 </div>
+<p>The variables created as public with the following nomenclature, will appear on the inspector inside the Script Component, <a href="#id2"><span class="problematic" id="id3">**</span></a>on Runtime mode*:</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="cm">--[[export]]</span><span class="w"> </span><span class="nv">age</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span>
+</pre></div>
+</div>
+<div class="note admonition">
+<p class="admonition-title">Note</p>
+<p>For now, if a variable is public, any change made from the inspector won’t apply to it.</p>
+</div>
+</section>
+</section>
+<section id="lua">
+<h2>Lua<a class="headerlink" href="#lua" title="Link to this heading"></a></h2>
+<section id="logging-functions">
+<h3>Logging functions<a class="headerlink" href="#logging-functions" title="Link to this heading"></a></h3>
+<p>The engine provides functions to register messages on the console with diferent levels of severity</p>
+<ol class="arabic simple">
+<li><p>log(message)</p></li>
+</ol>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="nf">log</span><span class="p">(</span><span class="s2">&quot;This is an informative message&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<ol class="arabic simple">
+<li><p>log_warning(message)</p></li>
+</ol>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="nf">log</span><span class="p">(</span><span class="s2">&quot;This is a warning message&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<ol class="arabic simple">
+<li><p>log_error(message)</p></li>
+</ol>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="nf">log</span><span class="p">(</span><span class="s2">&quot;This is an error message&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<ol class="arabic simple">
+<li><p>log_critical(message)</p></li>
+</ol>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="nf">log</span><span class="p">(</span><span class="s2">&quot;This is a critical message&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="input-functions">
+<h3>Input functions<a class="headerlink" href="#input-functions" title="Link to this heading"></a></h3>
+<p>1. Input.is_key_pressed(key)
+Verifies if a specific key is being pressed</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kr">if</span><span class="w"> </span><span class="nv">Input</span><span class="p">.</span><span class="nf">is_key_pressed</span><span class="p">(</span><span class="nv">Input</span><span class="p">.</span><span class="py">keycode</span><span class="p">.</span><span class="py">A</span><span class="p">)</span><span class="w"> </span><span class="kr">then</span>
+<span class="linenos">2</span><span class="w">    </span><span class="nf">log</span><span class="p">(</span><span class="s2">&quot;The key A is being pressed&quot;</span><span class="p">)</span>
+<span class="linenos">3</span><span class="kr">end</span>
+</pre></div>
+</div>
+<p>2. Input.is_mouse_button_pressed(button)
+Verifies if a mouse button is being pressed</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="nv">If</span><span class="w"> </span><span class="nv">Input</span><span class="p">.</span><span class="nf">is_mouse_button_pressed</span><span class="p">(</span><span class="nv">Input</span><span class="p">.</span><span class="py">mousecode</span><span class="p">.</span><span class="py">LEFT</span><span class="p">)</span>
+<span class="linenos">2</span><span class="kr">then</span>
+<span class="linenos">3</span><span class="w">    </span><span class="nf">log</span><span class="p">(</span><span class="s2">&quot;The left mouse button is being pressed&quot;</span><span class="p">)</span>
+<span class="linenos">4</span><span class="kr">end</span>
+</pre></div>
+</div>
+<p>3. Input.get_mouse_position()
+Gets the actual position of the mouse on screen</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">x</span><span class="p">,</span><span class="w"> </span><span class="nv">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">Input</span><span class="p">.</span><span class="nf">get_mouse_position</span><span class="p">()</span>
+<span class="linenos">2</span><span class="nf">log</span><span class="p">(</span><span class="s2">&quot;Mouse position: &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nv">x</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot;, &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nv">y</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="mathematics-functions-glm">
+<h3>Mathematics functions (GLM)<a class="headerlink" href="#mathematics-functions-glm" title="Link to this heading"></a></h3>
+<ol class="arabic">
+<li><dl>
+<dt>Vectors</dt><dd><p>1.1. Vector2
+Represents a vector2D</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">vec2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">Vector2</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0</span><span class="p">)</span>
+<span class="linenos">2</span><span class="nf">log</span><span class="p">(</span><span class="s2">&quot;Vector2: &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nv">vec2</span><span class="p">.</span><span class="py">x</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot;, &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nv">vec2</span><span class="p">.</span><span class="py">y</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>1.2. Vector3
+Represents a vector3D</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">vec3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">Vector3</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0</span><span class="p">)</span>
+<span class="linenos">2</span><span class="nf">log</span><span class="p">(</span><span class="s2">&quot;Vector3: &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nv">vec3</span><span class="p">.</span><span class="py">x</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot;, &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nv">vec3</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot;, &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nv">vec3</span><span class="p">.</span><span class="py">z</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>1.3. Vector4
+Represents a vector4D</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">vec4</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">Vector4</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0</span><span class="p">,</span><span class="w"> </span><span class="mf">4.0</span><span class="p">)</span>
+<span class="linenos">2</span><span class="nf">log</span><span class="p">(</span><span class="s2">&quot;Vector4: &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nv">vec4</span><span class="p">.</span><span class="py">x</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot;, &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nv">vec4</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot;, &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nv">vec4</span><span class="p">.</span><span class="py">z</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot;, &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nv">vec4</span><span class="p">.</span><span class="py">w</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>Matrix</dt><dd><p>2.1. Mat4</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">mat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">Mat4</span><span class="p">()</span>
+<span class="linenos">2</span><span class="nv">mat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">mat</span><span class="p">:</span><span class="nf">translate</span><span class="p">(</span><span class="nf">Vector3</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0</span><span class="p">))</span>
+<span class="linenos">3</span><span class="nf">log</span><span class="p">(</span><span class="s2">&quot;Translated matrix&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>Quaternions</dt><dd><p>3.1. Quaternion</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">quat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">Quaternion</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span>
+<span class="linenos">2</span><span class="nf">log</span><span class="p">(</span><span class="s2">&quot;Quaternion: &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nv">quat</span><span class="p">.</span><span class="py">x</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot;, &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nv">quat</span><span class="p">.</span><span class="py">y</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot;, &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nv">quat</span><span class="p">.</span><span class="py">z</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="s2">&quot;, &quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="nv">quat</span><span class="p">.</span><span class="py">w</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</li>
+</ol>
+</section>
+<section id="entity-functions">
+<h3>Entity functions<a class="headerlink" href="#entity-functions" title="Link to this heading"></a></h3>
+<p>Entities are objects in the scene that can have associated components</p>
+<ol class="arabic">
+<li><dl>
+<dt>Creation and destruction of Entities</dt><dd><p>1.1. Scene.create_entity()
+Creates a new entity in the scene</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">entity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">Scene</span><span class="p">.</span><span class="nf">create_entity</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>1.2. Scene.destroy_entity(entity)
+Destroys an entity in the scene</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="nv">Scene</span><span class="p">.</span><span class="nf">destroy_entity</span><span class="p">(</span><span class="nv">entity</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>Components</dt><dd><p>2.1. Entity.add_component(componentName)
+Adds a component to the entity</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="nv">entity</span><span class="p">:</span><span class="nf">add_component</span><span class="p">(</span><span class="s2">&quot;TransformComponent&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>2.2. Entity.get_component(componentName)
+Gets a component of the entity</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">transform</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">entity</span><span class="p">:</span><span class="nf">get_component</span><span class="p">(</span><span class="s2">&quot;TransformComponent&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>2.3. Entity.has_component(componentName)
+Verifies if the entity has a specific component</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kr">if</span><span class="w"> </span><span class="nv">entity</span><span class="p">:</span><span class="nf">has_component</span><span class="p">(</span><span class="s2">&quot;TransformComponent&quot;</span><span class="p">)</span>
+<span class="linenos">2</span><span class="kr">then</span>
+<span class="linenos">3</span><span class="w">    </span><span class="nf">log</span><span class="p">(</span><span class="s2">&quot;The entity has a transformation component&quot;</span><span class="p">)</span>
+<span class="linenos">4</span><span class="kr">end</span>
+</pre></div>
+</div>
+<p>2.4. Entity.remove_component(componentName)
+Deletes a component from the entity</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="nv">entity</span><span class="p">:</span><span class="nf">remove_component</span><span class="p">(</span><span class="s2">&quot;TransformComponent&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>Entity hierarchy</dt><dd><p>3.1. Entity.set_parent(parent)
+Sets the parent entity</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="nv">entity</span><span class="p">:</span><span class="nf">set_parent</span><span class="p">(</span><span class="nv">parentEntity</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>3.2. Entity.get_parent()
+Gets the parent entity</p>
+<blockquote>
+<div><div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">parent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">entity</span><span class="p">:</span><span class="nf">get_parent</span><span class="p">()</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>3.3. Entity.get_child()
+Gets the first child of the entity</p>
+<blockquote>
+<div><div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">child</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">entity</span><span class="p">:</span><span class="nf">get_child</span><span class="p">()</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>3.4. Entity.get_children()
+Gets all entity children</p>
+<blockquote>
+<div><div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">children</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">entity</span><span class="p">:</span><span class="nf">get_children</span><span class="p">()</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+</ol>
+</section>
+<section id="components">
+<h3>Components<a class="headerlink" href="#components" title="Link to this heading"></a></h3>
+<p>1. TagComponent
+Stores a label for the entity</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">entity</span><span class="p">:</span><span class="nf">get_component</span><span class="p">(</span><span class="s2">&quot;TagComponent&quot;</span><span class="p">)</span>
+<span class="linenos">2</span><span class="nv">tag</span><span class="p">.</span><span class="py">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Player&quot;</span>
+</pre></div>
+</div>
+<p>2. TransformComponent
+Stores the position, rotation and scale of the entity</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">transform</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">entity</span><span class="p">:</span><span class="nf">get_component</span><span class="p">(</span><span class="s2">&quot;TransformComponent&quot;</span><span class="p">)</span>
+<span class="linenos">2</span><span class="nv">transform</span><span class="p">.</span><span class="py">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">Vector3</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>3. CameraComponent
+Represents a camera</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">camera</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">entity</span><span class="p">:</span><span class="nf">get_component</span><span class="p">(</span><span class="s2">&quot;CameraComponent&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>4. MeshComponent
+Represents a 3D mesh</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">mesh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">entity</span><span class="p">:</span><span class="nf">get_component</span><span class="p">(</span><span class="s2">&quot;MeshComponent&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>5. MaterialComponent
+Represents a material</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">material</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">entity</span><span class="p">:</span><span class="nf">get_component</span><span class="p">(</span><span class="s2">&quot;MaterialComponent&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>6. LightComponent
+Represents a light</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">light</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">entity</span><span class="p">:</span><span class="nf">get_component</span><span class="p">(</span><span class="s2">&quot;LightComponent&quot;</span><span class="p">)</span>
+<span class="linenos">2</span><span class="nv">light</span><span class="p">.</span><span class="py">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">Vector3</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>7. ScriptComponent
+Allows scripts to be attached to the entity</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">script</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">entity</span><span class="p">:</span><span class="nf">get_component</span><span class="p">(</span><span class="s2">&quot;ScriptComponent&quot;</span><span class="p">)</span>
+<span class="linenos">2</span><span class="nv">script</span><span class="p">:</span><span class="nf">call</span><span class="p">(</span><span class="s2">&quot;update&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="scenes">
+<h3>Scenes<a class="headerlink" href="#scenes" title="Link to this heading"></a></h3>
+<p>1. Scene.get_entity_by_name(name)
+Gets an entity by name</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">entity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">Scene</span><span class="p">.</span><span class="nf">get_entity_by_name</span><span class="p">(</span><span class="s2">&quot;Player&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>2. Scene.get_all_entities()
+Gets all entities in the scene</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">entities</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">Scene</span><span class="p">.</span><span class="nf">get_all_entities</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="script-execution">
+<h3>Script Execution<a class="headerlink" href="#script-execution" title="Link to this heading"></a></h3>
+<p>1. LuaBackend.CreateScript(path)
+Creates a script from a file</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="nv">auto</span><span class="w"> </span><span class="nv">script</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">LuaBackend</span><span class="p">::</span><span class="nf">CreateScript</span><span class="p">(</span><span class="s2">&quot;path/to/script.lua&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>2. LuaBackend.ExecuteScript(script)
+Executes a script</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="nv">LuaBackend</span><span class="p">::</span><span class="nf">ExecuteScript</span><span class="p">(</span><span class="o">*</span><span class="nv">script</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+</section>
 </section>
 
 
