@@ -120,7 +120,7 @@ ________
     .. code-block:: Lua
         :linenos:
 
-        local vec2 = Vector2(1.0, 2.0)
+        local vec2 = Vector2.new(1.0, 2.0)
         log("Vector2: " .. vec2.x .. ", " .. vec2.y)
 
     1.2. Vector3
@@ -129,7 +129,7 @@ ________
     .. code-block:: Lua
         :linenos:
 
-        local vec3 = Vector3(1.0, 2.0, 3.0)
+        local vec3 = Vector3.new(1.0, 2.0, 3.0)
         log("Vector3: " .. vec3.x .. ", " .. vec3.y .. ", " .. vec3.z)
 
     1.3. Vector4
@@ -138,7 +138,7 @@ ________
     .. code-block:: Lua
         :linenos:
 
-        local vec4 = Vector4(1.0, 2.0, 3.0, 4.0)
+        local vec4 = Vector4.new(1.0, 2.0, 3.0, 4.0)
         log("Vector4: " .. vec4.x .. ", " .. vec4.y .. ", " .. vec4.z .. ", " .. vec4.w)
 
 2. Matrix
@@ -157,7 +157,7 @@ ________
     .. code-block:: Lua
         :linenos:
 
-        local quat = Quaternion(1.0, 0.0, 0.0, 0.0)
+        local quat = Quaternion.new(1.0, 0.0, 0.0, 0.0)
         log("Quaternion: " .. quat.x .. ", " .. quat.y .. ", " .. quat.z .. ", " .. quat.w)
 
 Entity functions
@@ -181,6 +181,12 @@ Entities are objects in the scene that can have associated components
         :linenos:
         
         Scene.destroy_entity(entity)
+
+.. admonition:: Note
+    :class: note
+
+    If needed to refer to the entity running the script, instead of using "entity:", we use "self:" in the following functions. 
+    For instance, instead of entity:get_component("ComponentName"), use self:get_component("ComponentName") to refer to the entity that contains the script. 
 
 2. Components
     2.1. Entity.add_component(componentName)
