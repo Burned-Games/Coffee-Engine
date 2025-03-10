@@ -166,21 +166,21 @@ ________
 Entities are objects in the scene that can have associated components
 
 1. Creation and destruction of Entities
-    1.1. Scene.create_entity()
-    Creates a new entity in the scene
+    1.1. current_scene.create_entity()
+    Creates a new entity in the current scene
 
     .. code-block:: Lua
         :linenos:
 
-        local entity = Scene.create_entity()
+        local entity = current_scene.create_entity()
 
-    1.2. Scene.destroy_entity(entity)
-    Destroys an entity in the scene
+    1.2. current_scene.destroy_entity(entity)
+    Destroys an entity in the current scene
 
     .. code-block:: Lua
         :linenos:
         
-        Scene.destroy_entity(entity)
+        current_scene.destroy_entity(entity)
 
 .. admonition:: Note
     :class: note
@@ -323,21 +323,21 @@ Allows scripts to be attached to the entity
 Scenes
 ________
 
-1. Scene.get_entity_by_name(name)
+1. current_scene.get_entity_by_name(name)
 Gets an entity by name
 
 .. code-block:: Lua
     :linenos:
 
-    local entity = Scene.get_entity_by_name("Player")
+    local entity = current_scene.get_entity_by_name("Player")
 
-2. Scene.get_all_entities()
-Gets all entities in the scene
+2. current_scene.get_all_entities()
+Gets all entities in the current scene
 
 .. code-block:: Lua
     :linenos:
 
-    local entities = Scene.get_all_entities()
+    local entities = current_scene.get_all_entities()
 
 
 Script Execution

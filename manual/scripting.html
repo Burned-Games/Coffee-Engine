@@ -3708,14 +3708,14 @@ Represents a vector4D</p>
 <p>Entities are objects in the scene that can have associated components</p>
 <ol class="arabic">
 <li><dl>
-<dt>Creation and destruction of Entities</dt><dd><p>1.1. Scene.create_entity()
-Creates a new entity in the scene</p>
-<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">entity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">Scene</span><span class="p">.</span><span class="nf">create_entity</span><span class="p">()</span>
+<dt>Creation and destruction of Entities</dt><dd><p>1.1. current_scene.create_entity()
+Creates a new entity in the current scene</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">entity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">current_scene</span><span class="p">.</span><span class="nf">create_entity</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>1.2. Scene.destroy_entity(entity)
-Destroys an entity in the scene</p>
-<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="nv">Scene</span><span class="p">.</span><span class="nf">destroy_entity</span><span class="p">(</span><span class="nv">entity</span><span class="p">)</span>
+<p>1.2. current_scene.destroy_entity(entity)
+Destroys an entity in the current scene</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="nv">current_scene</span><span class="p">.</span><span class="nf">destroy_entity</span><span class="p">(</span><span class="nv">entity</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd>
@@ -3831,14 +3831,14 @@ Allows scripts to be attached to the entity</p>
 </section>
 <section id="scenes">
 <h3>Scenes<a class="headerlink" href="#scenes" title="Link to this heading"></a></h3>
-<p>1. Scene.get_entity_by_name(name)
+<p>1. current_scene.get_entity_by_name(name)
 Gets an entity by name</p>
-<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">entity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">Scene</span><span class="p">.</span><span class="nf">get_entity_by_name</span><span class="p">(</span><span class="s2">&quot;Player&quot;</span><span class="p">)</span>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">entity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">current_scene</span><span class="p">.</span><span class="nf">get_entity_by_name</span><span class="p">(</span><span class="s2">&quot;Player&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>2. Scene.get_all_entities()
-Gets all entities in the scene</p>
-<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">entities</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">Scene</span><span class="p">.</span><span class="nf">get_all_entities</span><span class="p">()</span>
+<p>2. current_scene.get_all_entities()
+Gets all entities in the current scene</p>
+<div class="highlight-Lua notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kd">local</span><span class="w"> </span><span class="nv">entities</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">current_scene</span><span class="p">.</span><span class="nf">get_all_entities</span><span class="p">()</span>
 </pre></div>
 </div>
 </section>
