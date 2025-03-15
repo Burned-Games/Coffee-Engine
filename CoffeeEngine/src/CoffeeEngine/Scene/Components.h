@@ -435,7 +435,7 @@
          alignas(16) glm::vec3 Position = {0.0f, 0.0f, 0.0f}; ///< The position of the light.
  
          float Range = 5.0f; ///< The range of the light.
-         float Attenuation = 1.0f; ///< The attenuation of the light.
+         float Attenuation = 2.0f; ///< The attenuation of the light.
          float Intensity = 1.0f; ///< The intensity of the light.
  
          float Angle = 45.0f; ///< The angle of the light.

@@ -206,6 +206,15 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
     return ggx1 * ggx2;
 }
 
+// https://github.com/godotengine/godot/blob/da5f39889f155658cef7f7ec3cc1abb94e17d815/modules/lightmapper_rd/lm_compute.glsl#L388
+float getOmniAttenuation(float distance, float inv_range, float decay) {
+    float nd = distance * inv_range;
+    nd *= nd;
+    nd *= nd; // nd^4
+    nd = max(1.0 - nd, 0.0);
+    nd *= nd; // nd^2
+    return nd * pow(max(distance, 0.0001), -decay);
+}
 
 void main()
 {
@@ -247,9 +256,19 @@ void main()
         {
             /*====Point Light====*/
 
-            L = normalize(lights[i].position - VertexInput.WorldPos);
+            vec3 lightDir = normalize(lights[i].position - VertexInput.WorldPos);
             float distance = length(lights[i].position - VertexInput.WorldPos);
-            float attenuation = 1.0 / (distance * distance);
+
+            if(distance > lights[i].range)
+                continue;
+
+            float attenuation = getOmniAttenuation(distance, 1.0 / lights[i].range, lights[i].attenuation);
+            attenuation *= max(0.0, dot(N, lightDir));
+
+            if(attenuation <= 0.0001)
+                continue;
+
+            L = lightDir;
             radiance = lights[i].color * attenuation * lights[i].intensity;
         }
         else if(lights[i].type == 2)

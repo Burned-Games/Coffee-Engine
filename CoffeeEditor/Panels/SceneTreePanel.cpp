@@ -342,6 +342,13 @@ namespace Coffee {
                 {
                     ImGui::Text("Attenuation");
                     ImGui::DragFloat("##Attenuation", &lightComponent.Attenuation, 0.1f);
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("A value of 0.0 will maintain a constant brightness through most of the range, but smoothly attenuate the light at the edge of the range.");
+                        ImGui::Text("Use a value of 2.0 for physically accurate lights as it results in the proper inverse square attenutation.");
+                        ImGui::EndTooltip();
+                    }
                 }
                 if(!isCollapsingHeaderOpen)
                 {
