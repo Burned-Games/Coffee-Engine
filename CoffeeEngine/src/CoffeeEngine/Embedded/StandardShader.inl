@@ -152,6 +152,7 @@ struct Light
     float intensity;
 
     float angle;
+    float cone_attenuation;
 
     int type;
 };
@@ -274,7 +275,47 @@ void main()
         else if(lights[i].type == 2)
         {
             /*====Spot Light====*/
+                        
+/*             vec3 lightDir = normalize(lights[i].position - VertexInput.WorldPos);
+                        
+            // check if lighting is inside the spotlight cone
+            float theta = dot(lightDir, normalize(-lights[i].direction));
+                        
+            if(theta > lights[i].angle) // Compare theta with lights[i].angle
+            {
+                float distance = length(lights[i].position - VertexInput.WorldPos);
+                float attenuation = getOmniAttenuation(distance, 1.0 / lights[i].range, lights[i].attenuation);
+                attenuation *= max(0.0, dot(N, lightDir));
+                
+                // Calculate spot rim and cone attenuation
+                float spot_rim = max(0.0001, (1.0 - theta) / (1.0 - lights[i].angle));
+                attenuation *= 1.0 - pow(spot_rim, lights[i].cone_attenuation);
+            
+                if(attenuation <= 0.0001)
+                    continue;
+            
+                L = lightDir;
+                radiance = lights[i].color * attenuation * lights[i].intensity;
+            } */
 
+            // Temporal implementation
+            vec3 lightDir = normalize(lights[i].position - VertexInput.WorldPos);
+            
+            // check if lighting is inside the spotlight cone
+            float theta = dot(lightDir, normalize(-lights[i].direction)); 
+            float epsilon = (cos(radians(lights[i].angle)) - cos(radians(lights[i].cone_attenuation)));
+            float intensity = clamp((theta - cos(radians(lights[i].cone_attenuation))) / epsilon, 0.0, 1.0);
+            
+            // attenuation
+            float distance = length(lights[i].position - VertexInput.WorldPos);
+            float attenuation = 1.0 / (1.0 + 0.09 * distance + 0.032 * (distance * distance));
+            attenuation *= max(0.0, dot(N, lightDir)) * intensity;
+            
+            if(attenuation <= 0.0001)
+                continue;
+            
+            L = lightDir;
+            radiance = lights[i].color * attenuation * lights[i].intensity;
         }
 
         vec3 H = normalize(V + L);
