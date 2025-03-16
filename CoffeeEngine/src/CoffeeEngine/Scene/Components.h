@@ -439,6 +439,7 @@
          float Intensity = 1.0f; ///< The intensity of the light.
  
          float Angle = 45.0f; ///< The angle of the light.
+         float cutoff = glm::cos(glm::radians(Angle)); ///< The cutoff of the light.
  
          int type = static_cast<int>(Type::DirectionalLight); ///< The type of the light.
  
