@@ -577,6 +577,7 @@ namespace Coffee
         float Intensity = 1.0f;   ///< The intensity of the light.
 
         float Angle = 45.0f; ///< The angle of the light.
+        float ConeAttenuation = 48.0f; ///< The cone attenuation of the light.
 
         int type = static_cast<int>(Type::DirectionalLight); ///< The type of the light.
 
@@ -619,7 +620,7 @@ namespace Coffee
         // Skybox
         Ref<Cubemap> Skybox; ///< The skybox reference.
         float SkyboxIntensity = 1.0f; ///< The exposure of the skybox.
-        
+
         // Tonemapping
         float TonemappingExposure = 1.0f; ///< The exposure for tonemapping.
 
