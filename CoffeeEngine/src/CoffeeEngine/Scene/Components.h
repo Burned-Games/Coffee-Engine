@@ -1084,7 +1084,7 @@
                 cereal::make_nvp("SelectedColor", selectedColor),
                 cereal::make_nvp("PressedColor", pressedColor),
                 cereal::make_nvp("Visible", Visible),
-                cereal::make_nvp("CurrentState", static_cast<int>(currentState)) // Añadir estado actual
+                cereal::make_nvp("CurrentState", static_cast<int>(currentState))
             );
         }
 
@@ -1125,8 +1125,8 @@
 
     struct UIToggleComponent
     {
-        Ref<Texture2D> ActiveTexture = Texture2D::Load("assets/textures/toggleON.png");
-        Ref<Texture2D> InactiveTexture = Texture2D::Load("assets/textures/toggleOFF.png");
+        Ref<Texture2D> ActiveTexture = Texture2D::Load("assets/textures/toggleEnabled.png");
+        Ref<Texture2D> InactiveTexture = Texture2D::Load("assets/textures/toggleDisabled.png");
         glm::vec2 Size = {100.0f, 100.0f};
         bool IsActive = false;
         bool Visible = true;
