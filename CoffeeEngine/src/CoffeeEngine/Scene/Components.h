@@ -1123,9 +1123,79 @@
     };
 
 
-     
+    struct UIToggleComponent
+    {
+        Ref<Texture2D> ActiveTexture = Texture2D::Load("assets/textures/toggleON.png");
+        Ref<Texture2D> InactiveTexture = Texture2D::Load("assets/textures/toggleOFF.png");
+        glm::vec2 Size = {100.0f, 100.0f};
+        bool IsActive = false;
+        bool Visible = true;
 
-     struct ParticlesSystemComponent
+        UIToggleComponent() = default;
+
+        UIToggleComponent(const std::string& activeTexturePath, const std::string& inactiveTexturePath,
+                          const glm::vec2& size, bool visible)
+            : Size(size), Visible(visible)
+        {
+            if (!activeTexturePath.empty())
+            {
+                ActiveTexture = Texture2D::Load(activeTexturePath);
+            }
+            if (!inactiveTexturePath.empty())
+            {
+                InactiveTexture = Texture2D::Load(inactiveTexturePath);
+            }
+        }
+
+        void SetActiveTexture(const Ref<Texture2D>& newTexture) { ActiveTexture = newTexture; }
+        void SetInactiveTexture(const Ref<Texture2D>& newTexture) { InactiveTexture = newTexture; }
+
+        void SetActiveTexture(const std::string& texturePath)
+        {
+            if (!texturePath.empty())
+            {
+                ActiveTexture = Texture2D::Load(texturePath);
+            }
+        }
+
+        void SetInactiveTexture(const std::string& texturePath)
+        {
+            if (!texturePath.empty())
+            {
+                InactiveTexture = Texture2D::Load(texturePath);
+            }
+        }
+
+        void Toggle() { IsActive = !IsActive; }
+
+        template <class Archive> void save(Archive& archive) const
+        {
+            archive(cereal::make_nvp("ActiveTextureUUID", ActiveTexture ? ActiveTexture->GetUUID() : UUID(0)),
+                    cereal::make_nvp("InactiveTextureUUID", InactiveTexture ? InactiveTexture->GetUUID() : UUID(0)),
+                    cereal::make_nvp("Size", Size), cereal::make_nvp("IsActive", IsActive),
+                    cereal::make_nvp("Visible", Visible));
+        }
+
+        template <class Archive> void load(Archive& archive)
+        {
+            UUID activeTextureUUID, inactiveTextureUUID;
+
+            archive(cereal::make_nvp("ActiveTextureUUID", activeTextureUUID),
+                    cereal::make_nvp("InactiveTextureUUID", inactiveTextureUUID), cereal::make_nvp("Size", Size),
+                    cereal::make_nvp("IsActive", IsActive), cereal::make_nvp("Visible", Visible));
+
+            if (activeTextureUUID)
+            {
+                ActiveTexture = ResourceLoader::GetResource<Texture2D>(activeTextureUUID);
+            }
+            if (inactiveTextureUUID)
+            {
+                InactiveTexture = ResourceLoader::GetResource<Texture2D>(inactiveTextureUUID);
+            }
+        }
+    };
+
+    struct ParticlesSystemComponent
     {
         public:
         // Constructor por defecto

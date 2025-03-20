@@ -1476,6 +1476,52 @@ namespace Coffee
             }
         }
 
+        if (entity.HasComponent<UIToggleComponent>())
+        {
+            auto& uiToggleComponent = entity.GetComponent<UIToggleComponent>();
+            bool isCollapsingHeaderOpen = true;
+
+            if (ImGui::CollapsingHeader("UI Toggle", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                // Mostrar la textura activa
+                ImGui::Text("Active Texture");
+                if (uiToggleComponent.ActiveTexture)
+                {
+                    ImGui::Image((void*)(intptr_t)uiToggleComponent.ActiveTexture->GetID(), ImVec2(64, 64));
+                }
+                else
+                {
+                    ImGui::Text("No Active Texture Selected");
+                }
+
+                // Mostrar la textura inactiva
+                ImGui::Text("Inactive Texture");
+                if (uiToggleComponent.InactiveTexture)
+                {
+                    ImGui::Image((void*)(intptr_t)uiToggleComponent.InactiveTexture->GetID(), ImVec2(64, 64));
+                }
+                else
+                {
+                    ImGui::Text("No Inactive Texture Selected");
+                }
+
+                // Opción para activar o desactivar el toggle
+                ImGui::Checkbox("Is Active", &uiToggleComponent.IsActive);
+
+                // Tamaño del toggle
+                ImGui::Text("Size");
+                ImGui::DragFloat2("##Size", glm::value_ptr(uiToggleComponent.Size), 0.1f);
+
+                // Visibilidad del toggle
+                ImGui::Checkbox("Visible", &uiToggleComponent.Visible);
+
+                if (!isCollapsingHeaderOpen)
+                {
+                    entity.RemoveComponent<UIToggleComponent>();
+                }
+            }
+        }
+
         if (entity.HasComponent<AnimatorComponent>())
         {
             auto& animatorComponent = entity.GetComponent<AnimatorComponent>();
@@ -2260,7 +2306,7 @@ namespace Coffee
             static char buffer[256] = "";
             ImGui::InputTextWithHint("##Search Component", "Search Component:", buffer, 256);
 
-            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "NavMesh Component", "Navigation Agent Component", "UI Canvas Component", "Image Component", "Text Component", "Slider Component", "Button Component",  "Particles System Component" };
+            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "NavMesh Component", "Navigation Agent Component", "UI Canvas Component", "Image Component", "Text Component", "Slider Component", "Button Component", "Toggle Component", "Particles System Component" };
 
             static int item_current = 1;
 
@@ -2476,6 +2522,14 @@ namespace Coffee
                     if (!entity.HasComponent<UIButtonComponent>())
                     {
                         entity.AddComponent<UIButtonComponent>();
+                    }
+                    ImGui::CloseCurrentPopup();
+                }
+                if (items[item_current] == "Toggle Component")
+                {
+                    if (!entity.HasComponent<UIToggleComponent>())
+                    {
+                        entity.AddComponent<UIToggleComponent>();
                     }
                     ImGui::CloseCurrentPopup();
                 }

@@ -791,6 +791,31 @@ namespace Coffee {
                 (uint32_t)entity
             );
         }
+
+        auto uiToggleView = registry.view<UIToggleComponent, TransformComponent>();
+        for (auto& entity : uiToggleView)
+        {
+            auto& uiToggleComponent = uiToggleView.get<UIToggleComponent>(entity);
+            auto& transformComponent = uiToggleView.get<TransformComponent>(entity);
+
+            if (!uiToggleComponent.Visible)
+                continue;
+
+            // Obtener la textura actual basada en el estado del toggle
+            Ref<Texture2D> currentTexture =
+                uiToggleComponent.IsActive ? uiToggleComponent.ActiveTexture : uiToggleComponent.InactiveTexture;
+
+            if (!currentTexture)
+                continue;
+
+            glm::mat4 transform = transformComponent.GetWorldTransform();
+            transform = glm::translate(transform, glm::vec3(center, 0.0f));
+            transform = glm::scale(transform, glm::vec3(uiToggleComponent.Size.x, uiToggleComponent.Size.y, 1.0f));
+
+            Renderer2D::DrawQuad(transform, currentTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen,
+                                 (uint32_t)entity);
+
+        }
     }
 
     void Scene::OnRuntimeUpdateUI(float dt, entt::registry& registry)
@@ -923,6 +948,32 @@ namespace Coffee {
                 Renderer2D::RenderMode::Screen,
                 (uint32_t)entity
             );
+        }
+
+        auto uiToggleView = registry.view<UIToggleComponent, TransformComponent>();
+        for (auto& entity : uiToggleView)
+        {
+            auto& uiToggleComponent = uiToggleView.get<UIToggleComponent>(entity);
+            auto& transformComponent = uiToggleView.get<TransformComponent>(entity);
+
+            if (!uiToggleComponent.Visible)
+                continue;
+
+            // Obtener la textura actual basada en el estado del toggle
+            Ref<Texture2D> currentTexture =
+                uiToggleComponent.IsActive ? uiToggleComponent.ActiveTexture : uiToggleComponent.InactiveTexture;
+
+            if (!currentTexture)
+                continue;
+
+            // Calcular la transformación del toggle
+            glm::mat4 transform = transformComponent.GetWorldTransform();
+            transform = glm::translate(transform, glm::vec3(center, 0.0f));
+            transform = glm::scale(transform, glm::vec3(uiToggleComponent.Size.x, uiToggleComponent.Size.y, 1.0f));
+
+            // Dibujar el toggle
+            Renderer2D::DrawQuad(transform, currentTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen,
+                                 (uint32_t)entity);
         }
     }
 }
