@@ -634,6 +634,8 @@ namespace Coffee {
                     self->AddComponent<UISliderComponent>();
                 }else if (componentName == "UIButtonComponent"){
                     self->AddComponent<UIButtonComponent>();
+                }else if (componentName == "UISliderComponent"){
+                    self->AddComponent<UISliderComponent>();
                 }else if (componentName == "ParticlesSystemComponent"){
                     self->AddComponent<ParticlesSystemComponent>();
                 } else if (componentName == "AudioSourceComponent") {
@@ -659,8 +661,6 @@ namespace Coffee {
                     return sol::make_object(luaState, std::ref(self->GetComponent<UIImageComponent>()));
                 } else if (componentName == "UITextComponent") {
                     return sol::make_object(luaState, std::ref(self->GetComponent<UITextComponent>()));
-                }else if (componentName == "UISliderComponent"){
-                    return sol::make_object(luaState, std::ref(self->GetComponent<UISliderComponent>()));
                 }else if (componentName == "UISliderComponent"){
                     return sol::make_object(luaState, std::ref(self->GetComponent<UISliderComponent>()));
                 }else if (componentName == "ParticlesSystemComponent") {
@@ -870,6 +870,23 @@ namespace Coffee {
                     default: return "Unknown";
                 }
             }
+        );
+
+        luaState.new_usertype<UISliderComponent>("UISliderComponent",
+        sol::constructors<UISliderComponent()>(),
+        "get_bar_texture", [](UISliderComponent& self) { return self.barTexture; },
+        "set_bar_texture", [](UISliderComponent& self, const Ref<Texture2D>& texture) { self.barTexture = texture; },
+        "get_handle_texture", [](UISliderComponent& self) { return self.handleTexture; },
+        "set_handle_texture", [](UISliderComponent& self, const Ref<Texture2D>& texture) { self.handleTexture = texture; },
+        "get_size", [](UISliderComponent& self) { return self.Size; },
+        "set_size", [](UISliderComponent& self, const glm::vec2& size) { self.Size = size; },
+        "get_handle_size", [](UISliderComponent& self) { return self.HandleSize; },
+        "set_handle_size", [](UISliderComponent& self, const glm::vec2& size) { self.HandleSize = size; },
+        "get_value", [](UISliderComponent& self) { return self.Value; },
+        "set_value", [](UISliderComponent& self, float value) { self.Value = glm::clamp(value, 0.0f, 1.0f); },
+        "is_visible", [](UISliderComponent& self) { return self.Visible; },
+        "set_visible", [](UISliderComponent& self, bool visible) { self.Visible = visible; },
+        "on_value_changed", [](UISliderComponent& self, sol::function callback){}
         );
 
 
