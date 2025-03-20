@@ -170,6 +170,7 @@ namespace Coffee {
             .template get<UITextComponent>(archive)
             .template get<UISliderComponent>(archive)
             .template get<UIButtonComponent>(archive)
+            .template get<UIToggleComponent>(archive)
             .template get<ParticlesSystemComponent>(archive);
          }
 
@@ -203,6 +204,7 @@ namespace Coffee {
             .template get<UITextComponent>(archive)
             .template get<UISliderComponent>(archive)
             .template get<UIButtonComponent>(archive)
+            .template get<UIToggleComponent>(archive)
             .template get<ParticlesSystemComponent>(archive);
 
             AssignAnimatorsToMeshes(AnimationSystem::GetAnimators());
@@ -210,7 +212,7 @@ namespace Coffee {
 
     private:
         // NOTE: this macro should be modified when adding new components
-        #define ALL_COMPONENTS TagComponent, TransformComponent, HierarchyComponent, CameraComponent, MeshComponent, MaterialComponent, LightComponent, RigidbodyComponent, ScriptComponent, AudioSourceComponent, AudioListenerComponent, AudioZoneComponent, UIImageComponent, UICanvasComponent, UITextComponent, UISliderComponent, UIButtonComponent, ParticlesSystemComponent //, AnimatorComponent
+        #define ALL_COMPONENTS TagComponent, TransformComponent, HierarchyComponent, CameraComponent, MeshComponent, MaterialComponent, LightComponent, RigidbodyComponent, ScriptComponent, AudioSourceComponent, AudioListenerComponent, AudioZoneComponent, UIImageComponent, UICanvasComponent, UITextComponent, UISliderComponent, UIButtonComponent, UIToggleComponent, ParticlesSystemComponent //, AnimatorComponent
 
         entt::registry m_Registry;
         Scope<SceneTree> m_SceneTree;

@@ -634,8 +634,8 @@ namespace Coffee {
                     self->AddComponent<UISliderComponent>();
                 }else if (componentName == "UIButtonComponent"){
                     self->AddComponent<UIButtonComponent>();
-                }else if (componentName == "UISliderComponent"){
-                    self->AddComponent<UISliderComponent>();
+                }else if (componentName == "UIToggleComponent"){
+                    self->AddComponent<UIToggleComponent>();
                 }else if (componentName == "ParticlesSystemComponent"){
                     self->AddComponent<ParticlesSystemComponent>();
                 } else if (componentName == "AudioSourceComponent") {
@@ -663,6 +663,10 @@ namespace Coffee {
                     return sol::make_object(luaState, std::ref(self->GetComponent<UITextComponent>()));
                 }else if (componentName == "UISliderComponent"){
                     return sol::make_object(luaState, std::ref(self->GetComponent<UISliderComponent>()));
+                }else if (componentName == "UIButtonComponent"){
+                    return sol::make_object(luaState, std::ref(self->GetComponent<UIButtonComponent>()));
+                }else if (componentName == "UIToggleComponent"){
+                    return sol::make_object(luaState, std::ref(self->GetComponent<UIToggleComponent>()));
                 }else if (componentName == "ParticlesSystemComponent") {
                     return sol::make_object(luaState, std::ref(self->GetComponent<ParticlesSystemComponent>()));
                 } else if (componentName == "NavigationAgentComponent") {
@@ -701,6 +705,8 @@ namespace Coffee {
                     return self->HasComponent<UISliderComponent>();
                 }else if (componentName == "UIButtonComponent"){
                     return self->HasComponent<UIButtonComponent>();
+                }else if (componentName == "UIToggleComponent"){
+                    return self->HasComponent<UIToggleComponent>();
                 }else if (componentName == "ParticlesSystemComponent") {
                     return self->HasComponent<ParticlesSystemComponent>();
                 } else if (componentName == "NavigationAgentComponent") {
@@ -741,6 +747,9 @@ namespace Coffee {
                 }
                 else if (componentName == "UISliderComponent") {
                             self->RemoveComponent<UISliderComponent>();
+                }
+                else if (componentName == "UIToggleComponent") {
+                            self->RemoveComponent<UIToggleComponent>();
                 }
                 else if (componentName == "ParticlesSystemComponent") {
                     self->RemoveComponent<ParticlesSystemComponent>();
@@ -889,6 +898,20 @@ namespace Coffee {
         "on_value_changed", [](UISliderComponent& self, sol::function callback){}
         );
 
+        luaState.new_usertype<UIToggleComponent>("UIToggleComponent",
+            sol::constructors<UIToggleComponent(), UIToggleComponent(const std::string&, const std::string&, const glm::vec2&, bool)>(),
+            "is_active", &UIToggleComponent::IsActive,
+            "set_active", [](UIToggleComponent& self, bool active) { self.IsActive = active; },
+            "toggle", &UIToggleComponent::Toggle,
+            "is_visible", &UIToggleComponent::Visible,
+            "set_visible", [](UIToggleComponent& self, bool visible) { self.Visible = visible; },
+            "get_size", &UIToggleComponent::Size,
+            "set_size", [](UIToggleComponent& self, const glm::vec2& size) { self.Size = size; },
+            "get_active_texture", &UIToggleComponent::ActiveTexture,
+            "set_active_texture", [](UIToggleComponent& self, const Ref<Texture2D>& texture) { self.ActiveTexture = texture; },
+            "get_inactive_texture", &UIToggleComponent::InactiveTexture,
+            "set_inactive_texture", [](UIToggleComponent& self, const Ref<Texture2D>& texture) { self.InactiveTexture = texture; }
+        );
 
         luaState.new_usertype<ParticlesSystemComponent>("ParticlesSystemComponent", sol::constructors<ParticlesSystemComponent()>(), 
             "emit",&ParticlesSystemComponent::Emit, 
