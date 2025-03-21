@@ -70,6 +70,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${BULLET_LIBRARIES}
 )
 
+target_precompile_headers(${PROJECT_NAME} PUBLIC "${SRC_DIR}/pch.h")
+
 # Libraries Cofigurations
 
 #option(MSDF_ATLAS_BUILD_STANDALONE "Build the msdf-atlas-gen standalone executable" OFF)

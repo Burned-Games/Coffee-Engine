@@ -10,6 +10,7 @@
 #include <cereal/types/memory.hpp>
 #include <cereal/types/vector.hpp>
 #include <glm/glm.hpp>
+#include "CoffeeEngine/IO/Serialization/GLMSerialization.h"
 #include <memory>
 
 namespace Coffee {

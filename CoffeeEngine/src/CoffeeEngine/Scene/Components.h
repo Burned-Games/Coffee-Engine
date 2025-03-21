@@ -5,7 +5,8 @@
 
  #pragma once
 
- #include "CoffeeEngine/Core/Base.h"
+ #include "CoffeeEngine/Animation/Animation.h"
+#include "CoffeeEngine/Core/Base.h"
  #include "CoffeeEngine/IO/ResourceLoader.h"
  #include "CoffeeEngine/IO/ResourceRegistry.h"
  #include "CoffeeEngine/Physics/Collider.h"

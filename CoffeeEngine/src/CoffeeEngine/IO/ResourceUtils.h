@@ -3,7 +3,6 @@
 #include <filesystem>
 #include "CoffeeEngine/IO/Resource.h"
 #include "CoffeeEngine/IO/ResourceFormat.h"
-#include "CoffeeEngine/Renderer/Shader.h"
 
 namespace Coffee {
 
@@ -12,6 +11,7 @@ namespace Coffee {
     class Model;
     class Mesh;
     class Material;
+    class Shader;
 
     inline ResourceType GetResourceTypeFromExtension(const std::filesystem::path& path)
     {
