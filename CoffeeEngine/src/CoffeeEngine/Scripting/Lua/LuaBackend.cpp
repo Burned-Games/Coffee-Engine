@@ -835,17 +835,20 @@ namespace Coffee {
             }
         );
 
-
         luaState.new_usertype<UIImageComponent>("UIImageComponent",
-            sol::constructors<UIImageComponent(), UIImageComponent(const std::string&, const glm::vec2&, bool)>(),
+            sol::constructors<UIImageComponent(), UIImageComponent(const std::string&, const glm::vec2&, bool) >(),
             "get_size", &UIImageComponent::Size,
             "set_size", [](UIImageComponent& self, const glm::vec2& size) { self.Size = size; },
             "is_visible", &UIImageComponent::Visible,
-            "set_visible", [](UIImageComponent& self, bool visible) { self.Visible = visible; }
+            "set_visible", [](UIImageComponent& self, bool visible) { self.Visible = visible; },
+            "set_texture", sol::overload(
+                [](UIImageComponent& self, const Ref<Texture2D>& newTexture) { self.SetTexture(newTexture); }, // Sobrecarga para Ref<Texture2D>
+                [](UIImageComponent& self, const std::string& texturePath) { self.SetTexture(texturePath); }   // Sobrecarga para std::string
+            )
         );
 
         luaState.new_usertype<UITextComponent>("UITextComponent",
-            sol::constructors<UITextComponent(), UITextComponent(const std::string&, const std::string&, const glm::vec2&, float, float, const glm::vec4&, bool)>(),
+            sol::constructors<UITextComponent(), UITextComponent(const std::string&, const std::string&, float, const glm::vec4&)>(),
             "get_text", &UITextComponent::Text,
             "set_text", [](UITextComponent& self, const std::string& text) { self.Text = text; },
             "get_font_path", &UITextComponent::FontPath,

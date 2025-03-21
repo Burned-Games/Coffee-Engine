@@ -780,261 +780,409 @@
              }
      };
   
-    struct UICanvasComponent
+
+    /**
+     * @brief Enum representing the anchor position of a UI element.
+     */
+    enum class UIAnchorPosition
     {
-        UICanvasComponent() = default;
-        UICanvasComponent(const UICanvasComponent&) = default;
-        Ref<Texture2D> CanvasTexture;
-        bool Visible = true;
-
-        template<class Archive>
-        void save(Archive& archive) const {
-                    cereal::make_nvp("Visible", Visible);
-        }
-
-        template<class Archive>
-        void load(Archive& archive) {
-                    cereal::make_nvp("Visible", Visible);
-        }
+        TopLeft,      ///< Anchor at the top-left corner.
+        TopCenter,    ///< Anchor at the top-center.
+        TopRight,     ///< Anchor at the top-right corner.
+        CenterLeft,   ///< Anchor at the center-left.
+        Center,       ///< Anchor at the center.
+        CenterRight,  ///< Anchor at the center-right.
+        BottomLeft,   ///< Anchor at the bottom-left corner.
+        BottomCenter, ///< Anchor at the bottom-center.
+        BottomRight   ///< Anchor at the bottom-right corner.
     };
 
-     struct UIImageComponent
-     {
-         Ref<Texture2D> texture;
-         glm::vec2 Size = {100.0f, 100.0f};
-         bool Visible = true;
+    /**
+     * @brief Base class for all UI components.
+     * @ingroup scene
+     */
+     struct UIComponent {
+         UIAnchorPosition Anchor = UIAnchorPosition::Center; ///< The anchor position of the UI element.
+         glm::vec2 Position = { 0.0f, 0.0f }; ///< The position of the UI element relative to its anchor.
+         bool Visible = true; ///< Whether the UI element is visible.
 
-         UIImageComponent() = default;
-         UIImageComponent(const std::string& texturePath, const glm::vec2& size, bool visible)
-            : Size(size), Visible(visible) {
-             if (!texturePath.empty())
-             {
-                 texture = Texture2D::Load(texturePath);
-             }
-         }
+         UIComponent() = default;
+         UIComponent(const UIComponent&) = default;
 
-         void SetTexture(const Ref<Texture2D>& newTexture) {
-             texture = newTexture;
-         }
-
-         void SetTexture(const std::string& texturePath) {
-             if (!texturePath.empty())
-             {
-                 texture = Texture2D::Load(texturePath);
-             }
-         }
-
+         /**
+          * @brief Serializes the UIComponent.
+          * @tparam Archive The type of the archive.
+          * @param archive The archive to serialize to.
+          */
          template<class Archive>
-         void save(Archive& archive) const
-         {
-            
-
-            archive(cereal::make_nvp("TextureUUID", texture->GetUUID()),
-                     cereal::make_nvp("Size", Size),
-                     cereal::make_nvp("Visible", Visible));
+         void save(Archive& archive) const {
+             archive(
+                 cereal::make_nvp("Anchor", Anchor),
+                 cereal::make_nvp("Position", Position),
+                 cereal::make_nvp("Visible", Visible)
+             );
          }
 
+         /**
+          * @brief Deserializes the UIComponent.
+          * @tparam Archive The type of the archive.
+          * @param archive The archive to deserialize from.
+          */
          template<class Archive>
          void load(Archive& archive) {
-
-             UUID textureUUID;
-
-             archive(cereal::make_nvp("TextureUUID", textureUUID),
-                     cereal::make_nvp("Size", Size),
-                     cereal::make_nvp("Visible", Visible));
-
-             if (textureUUID)
-             {
-                 texture = ResourceLoader::GetResource<Texture2D>(textureUUID);
-             }
-
-          
+             archive(
+                 cereal::make_nvp("Anchor", Anchor),
+                 cereal::make_nvp("Position", Position),
+                 cereal::make_nvp("Visible", Visible)
+             );
          }
      };
 
-    struct UITextComponent
-    {
-        std::string Text = "Default Text";
-        std::string FontPath;
-        Ref<Font> font;
-        float FontSize = 24.0f;
-        glm::vec4 Color = {1.0f, 1.0f, 1.0f, 1.0f};
-        bool Visible = true;
+    /**
+     * @brief Component representing a UI Canvas.
+     * @ingroup scene
+     */
+     struct UICanvasComponent : public UIComponent {
+         Ref<Texture2D> CanvasTexture; ///< The texture of the canvas.
 
-        UITextComponent() = default;
-        UITextComponent(const std::string& text, const std::string& fontPath, const glm::vec2 position, float fontSize, float lineSpacing, const glm::vec4 color, bool visible)
-            : Text(text), FontPath(fontPath), FontSize(fontSize), Color(color), Visible(visible)
-        {
-            if (!fontPath.empty())
-            {
-               font = Font::GetDefault();
+         UICanvasComponent() = default;
+         UICanvasComponent(const UICanvasComponent&) = default;
+
+         /**
+          * @brief Serializes the UICanvasComponent.
+          * @tparam Archive The type of the archive.
+          * @param archive The archive to serialize to.
+          */
+         template<class Archive>
+         void save(Archive& archive) const {
+             archive(
+                 cereal::make_nvp("CanvasTextureUUID", CanvasTexture ? CanvasTexture->GetUUID() : UUID(0))
+             );
+             UIComponent::save(archive); // Llama a la serialización de la clase base
+         }
+
+         /**
+          * @brief Deserializes the UICanvasComponent.
+          * @tparam Archive The type of the archive.
+          * @param archive The archive to deserialize from.
+          */
+         template<class Archive>
+         void load(Archive& archive) {
+             UUID textureUUID;
+             archive(
+                 cereal::make_nvp("CanvasTextureUUID", textureUUID)
+             );
+             if (textureUUID != 0) {
+                 CanvasTexture = ResourceLoader::GetResource<Texture2D>(textureUUID);
+             }
+             UIComponent::load(archive); // Llama a la deserialización de la clase base
+         }
+     };
+
+    /**
+     * @brief Component representing a UI Image.
+     * @ingroup scene
+     */
+     struct UIImageComponent : public UIComponent {
+         Ref<Texture2D> texture; ///< The texture of the image.
+         glm::vec2 Size = { 100.0f, 100.0f }; ///< The size of the image.
+
+         UIImageComponent() = default;
+
+         /**
+          * @brief Constructs a UIImageComponent with the given texture and size.
+          * @param texturePath The path to the texture file.
+          * @param size The size of the image.
+          * @param visible Whether the image is visible.
+          */
+         UIImageComponent(const std::string& texturePath, const glm::vec2& size, bool visible)
+             : Size(size) {
+             if (!texturePath.empty()) {
+                 texture = Texture2D::Load(texturePath);
+             }
+             Visible = visible; // Heredado de UIComponent
+         }
+
+        /**
+         * @brief Sets the texture of the image.
+         * @param newTexture The new texture to set.
+         */
+        void SetTexture(const Ref<Texture2D>& newTexture) {
+            texture = newTexture;
+        }
+
+        /**
+         * @brief Sets the texture of the image from a file path.
+         * @param texturePath The path to the texture file.
+         */
+        void SetTexture(const std::string& texturePath) {
+            if (!texturePath.empty()) {
+                texture = Texture2D::Load(texturePath);
             }
         }
 
+        /**
+         * @brief Serializes the UIImageComponent.
+         * @tparam Archive The type of the archive.
+         * @param archive The archive to serialize to.
+         */
         template<class Archive>
         void save(Archive& archive) const {
-            archive(cereal::make_nvp("Text", Text),
-                    cereal::make_nvp("FontPath", FontPath),
-                    cereal::make_nvp("FontSize", FontSize),
-                    cereal::make_nvp("Color", Color),
-                    cereal::make_nvp("Visible", Visible));
+            archive(
+                cereal::make_nvp("TextureUUID", texture ? texture->GetUUID() : UUID(0)),
+                cereal::make_nvp("Size", Size)
+            );
+            UIComponent::save(archive); // Llama a la serialización de la clase base
         }
 
+        /**
+         * @brief Deserializes the UIImageComponent.
+         * @tparam Archive The type of the archive.
+         * @param archive The archive to deserialize from.
+         */
         template<class Archive>
-        void load(Archive& archive)
-        {
-            archive(cereal::make_nvp("Text", Text),
-                    cereal::make_nvp("FontPath", FontPath),
-                    cereal::make_nvp("FontSize", FontSize),
-                    cereal::make_nvp("Color", Color),
-                    cereal::make_nvp("Visible", Visible));
+        void load(Archive& archive) {
+            UUID textureUUID;
+            archive(
+                cereal::make_nvp("TextureUUID", textureUUID),
+                cereal::make_nvp("Size", Size)
+            );
+            if (textureUUID != 0) {
+                texture = ResourceLoader::GetResource<Texture2D>(textureUUID);
+            }
+            UIComponent::load(archive);
         }
-
     };
 
-  struct UISliderComponent
-    {
-        Ref<Texture2D> barTexture;
-        Ref<Texture2D> handleTexture;
-        glm::vec2 Size = {300.0f, 50.0f};
-        glm::vec2 HandleSize = {75.0f, 75.0f};
-        float Value = 0.5f;
-        bool Visible = true;
+    /**
+     * @brief Component representing a UI Text.
+     * @ingroup scene
+     */
+    struct UITextComponent : public UIComponent {
+        std::string Text = "Default Text"; ///< The text to display.
+        std::string FontPath; ///< The path to the font file.
+        Ref<Font> font; ///< The font used for rendering the text.
+        float FontSize = 24.0f; ///< The size of the font.
+        glm::vec4 Color = { 1.0f, 1.0f, 1.0f, 1.0f }; ///< The color of the text.
+
+        UITextComponent() = default;
+
+        /**
+         * @brief Constructs a UITextComponent with the given parameters.
+         * @param text The text to display.
+         * @param fontPath The path to the font file.
+         * @param fontSize The size of the font.
+         * @param color The color of the text.
+         */
+        UITextComponent(const std::string& text, const std::string& fontPath, float fontSize, const glm::vec4& color)
+            : Text(text), FontPath(fontPath), FontSize(fontSize), Color(color) {
+            if (!fontPath.empty()) {
+                font = Font::GetDefault();
+            }
+        }
+
+        /**
+         * @brief Serializes the UITextComponent.
+         * @tparam Archive The type of the archive.
+         * @param archive The archive to serialize to.
+         */
+        template<class Archive>
+        void save(Archive& archive) const {
+            archive(
+                cereal::make_nvp("Text", Text),
+                cereal::make_nvp("FontPath", FontPath),
+                cereal::make_nvp("FontSize", FontSize),
+                cereal::make_nvp("Color", Color)
+            );
+            UIComponent::save(archive); // Llama a la serialización de la clase base
+        }
+
+        /**
+         * @brief Deserializes the UITextComponent.
+         * @tparam Archive The type of the archive.
+         * @param archive The archive to deserialize from.
+         */
+        template<class Archive>
+        void load(Archive& archive) {
+            archive(
+                cereal::make_nvp("Text", Text),
+                cereal::make_nvp("FontPath", FontPath),
+                cereal::make_nvp("FontSize", FontSize),
+                cereal::make_nvp("Color", Color)
+            );
+            if (!FontPath.empty()) {
+                font = Font::GetDefault();
+            }
+            UIComponent::load(archive); // Llama a la deserialización de la clase base
+        }
+    };
+
+    /**
+     * @brief Component representing a UI Slider.
+     * @ingroup scene
+     */
+    struct UISliderComponent : public UIComponent {
+        Ref<Texture2D> barTexture; ///< The texture of the slider bar.
+        Ref<Texture2D> handleTexture; ///< The texture of the slider handle.
+        glm::vec2 Size = { 300.0f, 50.0f }; ///< The size of the slider bar.
+        glm::vec2 HandleSize = { 75.0f, 75.0f }; ///< The size of the slider handle.
+        float Value = 0.5f; ///< The current value of the slider.
 
         UISliderComponent() = default;
 
-
-        UISliderComponent(const std::string& barTexturePath, const std::string& handleTexturePath, const glm::vec2& size, const glm::vec2& handleSize, bool visible)
-            : Size(size), HandleSize(handleSize), Visible(visible)
-        {
-            if (!barTexturePath.empty())
-            {
+        /**
+         * @brief Constructs a UISliderComponent with the given textures and size.
+         * @param barTexturePath The path to the bar texture file.
+         * @param handleTexturePath The path to the handle texture file.
+         * @param size The size of the slider bar.
+         * @param handleSize The size of the slider handle.
+         */
+        UISliderComponent(const std::string& barTexturePath, const std::string& handleTexturePath, const glm::vec2& size, const glm::vec2& handleSize)
+            : Size(size), HandleSize(handleSize) {
+            if (!barTexturePath.empty()) {
                 barTexture = Texture2D::Load(barTexturePath);
             }
-            if (!handleTexturePath.empty())
-            {
+            if (!handleTexturePath.empty()) {
                 handleTexture = Texture2D::Load(handleTexturePath);
             }
         }
 
+        /**
+         * @brief Sets the texture of the slider bar.
+         * @param newTexture The new texture to set.
+         */
+        void SetBarTexture(const Ref<Texture2D>& newTexture) {
+            barTexture = newTexture;
+        }
 
-        void SetBarTexture(const Ref<Texture2D>& newTexture) { barTexture = newTexture; }
-        void SetHandleTexture(const Ref<Texture2D>& newTexture) { handleTexture = newTexture; }
-
-        void SetBarTexture(const std::string& texturePath)
-        {
-            if (!texturePath.empty())
-            {
+        /**
+         * @brief Sets the texture of the slider bar from a file path.
+         * @param texturePath The path to the texture file.
+         */
+        void SetBarTexture(const std::string& texturePath) {
+            if (!texturePath.empty()) {
                 barTexture = Texture2D::Load(texturePath);
             }
         }
 
-        void SetHandleTexture(const std::string& texturePath)
-        {
-            if (!texturePath.empty())
-            {
+        /**
+         * @brief Sets the texture of the slider handle.
+         * @param newTexture The new texture to set.
+         */
+        void SetHandleTexture(const Ref<Texture2D>& newTexture) {
+            handleTexture = newTexture;
+        }
+
+        /**
+         * @brief Sets the texture of the slider handle from a file path.
+         * @param texturePath The path to the texture file.
+         */
+        void SetHandleTexture(const std::string& texturePath) {
+            if (!texturePath.empty()) {
                 handleTexture = Texture2D::Load(texturePath);
             }
         }
 
-
-        void SetValue(float newValue)
-        {
-            Value = glm::clamp(newValue, 0.0f, 1.0f);
-        }
-
-
+        /**
+         * @brief Serializes the UISliderComponent.
+         * @tparam Archive The type of the archive.
+         * @param archive The archive to serialize to.
+         */
         template<class Archive>
-        void save(Archive& archive) const
-        {
+        void save(Archive& archive) const {
             archive(
-                cereal::make_nvp("BarTextureUUID", barTexture->GetUUID()),
-                cereal::make_nvp("HandleTextureUUID", handleTexture->GetUUID()),
+                cereal::make_nvp("BarTextureUUID", barTexture ? barTexture->GetUUID() : UUID(0)),
+                cereal::make_nvp("HandleTextureUUID", handleTexture ? handleTexture->GetUUID() : UUID(0)),
                 cereal::make_nvp("Size", Size),
                 cereal::make_nvp("HandleSize", HandleSize),
-                cereal::make_nvp("Value", Value),
-                cereal::make_nvp("Visible", Visible)
+                cereal::make_nvp("Value", Value)
             );
+            UIComponent::save(archive); // Llama a la serialización de la clase base
         }
 
-
+        /**
+         * @brief Deserializes the UISliderComponent.
+         * @tparam Archive The type of the archive.
+         * @param archive The archive to deserialize from.
+         */
         template<class Archive>
-        void load(Archive& archive)
-        {
+        void load(Archive& archive) {
             UUID barTextureUUID, handleTextureUUID;
-
             archive(
                 cereal::make_nvp("BarTextureUUID", barTextureUUID),
                 cereal::make_nvp("HandleTextureUUID", handleTextureUUID),
                 cereal::make_nvp("Size", Size),
                 cereal::make_nvp("HandleSize", HandleSize),
-                cereal::make_nvp("Value", Value),
-                cereal::make_nvp("Visible", Visible)
+                cereal::make_nvp("Value", Value)
             );
-
-            if (barTextureUUID)
-            {
+            if (barTextureUUID != 0) {
                 barTexture = ResourceLoader::GetResource<Texture2D>(barTextureUUID);
             }
-            if (handleTextureUUID)
-            {
+            if (handleTextureUUID != 0) {
                 handleTexture = ResourceLoader::GetResource<Texture2D>(handleTextureUUID);
             }
+            UIComponent::load(archive);
         }
     };
+        /**
+     * @brief Component representing a UI Button.
+     * @ingroup scene
+     */
+    struct UIButtonComponent : public UIComponent {
+        Ref<Texture2D> baseTexture; ///< The texture of the button in its default state.
+        Ref<Texture2D> selectedTexture; ///< The texture of the button when selected (hovered).
+        Ref<Texture2D> pressedTexture; ///< The texture of the button when pressed.
 
-    struct UIButtonComponent
-    {
-        bool Visible = true;
+        glm::vec2 baseSize = { 100.0f, 100.0f }; ///< The size of the button in its default state.
+        glm::vec2 selectedSize = { 120.0f, 120.0f }; ///< The size of the button when selected (hovered).
+        glm::vec2 pressedSize = { 90.0f, 90.0f }; ///< The size of the button when pressed.
 
-        Ref<Texture2D> baseTexture;
-        Ref<Texture2D> selectedTexture;
-        Ref<Texture2D> pressedTexture;
+        glm::vec4 baseColor = { 1.0f, 1.0f, 1.0f, 1.0f }; ///< The color of the button in its default state.
+        glm::vec4 selectedColor = { 0.8f, 0.8f, 1.0f, 1.0f }; ///< The color of the button when selected (hovered).
+        glm::vec4 pressedColor = { 0.6f, 0.6f, 1.0f, 1.0f }; ///< The color of the button when pressed.
 
-        glm::vec2 baseSize = {100.0f, 100.0f};
-        glm::vec2 selectedSize = {120.0f, 120.0f};
-        glm::vec2 pressedSize = {90.0f, 90.0f};
-
-        glm::vec4 baseColor = {1.0f, 1.0f, 1.0f, 1.0f};
-        glm::vec4 selectedColor = {0.8f, 0.8f, 1.0f, 1.0f};
-        glm::vec4 pressedColor = {0.6f, 0.6f, 1.0f, 1.0f};
-
-        enum class ButtonState
-        {
-            Base,
-            Selected,
-            Pressed
+        enum class ButtonState {
+            Base,      ///< The button is in its default state.
+            Selected,  ///< The button is selected (hovered).
+            Pressed    ///< The button is pressed.
         };
 
-        ButtonState currentState = ButtonState::Base; // Estado actual del botón
+        ButtonState currentState = ButtonState::Base; ///< The current state of the button.
 
         UIButtonComponent() = default;
 
-        UIButtonComponent(const std::string& baseTexturePath, const std::string& selectedTexturePath, const std::string& pressedTexturePath)
-        {
-            if (!baseTexturePath.empty())
-            {
+        /**
+         * @brief Constructs a UIButtonComponent with the given textures.
+         * @param baseTexturePath The path to the texture for the base state.
+         * @param selectedTexturePath The path to the texture for the selected state.
+         * @param pressedTexturePath The path to the texture for the pressed state.
+         */
+        UIButtonComponent(const std::string& baseTexturePath, const std::string& selectedTexturePath, const std::string& pressedTexturePath) {
+            if (!baseTexturePath.empty()) {
                 baseTexture = Texture2D::Load(baseTexturePath);
             }
-            if (!selectedTexturePath.empty())
-            {
+            if (!selectedTexturePath.empty()) {
                 selectedTexture = Texture2D::Load(selectedTexturePath);
             }
-            if (!pressedTexturePath.empty())
-            {
+            if (!pressedTexturePath.empty()) {
                 pressedTexture = Texture2D::Load(pressedTexturePath);
             }
         }
 
-        void SetState(ButtonState newState)
-        {
+        /**
+         * @brief Sets the current state of the button.
+         * @param newState The new state to set.
+         */
+        void SetState(ButtonState newState) {
             currentState = newState;
         }
 
-        Ref<Texture2D> GetCurrentTexture() const
-        {
-            switch (currentState)
-            {
+        /**
+         * @brief Gets the texture corresponding to the current state of the button.
+         * @return The texture for the current state.
+         */
+        Ref<Texture2D> GetCurrentTexture() const {
+            switch (currentState) {
             case ButtonState::Selected:
                 return selectedTexture;
             case ButtonState::Pressed:
@@ -1044,10 +1192,12 @@
             }
         }
 
-        glm::vec2 GetCurrentSize() const
-        {
-            switch (currentState)
-            {
+        /**
+         * @brief Gets the size corresponding to the current state of the button.
+         * @return The size for the current state.
+         */
+        glm::vec2 GetCurrentSize() const {
+            switch (currentState) {
             case ButtonState::Selected:
                 return selectedSize;
             case ButtonState::Pressed:
@@ -1057,10 +1207,12 @@
             }
         }
 
-        glm::vec4 GetCurrentColor() const
-        {
-            switch (currentState)
-            {
+        /**
+         * @brief Gets the color corresponding to the current state of the button.
+         * @return The color for the current state.
+         */
+        glm::vec4 GetCurrentColor() const {
+            switch (currentState) {
             case ButtonState::Selected:
                 return selectedColor;
             case ButtonState::Pressed:
@@ -1070,9 +1222,13 @@
             }
         }
 
+        /**
+         * @brief Serializes the UIButtonComponent.
+         * @tparam Archive The type of the archive.
+         * @param archive The archive to serialize to.
+         */
         template<class Archive>
-        void save(Archive& archive) const
-        {
+        void save(Archive& archive) const {
             archive(
                 cereal::make_nvp("BaseTextureUUID", baseTexture ? baseTexture->GetUUID() : UUID(0)),
                 cereal::make_nvp("SelectedTextureUUID", selectedTexture ? selectedTexture->GetUUID() : UUID(0)),
@@ -1083,14 +1239,18 @@
                 cereal::make_nvp("BaseColor", baseColor),
                 cereal::make_nvp("SelectedColor", selectedColor),
                 cereal::make_nvp("PressedColor", pressedColor),
-                cereal::make_nvp("Visible", Visible),
                 cereal::make_nvp("CurrentState", static_cast<int>(currentState))
             );
+            UIComponent::save(archive); // Llama a la serialización de la clase base
         }
 
+        /**
+         * @brief Deserializes the UIButtonComponent.
+         * @tparam Archive The type of the archive.
+         * @param archive The archive to deserialize from.
+         */
         template<class Archive>
-        void load(Archive& archive)
-        {
+        void load(Archive& archive) {
             UUID baseTextureUUID, selectedTextureUUID, pressedTextureUUID;
             int loadedState;
 
@@ -1104,7 +1264,6 @@
                 cereal::make_nvp("BaseColor", baseColor),
                 cereal::make_nvp("SelectedColor", selectedColor),
                 cereal::make_nvp("PressedColor", pressedColor),
-                cereal::make_nvp("Visible", Visible),
                 cereal::make_nvp("CurrentState", loadedState)
             );
 
@@ -1119,79 +1278,117 @@
             if (pressedTextureUUID != 0) {
                 pressedTexture = ResourceLoader::GetResource<Texture2D>(pressedTextureUUID);
             }
+            UIComponent::load(archive);
         }
     };
 
+    /**
+     * @brief Component representing a UI Toggle.
+     * @ingroup scene
+     */
 
-    struct UIToggleComponent
-    {
-        Ref<Texture2D> ActiveTexture = Texture2D::Load("assets/textures/toggleEnabled.png");
-        Ref<Texture2D> InactiveTexture = Texture2D::Load("assets/textures/toggleDisabled.png");
-        glm::vec2 Size = {100.0f, 100.0f};
-        bool IsActive = false;
-        bool Visible = true;
+     struct UIToggleComponent : public UIComponent {
+        Ref<Texture2D> ActiveTexture = Texture2D::Load("assets/textures/toggleEnabled.png"); ///< The texture when the toggle is active.
+        Ref<Texture2D> InactiveTexture = Texture2D::Load("assets/textures/toggleDisabled.png"); ///< The texture when the toggle is inactive.
+        glm::vec2 Size = { 100.0f, 100.0f }; ///< The size of the toggle.
+        bool IsActive = false; ///< Whether the toggle is active.
 
         UIToggleComponent() = default;
 
-        UIToggleComponent(const std::string& activeTexturePath, const std::string& inactiveTexturePath,
-                          const glm::vec2& size, bool visible)
-            : Size(size), Visible(visible)
-        {
-            if (!activeTexturePath.empty())
-            {
+        /**
+         * @brief Constructs a UIToggleComponent with the given textures and size.
+         * @param activeTexturePath The path to the texture for the active state.
+         * @param inactiveTexturePath The path to the texture for the inactive state.
+         * @param size The size of the toggle.
+         * @param visible Whether the toggle is visible.
+         */
+        UIToggleComponent(const std::string& activeTexturePath, const std::string& inactiveTexturePath, const glm::vec2& size, bool visible)
+            : Size(size) {
+            if (!activeTexturePath.empty()) {
                 ActiveTexture = Texture2D::Load(activeTexturePath);
             }
-            if (!inactiveTexturePath.empty())
-            {
+            if (!inactiveTexturePath.empty()) {
                 InactiveTexture = Texture2D::Load(inactiveTexturePath);
             }
+            Visible = visible;
         }
 
+        /**
+         * @brief Sets the texture for the active state.
+         * @param newTexture The new texture to set.
+         */
         void SetActiveTexture(const Ref<Texture2D>& newTexture) { ActiveTexture = newTexture; }
+
+        /**
+         * @brief Sets the texture for the inactive state.
+         * @param newTexture The new texture to set.
+         */
         void SetInactiveTexture(const Ref<Texture2D>& newTexture) { InactiveTexture = newTexture; }
 
-        void SetActiveTexture(const std::string& texturePath)
-        {
-            if (!texturePath.empty())
-            {
+        /**
+         * @brief Sets the texture for the active state from a file path.
+         * @param texturePath The path to the texture file.
+         */
+        void SetActiveTexture(const std::string& texturePath) {
+            if (!texturePath.empty()) {
                 ActiveTexture = Texture2D::Load(texturePath);
             }
         }
 
-        void SetInactiveTexture(const std::string& texturePath)
-        {
-            if (!texturePath.empty())
-            {
+        /**
+         * @brief Sets the texture for the inactive state from a file path.
+         * @param texturePath The path to the texture file.
+         */
+        void SetInactiveTexture(const std::string& texturePath) {
+            if (!texturePath.empty()) {
                 InactiveTexture = Texture2D::Load(texturePath);
             }
         }
 
+        /**
+         * @brief Toggles the state of the toggle.
+         */
         void Toggle() { IsActive = !IsActive; }
 
-        template <class Archive> void save(Archive& archive) const
-        {
-            archive(cereal::make_nvp("ActiveTextureUUID", ActiveTexture ? ActiveTexture->GetUUID() : UUID(0)),
-                    cereal::make_nvp("InactiveTextureUUID", InactiveTexture ? InactiveTexture->GetUUID() : UUID(0)),
-                    cereal::make_nvp("Size", Size), cereal::make_nvp("IsActive", IsActive),
-                    cereal::make_nvp("Visible", Visible));
+        /**
+         * @brief Serializes the UIToggleComponent.
+         * @tparam Archive The type of the archive.
+         * @param archive The archive to serialize to.
+         */
+        template<class Archive>
+        void save(Archive& archive) const {
+            archive(
+                cereal::make_nvp("ActiveTextureUUID", ActiveTexture ? ActiveTexture->GetUUID() : UUID(0)),
+                cereal::make_nvp("InactiveTextureUUID", InactiveTexture ? InactiveTexture->GetUUID() : UUID(0)),
+                cereal::make_nvp("Size", Size),
+                cereal::make_nvp("IsActive", IsActive)
+            );
+            UIComponent::save(archive); // Llama a la serialización de la clase base
         }
 
-        template <class Archive> void load(Archive& archive)
-        {
+        /**
+         * @brief Deserializes the UIToggleComponent.
+         * @tparam Archive The type of the archive.
+         * @param archive The archive to deserialize from.
+         */
+        template<class Archive>
+        void load(Archive& archive) {
             UUID activeTextureUUID, inactiveTextureUUID;
 
-            archive(cereal::make_nvp("ActiveTextureUUID", activeTextureUUID),
-                    cereal::make_nvp("InactiveTextureUUID", inactiveTextureUUID), cereal::make_nvp("Size", Size),
-                    cereal::make_nvp("IsActive", IsActive), cereal::make_nvp("Visible", Visible));
+            archive(
+                cereal::make_nvp("ActiveTextureUUID", activeTextureUUID),
+                cereal::make_nvp("InactiveTextureUUID", inactiveTextureUUID),
+                cereal::make_nvp("Size", Size),
+                cereal::make_nvp("IsActive", IsActive)
+            );
 
-            if (activeTextureUUID)
-            {
+            if (activeTextureUUID != 0) {
                 ActiveTexture = ResourceLoader::GetResource<Texture2D>(activeTextureUUID);
             }
-            if (inactiveTextureUUID)
-            {
+            if (inactiveTextureUUID != 0) {
                 InactiveTexture = ResourceLoader::GetResource<Texture2D>(inactiveTextureUUID);
             }
+            UIComponent::load(archive); // Llama a la deserialización de la clase base
         }
     };
 
@@ -1199,11 +1396,11 @@
     {
         public:
         // Constructor por defecto
-        ParticlesSystemComponent() { 
+        ParticlesSystemComponent() {
             m_Particles = CreateRef<ParticleEmitter>();
-            
+
         }
-        
+
 
         Ref<ParticleEmitter> GetParticleEmitter() { return m_Particles; }
 
@@ -1212,7 +1409,7 @@
 
 
         private:
-        Ref<ParticleEmitter> m_Particles = nullptr; 
+        Ref<ParticleEmitter> m_Particles = nullptr;
 
 
         public:
@@ -1228,7 +1425,7 @@
 
 
     };
- 
+
     struct NavMeshComponent
     {
         bool ShowDebug = false; ///< Flag to show the navigation mesh debug.

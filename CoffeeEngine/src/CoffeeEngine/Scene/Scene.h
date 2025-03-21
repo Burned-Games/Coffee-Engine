@@ -106,6 +106,9 @@ namespace Coffee {
         void OnEditorUpdateUI(float dt, entt::registry& registry);
         void OnRuntimeUpdateUI(float dt, entt::registry& registry);
 
+        glm::vec2 CalculateAnchorOffset(UIAnchorPosition anchor, const glm::vec2& windowSize);
+
+
         /**
          * @brief Load a scene from a file.
          * @param path The path to the file.

@@ -1155,10 +1155,24 @@ namespace Coffee
             }
         }
 
+        const char* anchorPoints[] = { "TopLeft", "TopCenter", "TopRight",
+                                  "CenterLeft", "Center", "CenterRight",
+                                  "BottomLeft", "BottomCenter", "BottomRight" };
+
+        auto DrawAnchorPointCombo = [&](UIAnchorPosition& anchor) {
+            int currentAnchor = static_cast<int>(anchor);
+            if (ImGui::Combo("Anchor Point", &currentAnchor, anchorPoints, IM_ARRAYSIZE(anchorPoints)))
+            {
+                anchor = static_cast<UIAnchorPosition>(currentAnchor);
+            }
+        };
+
         if (entity.HasComponent<UIImageComponent>())
         {
             auto& uiImageComponent = entity.GetComponent<UIImageComponent>();
             bool isCollapsingHeaderOpen = true;
+
+            DrawAnchorPointCombo(uiImageComponent.Anchor);
 
             if (ImGui::CollapsingHeader("UI Image", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
@@ -1202,6 +1216,8 @@ namespace Coffee
         {
             auto& uiTextComponent = entity.GetComponent<UITextComponent>();
             bool isCollapsingHeaderOpen = true;
+
+            DrawAnchorPointCombo(uiTextComponent.Anchor);
 
             if (ImGui::CollapsingHeader("UI Text", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
@@ -1253,6 +1269,8 @@ namespace Coffee
         {
             auto& uiSliderComponent = entity.GetComponent<UISliderComponent>();
             bool isCollapsingHeaderOpen = true;
+
+            DrawAnchorPointCombo(uiSliderComponent.Anchor);
 
             if (ImGui::CollapsingHeader("UI Slider", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
@@ -1331,6 +1349,8 @@ namespace Coffee
         {
             auto& uiButtonComponent = entity.GetComponent<UIButtonComponent>();
             bool isCollapsingHeaderOpen = true;
+
+            DrawAnchorPointCombo(uiButtonComponent.Anchor);
 
             if (ImGui::CollapsingHeader("UI Button", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
@@ -1480,6 +1500,8 @@ namespace Coffee
         {
             auto& uiToggleComponent = entity.GetComponent<UIToggleComponent>();
             bool isCollapsingHeaderOpen = true;
+
+            DrawAnchorPointCombo(uiToggleComponent.Anchor);
 
             if (ImGui::CollapsingHeader("UI Toggle", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
