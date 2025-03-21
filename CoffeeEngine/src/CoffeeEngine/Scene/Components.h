@@ -1136,139 +1136,135 @@
      * @ingroup scene
      */
     struct UIButtonComponent : public UIComponent
+{
+    bool Visible = true;
+
+    Ref<Texture2D> baseTexture;
+    Ref<Texture2D> selectedTexture;
+    Ref<Texture2D> pressedTexture;
+
+    glm::vec2 baseSize = {100.0f, 100.0f}; // Tamaño base (fijo)
+    glm::vec2 selectedSize = {120.0f, 120.0f}; // Tamaño seleccionado (no se usará)
+    glm::vec2 pressedSize = {90.0f, 90.0f}; // Tamaño presionado (no se usará)
+
+    glm::vec4 baseColor = {1.0f, 1.0f, 1.0f, 1.0f};
+    glm::vec4 selectedColor = {0.8f, 0.8f, 1.0f, 1.0f};
+    glm::vec4 pressedColor = {0.6f, 0.6f, 1.0f, 1.0f};
+
+    enum class ButtonState
     {
-        bool Visible = true;
-
-
-        Ref<Texture2D> baseTexture;
-        Ref<Texture2D> selectedTexture;
-        Ref<Texture2D> pressedTexture;
-
-        glm::vec2 baseSize = {100.0f, 100.0f};
-        glm::vec2 selectedSize = {120.0f, 120.0f};
-        glm::vec2 pressedSize = {90.0f, 90.0f};
-
-        glm::vec4 baseColor = {1.0f, 1.0f, 1.0f, 1.0f};
-        glm::vec4 selectedColor = {0.8f, 0.8f, 1.0f, 1.0f};
-        glm::vec4 pressedColor = {0.6f, 0.6f, 1.0f, 1.0f};
-
-        enum class ButtonState
-        {
-            Base,
-            Selected,
-            Pressed
-        };
-
-        ButtonState currentState = ButtonState::Base;
-        ButtonState targetState = ButtonState::Base;
-
-        float transitionTime = 0.0f;
-        float transitionDuration = 0.2f;
-
-        UIButtonComponent() = default;
-
-        UIButtonComponent(const std::string& baseTexturePath, const std::string& selectedTexturePath, const std::string& pressedTexturePath)
-        {
-            if (!baseTexturePath.empty()) baseTexture = Texture2D::Load(baseTexturePath);
-            if (!selectedTexturePath.empty()) selectedTexture = Texture2D::Load(selectedTexturePath);
-            if (!pressedTexturePath.empty()) pressedTexture = Texture2D::Load(pressedTexturePath);
-        }
-
-        void SetState(ButtonState newState)
-        {
-            if (targetState != newState)
-            {
-                targetState = newState;
-                transitionTime = 0.0f; // Reiniciar transición
-            }
-        }
-
-        void Update(float dt)
-        {
-            if (currentState != targetState)
-            {
-                transitionTime += dt;
-                float t = glm::clamp(transitionTime / transitionDuration, 0.0f, 1.0f);
-
-                if (t >= 1.0f)
-                {
-                    currentState = targetState;
-                }
-            }
-        }
-
-        Ref<Texture2D> GetCurrentTexture() const
-        {
-            switch (currentState)
-            {
-            case ButtonState::Selected: return selectedTexture;
-            case ButtonState::Pressed: return pressedTexture;
-            default: return baseTexture;
-            }
-        }
-
-        glm::vec2 GetCurrentSize() const
-        {
-            glm::vec2 startSize = baseSize;
-            glm::vec2 endSize = (targetState == ButtonState::Selected) ? selectedSize : pressedSize;
-            float t = glm::clamp(transitionTime / transitionDuration, 0.0f, 1.0f);
-            return Lerp(startSize, endSize, t);
-        }
-
-        glm::vec4 GetCurrentColor() const
-        {
-            glm::vec4 startColor = baseColor;
-            glm::vec4 endColor = (targetState == ButtonState::Selected) ? selectedColor : pressedColor;
-            float t = glm::clamp(transitionTime / transitionDuration, 0.0f, 1.0f);
-            return Lerp(startColor, endColor, t);
-        }
-
-
-        template<class Archive>
-        void save(Archive& archive) const
-        {
-            archive(
-                cereal::make_nvp("BaseTextureUUID", baseTexture ? baseTexture->GetUUID() : UUID(0)),
-                cereal::make_nvp("SelectedTextureUUID", selectedTexture ? selectedTexture->GetUUID() : UUID(0)),
-                cereal::make_nvp("PressedTextureUUID", pressedTexture ? pressedTexture->GetUUID() : UUID(0)),
-                cereal::make_nvp("BaseSize", baseSize),
-                cereal::make_nvp("SelectedSize", selectedSize),
-                cereal::make_nvp("PressedSize", pressedSize),
-                cereal::make_nvp("BaseColor", baseColor),
-                cereal::make_nvp("SelectedColor", selectedColor),
-                cereal::make_nvp("PressedColor", pressedColor),
-                cereal::make_nvp("Visible", Visible),
-                cereal::make_nvp("CurrentState", static_cast<int>(currentState))
-            );
-        }
-
-        template<class Archive>
-        void load(Archive& archive)
-        {
-            UUID baseTextureUUID, selectedTextureUUID, pressedTextureUUID;
-            int loadedState;
-
-            archive(
-                cereal::make_nvp("BaseTextureUUID", baseTextureUUID),
-                cereal::make_nvp("SelectedTextureUUID", selectedTextureUUID),
-                cereal::make_nvp("PressedTextureUUID", pressedTextureUUID),
-                cereal::make_nvp("BaseSize", baseSize),
-                cereal::make_nvp("SelectedSize", selectedSize),
-                cereal::make_nvp("PressedSize", pressedSize),
-                cereal::make_nvp("BaseColor", baseColor),
-                cereal::make_nvp("SelectedColor", selectedColor),
-                cereal::make_nvp("PressedColor", pressedColor),
-                cereal::make_nvp("Visible", Visible),
-                cereal::make_nvp("CurrentState", loadedState)
-            );
-
-            currentState = static_cast<ButtonState>(loadedState);
-
-            if (baseTextureUUID != 0) baseTexture = ResourceLoader::GetResource<Texture2D>(baseTextureUUID);
-            if (selectedTextureUUID != 0) selectedTexture = ResourceLoader::GetResource<Texture2D>(selectedTextureUUID);
-            if (pressedTextureUUID != 0) pressedTexture = ResourceLoader::GetResource<Texture2D>(pressedTextureUUID);
-        }
+        Base,
+        Selected,
+        Pressed
     };
+
+    ButtonState currentState = ButtonState::Base;
+    ButtonState targetState = ButtonState::Base;
+
+    float transitionTime = 0.0f;
+    float transitionDuration = 0.2f;
+
+    UIButtonComponent() = default;
+
+    UIButtonComponent(const std::string& baseTexturePath, const std::string& selectedTexturePath, const std::string& pressedTexturePath)
+    {
+        if (!baseTexturePath.empty()) baseTexture = Texture2D::Load(baseTexturePath);
+        if (!selectedTexturePath.empty()) selectedTexture = Texture2D::Load(selectedTexturePath);
+        if (!pressedTexturePath.empty()) pressedTexture = Texture2D::Load(pressedTexturePath);
+    }
+
+    void SetState(ButtonState newState)
+    {
+        if (targetState != newState)
+        {
+            targetState = newState;
+            transitionTime = 0.0f; // Reiniciar transición
+        }
+    }
+
+    void Update(float dt)
+    {
+        if (currentState != targetState)
+        {
+            transitionTime += dt;
+            float t = glm::clamp(transitionTime / transitionDuration, 0.0f, 1.0f);
+
+            if (t >= 1.0f)
+            {
+                currentState = targetState;
+            }
+        }
+    }
+
+    Ref<Texture2D> GetCurrentTexture() const
+    {
+        switch (currentState)
+        {
+        case ButtonState::Selected: return selectedTexture;
+        case ButtonState::Pressed: return pressedTexture;
+        default: return baseTexture;
+        }
+    }
+
+    glm::vec2 GetCurrentSize() const
+    {
+        // Devuelve siempre el tamaño base, sin interpolación
+        return baseSize;
+    }
+
+    glm::vec4 GetCurrentColor() const
+    {
+        glm::vec4 startColor = baseColor;
+        glm::vec4 endColor = (targetState == ButtonState::Selected) ? selectedColor : pressedColor;
+        float t = glm::clamp(transitionTime / transitionDuration, 0.0f, 1.0f);
+        return Lerp(startColor, endColor, t);
+    }
+
+    template<class Archive>
+    void save(Archive& archive) const
+    {
+        archive(
+            cereal::make_nvp("BaseTextureUUID", baseTexture ? baseTexture->GetUUID() : UUID(0)),
+            cereal::make_nvp("SelectedTextureUUID", selectedTexture ? selectedTexture->GetUUID() : UUID(0)),
+            cereal::make_nvp("PressedTextureUUID", pressedTexture ? pressedTexture->GetUUID() : UUID(0)),
+            cereal::make_nvp("BaseSize", baseSize),
+            cereal::make_nvp("SelectedSize", selectedSize),
+            cereal::make_nvp("PressedSize", pressedSize),
+            cereal::make_nvp("BaseColor", baseColor),
+            cereal::make_nvp("SelectedColor", selectedColor),
+            cereal::make_nvp("PressedColor", pressedColor),
+            cereal::make_nvp("Visible", Visible),
+            cereal::make_nvp("CurrentState", static_cast<int>(currentState))
+        );
+    }
+
+    template<class Archive>
+    void load(Archive& archive)
+    {
+        UUID baseTextureUUID, selectedTextureUUID, pressedTextureUUID;
+        int loadedState;
+
+        archive(
+            cereal::make_nvp("BaseTextureUUID", baseTextureUUID),
+            cereal::make_nvp("SelectedTextureUUID", selectedTextureUUID),
+            cereal::make_nvp("PressedTextureUUID", pressedTextureUUID),
+            cereal::make_nvp("BaseSize", baseSize),
+            cereal::make_nvp("SelectedSize", selectedSize),
+            cereal::make_nvp("PressedSize", pressedSize),
+            cereal::make_nvp("BaseColor", baseColor),
+            cereal::make_nvp("SelectedColor", selectedColor),
+            cereal::make_nvp("PressedColor", pressedColor),
+            cereal::make_nvp("Visible", Visible),
+            cereal::make_nvp("CurrentState", loadedState)
+        );
+
+        currentState = static_cast<ButtonState>(loadedState);
+
+        if (baseTextureUUID != 0) baseTexture = ResourceLoader::GetResource<Texture2D>(baseTextureUUID);
+        if (selectedTextureUUID != 0) selectedTexture = ResourceLoader::GetResource<Texture2D>(selectedTextureUUID);
+        if (pressedTextureUUID != 0) pressedTexture = ResourceLoader::GetResource<Texture2D>(pressedTextureUUID);
+    }
+};
 
     /**
      * @brief Component representing a UI Toggle.
