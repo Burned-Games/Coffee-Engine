@@ -1212,23 +1212,21 @@ namespace Coffee
                 }
             }
         }
-        if (entity.HasComponent<UITextComponent>())
-        {
+
+        if (entity.HasComponent<UITextComponent>()) {
             auto& uiTextComponent = entity.GetComponent<UITextComponent>();
             bool isCollapsingHeaderOpen = true;
 
             DrawAnchorPointCombo(uiTextComponent.Anchor);
 
-            if (ImGui::CollapsingHeader("UI Text", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
-            {
+            if (ImGui::CollapsingHeader("UI Text", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen)) {
                 // Show text content
                 ImGui::Text("Text Content");
                 char buffer[256];
                 memset(buffer, 0, sizeof(buffer));
                 strncpy(buffer, uiTextComponent.Text.c_str(), sizeof(buffer) - 1);
 
-                if (ImGui::InputTextMultiline("##Text", buffer, sizeof(buffer)))
-                {
+                if (ImGui::InputTextMultiline("##Text", buffer, sizeof(buffer))) {
                     uiTextComponent.Text = std::string(buffer);
                 }
 
@@ -1237,18 +1235,15 @@ namespace Coffee
                 ImGui::SameLine();
                 ImGui::Text("%s", uiTextComponent.FontPath.c_str());
 
-                if (ImGui::Button("Select Font"))
-                {
+                if (ImGui::Button("Select Font")) {
                     std::string path = FileDialog::OpenFile({}).string();
-                    if (!path.empty())
-                    {
+                    if (!path.empty()) {
                         uiTextComponent.FontPath = path;
                         uiTextComponent.font = std::make_shared<Font>(path);
                     }
                 }
                 // If there is no font, use default
-                if (!uiTextComponent.font)
-                {
+                if (!uiTextComponent.font) {
                     uiTextComponent.font = Font::GetDefault();
                 }
 
@@ -1259,6 +1254,14 @@ namespace Coffee
                 // color
                 ImGui::Text("Text Color");
                 ImGui::ColorEdit4("##TextColor", glm::value_ptr(uiTextComponent.Color));
+
+                // alignment
+                ImGui::Text("Text Alignment");
+                const char* alignmentOptions[] = { "Left", "Center", "Right" };
+                int currentAlignment = static_cast<int>(uiTextComponent.Alignment);
+                if (ImGui::Combo("##TextAlignment", &currentAlignment, alignmentOptions, IM_ARRAYSIZE(alignmentOptions))) {
+                    uiTextComponent.Alignment = static_cast<UITextAlignment>(currentAlignment);
+                }
 
                 // visibility
                 ImGui::Checkbox("Visible", &uiTextComponent.Visible);

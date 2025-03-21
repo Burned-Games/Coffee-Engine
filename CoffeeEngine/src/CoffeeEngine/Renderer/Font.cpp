@@ -144,6 +144,23 @@ namespace Coffee {
 		delete m_Data;
 	}
 
+    float Font::GetTextWidth(const std::string& text, float fontSize) const
+    {
+        float width = 0.0f;
+
+        float scale = fontSize / m_Data->FontGeometry.getMetrics().emSize;
+
+        for (char c : text)
+        {
+            const msdf_atlas::GlyphGeometry* glyph = m_Data->FontGeometry.getGlyph(c);
+            if (glyph)
+            {
+                width += glyph->getAdvance() * scale;
+            }
+        }
+
+        return width;
+    }
 
 	Ref<Font> Font::GetDefault()
 	{

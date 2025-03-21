@@ -16,6 +16,8 @@ namespace Coffee {
         const MSDFData* GetMSDFData() const { return m_Data; }
         Ref<Texture2D> GetAtlasTexture() const { return m_AtlasTexture; }
 
+        float GetTextWidth(const std::string& text, float fontSize) const;
+
         static Ref<Font> GetDefault();
     private:
         MSDFData* m_Data;

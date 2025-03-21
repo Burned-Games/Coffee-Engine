@@ -958,64 +958,59 @@
      * @brief Component representing a UI Text.
      * @ingroup scene
      */
-    struct UITextComponent : public UIComponent {
-        std::string Text = "Default Text"; ///< The text to display.
-        std::string FontPath; ///< The path to the font file.
-        Ref<Font> font; ///< The font used for rendering the text.
-        float FontSize = 24.0f; ///< The size of the font.
-        glm::vec4 Color = { 1.0f, 1.0f, 1.0f, 1.0f }; ///< The color of the text.
 
-        UITextComponent() = default;
+     enum class UITextAlignment {
+         Left,
+         Center,
+         Right
+     };
 
-        /**
-         * @brief Constructs a UITextComponent with the given parameters.
-         * @param text The text to display.
-         * @param fontPath The path to the font file.
-         * @param fontSize The size of the font.
-         * @param color The color of the text.
-         */
-        UITextComponent(const std::string& text, const std::string& fontPath, float fontSize, const glm::vec4& color)
-            : Text(text), FontPath(fontPath), FontSize(fontSize), Color(color) {
-            if (!fontPath.empty()) {
-                font = Font::GetDefault();
-            }
-        }
+     struct UITextComponent : public UIComponent {
+         std::string Text = "Default Text"; ///< The text to display.
+         std::string FontPath; ///< The path to the font file.
+         Ref<Font> font; ///< The font used for rendering the text.
+         float FontSize = 24.0f; ///< The size of the font.
+         glm::vec4 Color = { 1.0f, 1.0f, 1.0f, 1.0f }; ///< The color of the text.
+         UITextAlignment Alignment = UITextAlignment::Left; ///< The alignment of the text.
 
-        /**
-         * @brief Serializes the UITextComponent.
-         * @tparam Archive The type of the archive.
-         * @param archive The archive to serialize to.
-         */
-        template<class Archive>
-        void save(Archive& archive) const {
-            archive(
-                cereal::make_nvp("Text", Text),
-                cereal::make_nvp("FontPath", FontPath),
-                cereal::make_nvp("FontSize", FontSize),
-                cereal::make_nvp("Color", Color)
-            );
-            UIComponent::save(archive); // Llama a la serialización de la clase base
-        }
+         UITextComponent() = default;
 
-        /**
-         * @brief Deserializes the UITextComponent.
-         * @tparam Archive The type of the archive.
-         * @param archive The archive to deserialize from.
-         */
-        template<class Archive>
-        void load(Archive& archive) {
-            archive(
-                cereal::make_nvp("Text", Text),
-                cereal::make_nvp("FontPath", FontPath),
-                cereal::make_nvp("FontSize", FontSize),
-                cereal::make_nvp("Color", Color)
-            );
-            if (!FontPath.empty()) {
-                font = Font::GetDefault();
-            }
-            UIComponent::load(archive); // Llama a la deserialización de la clase base
-        }
-    };
+         UITextComponent(const std::string& text, const std::string& fontPath, float fontSize, const glm::vec4& color)
+             : Text(text), FontPath(fontPath), FontSize(fontSize), Color(color) {
+             if (!fontPath.empty()) {
+                 font = Font::GetDefault();
+             }
+         }
+
+         template<class Archive>
+         void save(Archive& archive) const {
+             archive(
+                 cereal::make_nvp("Text", Text),
+                 cereal::make_nvp("FontPath", FontPath),
+                 cereal::make_nvp("FontSize", FontSize),
+                 cereal::make_nvp("Color", Color),
+                 cereal::make_nvp("Alignment", static_cast<int>(Alignment))
+             );
+             UIComponent::save(archive);
+         }
+
+         template<class Archive>
+         void load(Archive& archive) {
+             int alignment;
+             archive(
+                 cereal::make_nvp("Text", Text),
+                 cereal::make_nvp("FontPath", FontPath),
+                 cereal::make_nvp("FontSize", FontSize),
+                 cereal::make_nvp("Color", Color),
+                 cereal::make_nvp("Alignment", alignment)
+             );
+             Alignment = static_cast<UITextAlignment>(alignment);
+             if (!FontPath.empty()) {
+                 font = Font::GetDefault();
+             }
+             UIComponent::load(archive);
+         }
+     };
 
     /**
      * @brief Component representing a UI Slider.

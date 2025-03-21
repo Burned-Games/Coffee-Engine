@@ -679,6 +679,8 @@ namespace Coffee {
             }
         };
 
+
+
         auto uiImageView = registry.view<UIImageComponent, TransformComponent>();
         for (auto& entity : uiImageView) {
             auto& uiImageComponent = uiImageView.get<UIImageComponent>(entity);
@@ -706,15 +708,38 @@ namespace Coffee {
 
             if (!uiTextComponent.font) uiTextComponent.font = Font::GetDefault();
 
+            std::vector<std::string> lines = SplitTextIntoLines(uiTextComponent.Text);
+
             glm::vec2 anchorOffset = CalculateAnchorOffset(uiTextComponent.Anchor, windowSize);
-            glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
+            glm::vec2 basePosition = anchorOffset + glm::vec2(transformComponent.Position);
 
-            glm::mat4 transform = glm::mat4(1.0f);
-            transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
-            transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-            transform = glm::scale(transform, glm::vec3(uiTextComponent.FontSize, -uiTextComponent.FontSize, 1.0f));
+            float lineHeight = uiTextComponent.FontSize * 1.2f;
+            float totalTextHeight = lines.size() * lineHeight;
 
-            Renderer2D::DrawString(uiTextComponent.Text, uiTextComponent.font, transform, { uiTextComponent.Color, 0.0f, 0.0f }, Renderer2D::RenderMode::Screen, (uint32_t)entity);
+            for (size_t i = 0; i < lines.size(); i++) {
+                glm::vec2 linePosition = basePosition;
+
+                linePosition.y -= i * lineHeight;
+                float lineWidth = uiTextComponent.font->GetTextWidth(lines[i], uiTextComponent.FontSize);
+
+                switch (uiTextComponent.Alignment) {
+                    case UITextAlignment::Left:
+                        break;
+                    case UITextAlignment::Center:
+                        linePosition.x -= lineWidth / 2.0f;
+                        break;
+                    case UITextAlignment::Right:
+                        linePosition.x -= lineWidth;
+                        break;
+                }
+
+                glm::mat4 transform = glm::mat4(1.0f);
+                transform = glm::translate(transform, glm::vec3(linePosition, 0.0f));
+                transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+                transform = glm::scale(transform, glm::vec3(uiTextComponent.FontSize, -uiTextComponent.FontSize, 1.0f));
+
+                Renderer2D::DrawString(lines[i], uiTextComponent.font, transform, {uiTextComponent.Color, 0.0f, 0.0f}, Renderer2D::RenderMode::Screen, (uint32_t)entity);
+            }
         }
 
         auto uiSliderView = registry.view<UISliderComponent, TransformComponent>();
@@ -763,9 +788,8 @@ namespace Coffee {
             glm::vec2 anchorOffset = CalculateAnchorOffset(uiButtonComponent.Anchor, windowSize);
             glm::vec2 finalPosition = anchorOffset + uiButtonComponent.Position;
 
-            glm::mat4 transform = glm::mat4(1.0f); // Comienza desde una matriz identidad
+            glm::mat4 transform = glm::mat4(1.0f);
             try {
-                // Construye la transformación desde cero (como en UIImageComponent)
                 transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
                 transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
                 transform = glm::scale(transform, glm::vec3(
@@ -841,5 +865,15 @@ namespace Coffee {
         default:
             return glm::vec2(0.0f, 0.0f);
         }
+    }
+
+    std::vector<std::string> Scene::SplitTextIntoLines(const std::string& text) {
+        std::vector<std::string> lines;
+        std::stringstream ss(text);
+        std::string line;
+        while (std::getline(ss, line, '\n')) {
+            lines.push_back(line);
+        }
+        return lines;
     }
 }
