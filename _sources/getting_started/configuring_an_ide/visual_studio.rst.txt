@@ -24,7 +24,7 @@ If you don't have administrator permissions:
 
 **Use the script (recommended option):**
   
-  1. Download the script from `here <https://gist.github.com/HugoPlacer/e6b77b8d4ea8f6daa9b4d32e10a34bca/archive/9a8fcd49a04f29380c705e42c8df433588c96c2c.zip>`_
+  1. Download the script from `here <https://gist.github.com/hugoplanell/e6b77b8d4ea8f6daa9b4d32e10a34bca/archive/9a8fcd49a04f29380c705e42c8df433588c96c2c.zip>`_
   2. Navigate to the directory where the script was downloaded.
   3. Run the script with the following command:
 
