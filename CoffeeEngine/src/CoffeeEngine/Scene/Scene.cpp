@@ -310,9 +310,9 @@ namespace Coffee {
         OnEditorUpdateUI(dt, m_Registry);
     }
 
-    
 
-       
+
+
 
 
     void Scene::OnUpdateRuntime(float dt)
@@ -416,7 +416,7 @@ namespace Coffee {
             AnimatorComponent* animatorComponent = &animatorView.get<AnimatorComponent>(entity);
             AnimationSystem::Update(dt, animatorComponent);
         }
-        
+
         // Get all entities with ModelComponent and TransformComponent
         auto view = m_Registry.view<MeshComponent, TransformComponent>();
 
@@ -430,7 +430,7 @@ namespace Coffee {
 
             Ref<Mesh> mesh = meshComponent.GetMesh();
             Ref<Material> material = (materialComponent) ? materialComponent->material : nullptr;
-            
+
             Renderer3D::Submit(RenderCommand{transformComponent.GetWorldTransform(), mesh, material, (uint32_t)entity, meshComponent.animator});
         }
 
@@ -449,7 +449,7 @@ namespace Coffee {
             Renderer3D::Submit(lightComponent);
         }
 
-        
+
 
         // Get all entities with ParticlesSystemComponent and TransformComponent
         auto particleSystemView = m_Registry.view<ParticlesSystemComponent, TransformComponent>();
@@ -491,23 +491,23 @@ namespace Coffee {
 
 
         // Clear collision system state
-        CollisionSystem::Shutdown();        
+        CollisionSystem::Shutdown();
         Audio::StopAllEvents();
     }
 
     Ref<Scene> Scene::Load(const std::filesystem::path& path)
     {
         ZoneScoped;
-    
+
         Ref<Scene> scene = CreateRef<Scene>();
-    
+
         std::ifstream sceneFile(path);
         cereal::JSONInputArchive archive(sceneFile);
 
         archive(*scene);
-        
+
         scene->m_FilePath = path;
-        
+
         // TODO: Think where this could be done instead of the Load function
 
         // Add rigidbodies back to physics world
@@ -520,21 +520,21 @@ namespace Coffee {
                 // Set initial transform
                 rb.rb->SetPosition(transform.Position);
                 rb.rb->SetRotation(transform.Rotation);
-                
+
                 // Add to physics world
                 scene->m_PhysicsWorld.addRigidBody(rb.rb->GetNativeBody());
-                
+
                 // Set user pointer for collision callbacks
                 rb.rb->GetNativeBody()->setUserPointer(reinterpret_cast<void*>(static_cast<uintptr_t>(entity)));
             }
         }
-        
+
         // TODO: Think where this could be done instead of the Load function
         for (auto& audioSource : Audio::audioSources)
         {
             Audio::SetVolume(audioSource->gameObjectID, audioSource->mute ? 0.f : audioSource->volume);
         }
-    
+
         return scene;
     }
 
@@ -546,7 +546,7 @@ namespace Coffee {
         cereal::JSONOutputArchive archive(sceneFile);
 
         archive(*scene);
-        
+
         scene->m_FilePath = path;
     }
 
@@ -661,132 +661,82 @@ namespace Coffee {
         }
     }
 
-    void Scene::OnEditorUpdateUI(float dt, entt::registry& registry)
-    {
+    void Scene::OnEditorUpdateUI(float dt, entt::registry& registry) {
         auto windowSize = Renderer::GetCurrentRenderTarget()->GetSize();
 
-        // Función para calcular la posición basada en el Anchor Point
         auto CalculateAnchorOffset = [](UIAnchorPosition anchor, const glm::vec2& windowSize) -> glm::vec2 {
-            switch (anchor)
-            {
-            case UIAnchorPosition::BottomLeft:
-                return glm::vec2(0.0f, windowSize.y);
-            case UIAnchorPosition::BottomCenter:
-                return glm::vec2(windowSize.x / 2.0f, windowSize.y);
-            case UIAnchorPosition::BottomRight:
-                return glm::vec2(windowSize.x, windowSize.y);
-            case UIAnchorPosition::CenterLeft:
-                return glm::vec2(0.0f, windowSize.y / 2.0f);
-            case UIAnchorPosition::Center:
-                return glm::vec2(windowSize.x / 2.0f, windowSize.y / 2.0f);
-            case UIAnchorPosition::CenterRight:
-                return glm::vec2(windowSize.x, windowSize.y / 2.0f);
-            case UIAnchorPosition::TopLeft:
-                return glm::vec2(0.0f, 0.0f);
-            case UIAnchorPosition::TopCenter:
-                return glm::vec2(windowSize.x / 2.0f, 0.0f);
-            case UIAnchorPosition::TopRight:
-                return glm::vec2(windowSize.x, 0.0f);
-            default:
-                return glm::vec2(0.0f, 0.0f);
+            switch (anchor) {
+            case UIAnchorPosition::BottomLeft: return glm::vec2(0.0f, windowSize.y);
+            case UIAnchorPosition::BottomCenter: return glm::vec2(windowSize.x / 2.0f, windowSize.y);
+            case UIAnchorPosition::BottomRight: return glm::vec2(windowSize.x, windowSize.y);
+            case UIAnchorPosition::CenterLeft: return glm::vec2(0.0f, windowSize.y / 2.0f);
+            case UIAnchorPosition::Center: return glm::vec2(windowSize.x / 2.0f, windowSize.y / 2.0f);
+            case UIAnchorPosition::CenterRight: return glm::vec2(windowSize.x, windowSize.y / 2.0f);
+            case UIAnchorPosition::TopLeft: return glm::vec2(0.0f, 0.0f);
+            case UIAnchorPosition::TopCenter: return glm::vec2(windowSize.x / 2.0f, 0.0f);
+            case UIAnchorPosition::TopRight: return glm::vec2(windowSize.x, 0.0f);
+            default: return glm::vec2(0.0f, 0.0f);
             }
         };
 
-        // Para UIImageComponent
         auto uiImageView = registry.view<UIImageComponent, TransformComponent>();
-        for (auto& entity : uiImageView)
-        {
+        for (auto& entity : uiImageView) {
             auto& uiImageComponent = uiImageView.get<UIImageComponent>(entity);
             auto& transformComponent = uiImageView.get<TransformComponent>(entity);
 
-            if (!uiImageComponent.Visible || !uiImageComponent.texture)
-                continue;
+            if (!uiImageComponent.Visible || !uiImageComponent.texture) continue;
 
-            // Calcular la posición basada en el Anchor Point
             glm::vec2 anchorOffset = CalculateAnchorOffset(uiImageComponent.Anchor, windowSize);
-            glm::vec2 finalPosition = anchorOffset + uiImageComponent.Position;
+            glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
 
             glm::mat4 transform = glm::mat4(1.0f);
             transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
+            transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
             transform = glm::scale(transform, glm::vec3(uiImageComponent.Size.x, uiImageComponent.Size.y, 1.0f));
 
-            Renderer2D::DrawQuad(
-                transform,
-                uiImageComponent.texture,
-                1.0f,
-                glm::vec4(1.0f),
-                Renderer2D::RenderMode::Screen,
-                (uint32_t)entity
-            );
+            Renderer2D::DrawQuad(transform, uiImageComponent.texture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
         }
 
-        // Para UITextComponent
         auto uiTextView = registry.view<UITextComponent, TransformComponent>();
-        for (auto& entity : uiTextView)
-        {
+        for (auto& entity : uiTextView) {
             auto& uiTextComponent = uiTextView.get<UITextComponent>(entity);
             auto& transformComponent = uiTextView.get<TransformComponent>(entity);
 
-            if (!uiTextComponent.Visible || uiTextComponent.Text.empty())
-                continue;
+            if (!uiTextComponent.Visible || uiTextComponent.Text.empty()) continue;
 
-            if (!uiTextComponent.font)
-            {
-                uiTextComponent.font = Font::GetDefault();
-            }
+            if (!uiTextComponent.font) uiTextComponent.font = Font::GetDefault();
 
-            // Calcular la posición basada en el Anchor Point
             glm::vec2 anchorOffset = CalculateAnchorOffset(uiTextComponent.Anchor, windowSize);
-            glm::vec2 finalPosition = anchorOffset + uiTextComponent.Position;
+            glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
 
             glm::mat4 transform = glm::mat4(1.0f);
             transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
+            transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
             transform = glm::scale(transform, glm::vec3(uiTextComponent.FontSize, -uiTextComponent.FontSize, 1.0f));
 
-            Renderer2D::DrawString(
-                uiTextComponent.Text,
-                uiTextComponent.font,
-                transform,
-                { uiTextComponent.Color, 0.0f, 0.0f },
-                Renderer2D::RenderMode::Screen,
-                (uint32_t)entity
-            );
+            Renderer2D::DrawString(uiTextComponent.Text, uiTextComponent.font, transform, { uiTextComponent.Color, 0.0f, 0.0f }, Renderer2D::RenderMode::Screen, (uint32_t)entity);
         }
 
-        // Para UISliderComponent
         auto uiSliderView = registry.view<UISliderComponent, TransformComponent>();
-        for (auto& entity : uiSliderView)
-        {
+        for (auto& entity : uiSliderView) {
             auto& uiSliderComponent = uiSliderView.get<UISliderComponent>(entity);
             auto& transformComponent = uiSliderView.get<TransformComponent>(entity);
 
-            if (!uiSliderComponent.Visible)
-                continue;
+            if (!uiSliderComponent.Visible) continue;
 
-            // Calcular la posición basada en el Anchor Point
             glm::vec2 anchorOffset = CalculateAnchorOffset(uiSliderComponent.Anchor, windowSize);
-            glm::vec2 finalPosition = anchorOffset + uiSliderComponent.Position;
+            glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
 
             glm::mat4 transform = glm::mat4(1.0f);
             transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
+            transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-            // Dibujar la barra del slider
             glm::mat4 barTransform = glm::scale(transform, glm::vec3(uiSliderComponent.Size.x, uiSliderComponent.Size.y, 1.0f));
-            if (uiSliderComponent.barTexture)
-            {
-                Renderer2D::DrawQuad(
-                    barTransform,
-                    uiSliderComponent.barTexture,
-                    1.0f,
-                    glm::vec4(1.0f),
-                    Renderer2D::RenderMode::Screen,
-                    (uint32_t)entity
-                );
+            if (uiSliderComponent.barTexture) {
+                Renderer2D::DrawQuad(barTransform, uiSliderComponent.barTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
             }
 
-            // Dibujar el handle del slider
-            if (uiSliderComponent.handleTexture)
-            {
+            if (uiSliderComponent.handleTexture) {
                 float normalizedValue = glm::clamp(uiSliderComponent.Value, 0.0f, 1.0f);
                 float handleOffset = normalizedValue * (uiSliderComponent.Size.x - uiSliderComponent.HandleSize.x);
                 handleOffset -= (uiSliderComponent.Size.x / 2.0f) - (uiSliderComponent.HandleSize.x / 2.0f);
@@ -794,17 +744,9 @@ namespace Coffee {
                 glm::mat4 handleTransform = glm::translate(transform, glm::vec3(handleOffset, 0.0f, 0.0f));
                 handleTransform = glm::scale(handleTransform, glm::vec3(uiSliderComponent.HandleSize.x, uiSliderComponent.HandleSize.y, 1.0f));
 
-                Renderer2D::DrawQuad(
-                    handleTransform,
-                    uiSliderComponent.handleTexture,
-                    1.0f,
-                    glm::vec4(1.0f),
-                    Renderer2D::RenderMode::Screen,
-                    (uint32_t)entity
-                );
+                Renderer2D::DrawQuad(handleTransform, uiSliderComponent.handleTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
             }
         }
-
 
         auto uiButtonView = registry.view<UIButtonComponent, TransformComponent>();
         for (auto& entity : uiButtonView) {
@@ -852,35 +794,24 @@ namespace Coffee {
             );
         }
 
-        // Para UIToggleComponent
         auto uiToggleView = registry.view<UIToggleComponent, TransformComponent>();
-        for (auto& entity : uiToggleView)
-        {
+        for (auto& entity : uiToggleView) {
             auto& uiToggleComponent = uiToggleView.get<UIToggleComponent>(entity);
             auto& transformComponent = uiToggleView.get<TransformComponent>(entity);
 
-            if (!uiToggleComponent.Visible)
-                continue;
+            if (!uiToggleComponent.Visible) continue;
 
-            // Calcular la posición basada en el Anchor Point
             glm::vec2 anchorOffset = CalculateAnchorOffset(uiToggleComponent.Anchor, windowSize);
-            glm::vec2 finalPosition = anchorOffset + uiToggleComponent.Position;
+            glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
 
             glm::mat4 transform = glm::mat4(1.0f);
             transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
+            transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
             transform = glm::scale(transform, glm::vec3(uiToggleComponent.Size.x, uiToggleComponent.Size.y, 1.0f));
 
             Ref<Texture2D> currentTexture = uiToggleComponent.IsActive ? uiToggleComponent.ActiveTexture : uiToggleComponent.InactiveTexture;
-            if (currentTexture)
-            {
-                Renderer2D::DrawQuad(
-                    transform,
-                    currentTexture,
-                    1.0f,
-                    glm::vec4(1.0f),
-                    Renderer2D::RenderMode::Screen,
-                    (uint32_t)entity
-                );
+            if (currentTexture) {
+                Renderer2D::DrawQuad(transform, currentTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
             }
         }
     }
