@@ -805,27 +805,46 @@ namespace Coffee {
             }
         }
 
-        // Para UIButtonComponent
+
         auto uiButtonView = registry.view<UIButtonComponent, TransformComponent>();
-        for (auto& entity : uiButtonView)
-        {
+        for (auto& entity : uiButtonView) {
             auto& uiButtonComponent = uiButtonView.get<UIButtonComponent>(entity);
             auto& transformComponent = uiButtonView.get<TransformComponent>(entity);
 
-            if (!uiButtonComponent.Visible)
-                continue;
+            // Actualiza el componente del botón
+            uiButtonComponent.Update(dt);
 
-            // Calcular la posición basada en el Anchor Point
+            // Si el botón no es visible, continuamos con la siguiente entidad
+            if (!uiButtonComponent.Visible) continue;
+
+            // Obtiene la textura actual del botón
+            Ref<Texture2D> currentTexture = uiButtonComponent.GetCurrentTexture();
+            if (!currentTexture) continue;
+
+            // Calcula el desplazamiento basado en el anclaje y la posición final
             glm::vec2 anchorOffset = CalculateAnchorOffset(uiButtonComponent.Anchor, windowSize);
             glm::vec2 finalPosition = anchorOffset + uiButtonComponent.Position;
 
+            // Calcula la transformación del botón
             glm::mat4 transform = glm::mat4(1.0f);
-            transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
-            transform = glm::scale(transform, glm::vec3(uiButtonComponent.GetCurrentSize().x, uiButtonComponent.GetCurrentSize().y, 1.0f));
+            try {
+                transform = transformComponent.GetWorldTransform();
+                transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
+                transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+                transform = glm::scale(transform, glm::vec3(
+                    glm::max(uiButtonComponent.GetCurrentSize().x, 0.1f),
+                    glm::max(uiButtonComponent.GetCurrentSize().y, 0.1f),
+                    1.0f
+                ));
+            } catch (...) {
+                COFFEE_CORE_ERROR("Invalid transform for button entity {}", (uint32_t)entity);
+                continue;
+            }
 
+            // Renderiza el botón
             Renderer2D::DrawQuad(
                 transform,
-                uiButtonComponent.GetCurrentTexture(),
+                currentTexture,
                 1.0f,
                 uiButtonComponent.GetCurrentColor(),
                 Renderer2D::RenderMode::Screen,

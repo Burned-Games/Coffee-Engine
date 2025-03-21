@@ -848,41 +848,103 @@ namespace Coffee {
         );
 
         luaState.new_usertype<UITextComponent>("UITextComponent",
-            sol::constructors<UITextComponent(), UITextComponent(const std::string&, const std::string&, float, const glm::vec4&)>(),
-            "get_text", &UITextComponent::Text,
-            "set_text", [](UITextComponent& self, const std::string& text) { self.Text = text; },
-            "get_font_path", &UITextComponent::FontPath,
-            "set_font_path", [](UITextComponent& self, const std::string& fontPath) { self.FontPath = fontPath; },
-            "get_font_size", &UITextComponent::FontSize,
-            "set_font_size", [](UITextComponent& self, float fontSize) { self.FontSize = fontSize; },
-            "get_color", &UITextComponent::Color,
-            "set_color", [](UITextComponent& self, const glm::vec4& color) { self.Color = color; },
-            "is_visible", &UITextComponent::Visible,
-            "set_visible", [](UITextComponent& self, bool visible) { self.Visible = visible; }
-        );
+                sol::constructors<UITextComponent(), UITextComponent(const std::string&, const std::string&, float, const glm::vec4&)>(),
+                "get_text", &UITextComponent::Text,
+                "set_text", [](UITextComponent& self, const std::string& text) { self.Text = text; },
+                "get_font_path", &UITextComponent::FontPath,
+                "set_font_path", [](UITextComponent& self, const std::string& fontPath) { self.FontPath = fontPath; },
+                "get_font_size", &UITextComponent::FontSize,
+                "set_font_size", [](UITextComponent& self, float fontSize) { self.FontSize = fontSize; },
+                "get_color", &UITextComponent::Color,
+                "set_color", [](UITextComponent& self, const glm::vec4& color) { self.Color = color; },
+                "is_visible", &UITextComponent::Visible,
+                "set_visible", [](UITextComponent& self, bool visible) { self.Visible = visible; }
+            );
 
-        luaState.new_usertype<UIButtonComponent>("UIButtonComponent",
-            sol::constructors<UIButtonComponent(), UIButtonComponent(const std::string&, const std::string&, const std::string&)>(),
-            "set_state", [](UIButtonComponent& self, const std::string& state) {
-                if (state == "Base") {
-                    self.SetState(UIButtonComponent::ButtonState::Base);
-                } else if (state == "Selected") {
-                    self.SetState(UIButtonComponent::ButtonState::Selected);
-                } else if (state == "Pressed") {
-                    self.SetState(UIButtonComponent::ButtonState::Pressed);
-                } else {
-                    COFFEE_CORE_WARN("Invalid button state: {0}", state);
-                }
-            },
-            "get_state", [](UIButtonComponent& self) -> std::string {
-                switch (self.currentState) {
-                    case UIButtonComponent::ButtonState::Base: return "Base";
-                    case UIButtonComponent::ButtonState::Selected: return "Selected";
-                    case UIButtonComponent::ButtonState::Pressed: return "Pressed";
-                    default: return "Unknown";
-                }
+            luaState.new_usertype<UIButtonComponent>("UIButtonComponent",
+        sol::constructors<UIButtonComponent(), UIButtonComponent(const std::string&, const std::string&, const std::string&)>(),
+
+
+        "set_state", [](UIButtonComponent& self, const std::string& state) {
+            if (state == "Base") {
+                self.SetState(UIButtonComponent::ButtonState::Base);
+            } else if (state == "Selected") {
+                self.SetState(UIButtonComponent::ButtonState::Selected);
+            } else if (state == "Pressed") {
+                self.SetState(UIButtonComponent::ButtonState::Pressed);
+            } else {
+                COFFEE_CORE_WARN("Invalid button state: {0}", state);
             }
-        );
+        },
+        "get_state", [](UIButtonComponent& self) -> std::string {
+            switch (self.currentState) {
+                case UIButtonComponent::ButtonState::Base: return "Base";
+                case UIButtonComponent::ButtonState::Selected: return "Selected";
+                case UIButtonComponent::ButtonState::Pressed: return "Pressed";
+                default: return "Unknown";
+            }
+        },
+
+
+        "set_visible", &UIButtonComponent::Visible,
+        "is_visible", &UIButtonComponent::Visible,
+
+        "set_base_texture", [](UIButtonComponent& self, const std::string& texturePath) {
+            if (!texturePath.empty()) {
+                self.baseTexture = Texture2D::Load(texturePath);
+            }
+        },
+        "set_selected_texture", [](UIButtonComponent& self, const std::string& texturePath) {
+            if (!texturePath.empty()) {
+                self.selectedTexture = Texture2D::Load(texturePath);
+            }
+        },
+        "set_pressed_texture", [](UIButtonComponent& self, const std::string& texturePath) {
+            if (!texturePath.empty()) {
+                self.pressedTexture = Texture2D::Load(texturePath);
+            }
+        },
+
+        "set_base_size", [](UIButtonComponent& self, float width, float height) {
+            self.baseSize = {width, height};
+        },
+        "set_selected_size", [](UIButtonComponent& self, float width, float height) {
+            self.selectedSize = {width, height};
+        },
+        "set_pressed_size", [](UIButtonComponent& self, float width, float height) {
+            self.pressedSize = {width, height};
+        },
+
+        "get_current_size", [](UIButtonComponent& self) -> sol::table {
+            auto size = self.GetCurrentSize();
+            sol::table sizeTable = luaState.create_table();
+            sizeTable[1] = size.x;
+            sizeTable[2] = size.y;
+            return sizeTable;
+        },
+
+        "set_base_color", [](UIButtonComponent& self, float r, float g, float b, float a) {
+            self.baseColor = {r, g, b, a};
+        },
+        "set_selected_color", [](UIButtonComponent& self, float r, float g, float b, float a) {
+            self.selectedColor = {r, g, b, a};
+        },
+        "set_pressed_color", [](UIButtonComponent& self, float r, float g, float b, float a) {
+            self.pressedColor = {r, g, b, a};
+        },
+
+        "get_current_color", [](UIButtonComponent& self) -> sol::table {
+            auto color = self.GetCurrentColor();
+            sol::table colorTable = luaState.create_table();
+            colorTable[1] = color.r;
+            colorTable[2] = color.g;
+            colorTable[3] = color.b;
+            colorTable[4] = color.a;
+            return colorTable;
+        },
+
+        "update", &UIButtonComponent::Update
+    );
 
         luaState.new_usertype<UISliderComponent>("UISliderComponent",
         sol::constructors<UISliderComponent()>(),

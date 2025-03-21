@@ -1124,111 +1124,109 @@
             UIComponent::load(archive);
         }
     };
+
+     template <typename T>
+        T Lerp(const T& start, const T& end, float t) {
+         return start + t * (end - start);
+     }
+
+
         /**
      * @brief Component representing a UI Button.
      * @ingroup scene
      */
-    struct UIButtonComponent : public UIComponent {
-        Ref<Texture2D> baseTexture; ///< The texture of the button in its default state.
-        Ref<Texture2D> selectedTexture; ///< The texture of the button when selected (hovered).
-        Ref<Texture2D> pressedTexture; ///< The texture of the button when pressed.
+    struct UIButtonComponent : public UIComponent
+    {
+        bool Visible = true;
 
-        glm::vec2 baseSize = { 100.0f, 100.0f }; ///< The size of the button in its default state.
-        glm::vec2 selectedSize = { 120.0f, 120.0f }; ///< The size of the button when selected (hovered).
-        glm::vec2 pressedSize = { 90.0f, 90.0f }; ///< The size of the button when pressed.
 
-        glm::vec4 baseColor = { 1.0f, 1.0f, 1.0f, 1.0f }; ///< The color of the button in its default state.
-        glm::vec4 selectedColor = { 0.8f, 0.8f, 1.0f, 1.0f }; ///< The color of the button when selected (hovered).
-        glm::vec4 pressedColor = { 0.6f, 0.6f, 1.0f, 1.0f }; ///< The color of the button when pressed.
+        Ref<Texture2D> baseTexture;
+        Ref<Texture2D> selectedTexture;
+        Ref<Texture2D> pressedTexture;
 
-        enum class ButtonState {
-            Base,      ///< The button is in its default state.
-            Selected,  ///< The button is selected (hovered).
-            Pressed    ///< The button is pressed.
+        glm::vec2 baseSize = {100.0f, 100.0f};
+        glm::vec2 selectedSize = {120.0f, 120.0f};
+        glm::vec2 pressedSize = {90.0f, 90.0f};
+
+        glm::vec4 baseColor = {1.0f, 1.0f, 1.0f, 1.0f};
+        glm::vec4 selectedColor = {0.8f, 0.8f, 1.0f, 1.0f};
+        glm::vec4 pressedColor = {0.6f, 0.6f, 1.0f, 1.0f};
+
+        enum class ButtonState
+        {
+            Base,
+            Selected,
+            Pressed
         };
 
-        ButtonState currentState = ButtonState::Base; ///< The current state of the button.
+        ButtonState currentState = ButtonState::Base;
+        ButtonState targetState = ButtonState::Base;
+
+        float transitionTime = 0.0f;
+        float transitionDuration = 0.2f;
 
         UIButtonComponent() = default;
 
-        /**
-         * @brief Constructs a UIButtonComponent with the given textures.
-         * @param baseTexturePath The path to the texture for the base state.
-         * @param selectedTexturePath The path to the texture for the selected state.
-         * @param pressedTexturePath The path to the texture for the pressed state.
-         */
-        UIButtonComponent(const std::string& baseTexturePath, const std::string& selectedTexturePath, const std::string& pressedTexturePath) {
-            if (!baseTexturePath.empty()) {
-                baseTexture = Texture2D::Load(baseTexturePath);
-            }
-            if (!selectedTexturePath.empty()) {
-                selectedTexture = Texture2D::Load(selectedTexturePath);
-            }
-            if (!pressedTexturePath.empty()) {
-                pressedTexture = Texture2D::Load(pressedTexturePath);
+        UIButtonComponent(const std::string& baseTexturePath, const std::string& selectedTexturePath, const std::string& pressedTexturePath)
+        {
+            if (!baseTexturePath.empty()) baseTexture = Texture2D::Load(baseTexturePath);
+            if (!selectedTexturePath.empty()) selectedTexture = Texture2D::Load(selectedTexturePath);
+            if (!pressedTexturePath.empty()) pressedTexture = Texture2D::Load(pressedTexturePath);
+        }
+
+        void SetState(ButtonState newState)
+        {
+            if (targetState != newState)
+            {
+                targetState = newState;
+                transitionTime = 0.0f; // Reiniciar transición
             }
         }
 
-        /**
-         * @brief Sets the current state of the button.
-         * @param newState The new state to set.
-         */
-        void SetState(ButtonState newState) {
-            currentState = newState;
-        }
+        void Update(float dt)
+        {
+            if (currentState != targetState)
+            {
+                transitionTime += dt;
+                float t = glm::clamp(transitionTime / transitionDuration, 0.0f, 1.0f);
 
-        /**
-         * @brief Gets the texture corresponding to the current state of the button.
-         * @return The texture for the current state.
-         */
-        Ref<Texture2D> GetCurrentTexture() const {
-            switch (currentState) {
-            case ButtonState::Selected:
-                return selectedTexture;
-            case ButtonState::Pressed:
-                return pressedTexture;
-            default:
-                return baseTexture;
+                if (t >= 1.0f)
+                {
+                    currentState = targetState;
+                }
             }
         }
 
-        /**
-         * @brief Gets the size corresponding to the current state of the button.
-         * @return The size for the current state.
-         */
-        glm::vec2 GetCurrentSize() const {
-            switch (currentState) {
-            case ButtonState::Selected:
-                return selectedSize;
-            case ButtonState::Pressed:
-                return pressedSize;
-            default:
-                return baseSize;
+        Ref<Texture2D> GetCurrentTexture() const
+        {
+            switch (currentState)
+            {
+            case ButtonState::Selected: return selectedTexture;
+            case ButtonState::Pressed: return pressedTexture;
+            default: return baseTexture;
             }
         }
 
-        /**
-         * @brief Gets the color corresponding to the current state of the button.
-         * @return The color for the current state.
-         */
-        glm::vec4 GetCurrentColor() const {
-            switch (currentState) {
-            case ButtonState::Selected:
-                return selectedColor;
-            case ButtonState::Pressed:
-                return pressedColor;
-            default:
-                return baseColor;
-            }
+        glm::vec2 GetCurrentSize() const
+        {
+            glm::vec2 startSize = baseSize;
+            glm::vec2 endSize = (targetState == ButtonState::Selected) ? selectedSize : pressedSize;
+            float t = glm::clamp(transitionTime / transitionDuration, 0.0f, 1.0f);
+            return Lerp(startSize, endSize, t);
         }
 
-        /**
-         * @brief Serializes the UIButtonComponent.
-         * @tparam Archive The type of the archive.
-         * @param archive The archive to serialize to.
-         */
+        glm::vec4 GetCurrentColor() const
+        {
+            glm::vec4 startColor = baseColor;
+            glm::vec4 endColor = (targetState == ButtonState::Selected) ? selectedColor : pressedColor;
+            float t = glm::clamp(transitionTime / transitionDuration, 0.0f, 1.0f);
+            return Lerp(startColor, endColor, t);
+        }
+
+
         template<class Archive>
-        void save(Archive& archive) const {
+        void save(Archive& archive) const
+        {
             archive(
                 cereal::make_nvp("BaseTextureUUID", baseTexture ? baseTexture->GetUUID() : UUID(0)),
                 cereal::make_nvp("SelectedTextureUUID", selectedTexture ? selectedTexture->GetUUID() : UUID(0)),
@@ -1239,18 +1237,14 @@
                 cereal::make_nvp("BaseColor", baseColor),
                 cereal::make_nvp("SelectedColor", selectedColor),
                 cereal::make_nvp("PressedColor", pressedColor),
+                cereal::make_nvp("Visible", Visible),
                 cereal::make_nvp("CurrentState", static_cast<int>(currentState))
             );
-            UIComponent::save(archive); // Llama a la serialización de la clase base
         }
 
-        /**
-         * @brief Deserializes the UIButtonComponent.
-         * @tparam Archive The type of the archive.
-         * @param archive The archive to deserialize from.
-         */
         template<class Archive>
-        void load(Archive& archive) {
+        void load(Archive& archive)
+        {
             UUID baseTextureUUID, selectedTextureUUID, pressedTextureUUID;
             int loadedState;
 
@@ -1264,21 +1258,15 @@
                 cereal::make_nvp("BaseColor", baseColor),
                 cereal::make_nvp("SelectedColor", selectedColor),
                 cereal::make_nvp("PressedColor", pressedColor),
+                cereal::make_nvp("Visible", Visible),
                 cereal::make_nvp("CurrentState", loadedState)
             );
 
             currentState = static_cast<ButtonState>(loadedState);
 
-            if (baseTextureUUID != 0) {
-                baseTexture = ResourceLoader::GetResource<Texture2D>(baseTextureUUID);
-            }
-            if (selectedTextureUUID != 0) {
-                selectedTexture = ResourceLoader::GetResource<Texture2D>(selectedTextureUUID);
-            }
-            if (pressedTextureUUID != 0) {
-                pressedTexture = ResourceLoader::GetResource<Texture2D>(pressedTextureUUID);
-            }
-            UIComponent::load(archive);
+            if (baseTextureUUID != 0) baseTexture = ResourceLoader::GetResource<Texture2D>(baseTextureUUID);
+            if (selectedTextureUUID != 0) selectedTexture = ResourceLoader::GetResource<Texture2D>(selectedTextureUUID);
+            if (pressedTextureUUID != 0) pressedTexture = ResourceLoader::GetResource<Texture2D>(pressedTextureUUID);
         }
     };
 
