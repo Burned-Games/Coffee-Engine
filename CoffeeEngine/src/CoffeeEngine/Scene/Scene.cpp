@@ -665,7 +665,6 @@ namespace Coffee {
         auto windowSize = Renderer::GetCurrentRenderTarget()->GetSize();
         glm::vec2 center = glm::vec2(windowSize.x / 2.0f, windowSize.y / 2.0f);
 
-
         auto uiImageView = registry.view<UIImageComponent, TransformComponent>();
         for (auto& entity : uiImageView) {
             auto& uiImageComponent = uiImageView.get<UIImageComponent>(entity);
@@ -674,20 +673,26 @@ namespace Coffee {
             if (!uiImageComponent.Visible || !uiImageComponent.texture)
                 continue;
 
-            glm::mat4 transform = transformComponent.GetWorldTransform();
-            transform = glm::scale(transform, glm::vec3(uiImageComponent.Size.x, uiImageComponent.Size.y, 1.0f));
-            transform = glm::rotate(transform, glm::radians(180.0f), glm::vec3(0, 0, 1));
-            transform[3] = glm::vec4(transform[3][0], -transform[3][1], 0, 0);
+            auto windowSize = Renderer::GetCurrentRenderTarget()->GetSize();
+            glm::vec2 center = glm::vec2(windowSize.x / 2.0f, windowSize.y / 2.0f);
 
-            Renderer2D::DrawQuad(transform,
+            glm::mat4 transform = glm::mat4(1.0f);
+            transform = glm::translate(transform, glm::vec3(center, 0.0f));
+
+            transform = glm::scale(transform, glm::vec3(1.0f, -1.0f, 1.0f));
+
+            transform = transformComponent.GetLocalTransform() * transform;
+            transform = glm::scale(transform, glm::vec3(uiImageComponent.Size.x, uiImageComponent.Size.y, 1.0f));
+
+            Renderer2D::DrawQuad(
+                transform,
                 uiImageComponent.texture,
-                1.0f,                // Tiling factor
-                glm::vec4(1.0f),     // Tint color
-                Renderer2D::RenderMode::Screen,  // Rendering Mode
-                (uint32_t)entity     // Entity ID
+                1.0f,
+                glm::vec4(1.0f),
+                Renderer2D::RenderMode::Screen,
+                (uint32_t)entity
             );
         }
-
 
         auto uiTextView = registry.view<UITextComponent, TransformComponent>();
         for (auto& entity : uiTextView) {
@@ -713,7 +718,6 @@ namespace Coffee {
                 (uint32_t)entity
             );
         }
-
 
         auto uiSliderView = registry.view<UISliderComponent, TransformComponent>();
         for (auto& entity : uiSliderView) {
@@ -832,17 +836,22 @@ namespace Coffee {
             if (!uiImageComponent.Visible || !uiImageComponent.texture)
                 continue;
 
-            glm::mat4 transform = transformComponent.GetWorldTransform();
-            transform = glm::scale(transform, glm::vec3(uiImageComponent.Size.x, uiImageComponent.Size.y, 1.0f));
-            transform = glm::rotate(transform, glm::radians(180.0f), glm::vec3(0, 0, 1));
-            transform[3] = glm::vec4(transform[3][0], -transform[3][1], 0, 0);
+            auto windowSize = Renderer::GetCurrentRenderTarget()->GetSize();
+            glm::vec2 center = glm::vec2(windowSize.x / 2.0f, windowSize.y / 2.0f);
 
-            Renderer2D::DrawQuad(transform,
+            glm::mat4 transform = glm::mat4(1.0f);
+            transform = glm::translate(transform, glm::vec3(center, 0.0f));
+            transform = glm::rotate(transform, glm::radians(180.0f), glm::vec3(0, 0, 1));
+            transform = transformComponent.GetLocalTransform() * transform;
+            transform = glm::scale(transform, glm::vec3(uiImageComponent.Size.x, uiImageComponent.Size.y, 1.0f));
+
+            Renderer2D::DrawQuad(
+                transform,
                 uiImageComponent.texture,
-                1.0f,                // Tiling factor
-                glm::vec4(1.0f),     // Tint color
-                Renderer2D::RenderMode::Screen,  // Rendering Mode
-                (uint32_t)entity     // Entity ID
+                1.0f,
+                glm::vec4(1.0f),
+                Renderer2D::RenderMode::Screen,
+                (uint32_t)entity
             );
         }
 

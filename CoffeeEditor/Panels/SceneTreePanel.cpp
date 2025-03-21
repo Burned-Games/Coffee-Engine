@@ -1483,7 +1483,6 @@ namespace Coffee
 
             if (ImGui::CollapsingHeader("UI Toggle", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
-                // Mostrar la textura activa
                 ImGui::Text("Active Texture");
                 if (uiToggleComponent.ActiveTexture)
                 {
@@ -1494,7 +1493,6 @@ namespace Coffee
                     ImGui::Text("No Active Texture Selected");
                 }
 
-                // Mostrar la textura inactiva
                 ImGui::Text("Inactive Texture");
                 if (uiToggleComponent.InactiveTexture)
                 {
@@ -1505,14 +1503,11 @@ namespace Coffee
                     ImGui::Text("No Inactive Texture Selected");
                 }
 
-                // Opción para activar o desactivar el toggle
                 ImGui::Checkbox("Is Active", &uiToggleComponent.IsActive);
 
-                // Tamaño del toggle
                 ImGui::Text("Size");
                 ImGui::DragFloat2("##Size", glm::value_ptr(uiToggleComponent.Size), 0.1f);
 
-                // Visibilidad del toggle
                 ImGui::Checkbox("Visible", &uiToggleComponent.Visible);
 
                 if (!isCollapsingHeaderOpen)

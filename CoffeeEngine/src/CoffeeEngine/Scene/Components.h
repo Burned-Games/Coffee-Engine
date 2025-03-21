@@ -801,7 +801,7 @@
      struct UIImageComponent
      {
          Ref<Texture2D> texture;
-         glm::vec2 Size = {1.0f, 1.0f};
+         glm::vec2 Size = {100.0f, 100.0f};
          bool Visible = true;
 
          UIImageComponent() = default;
