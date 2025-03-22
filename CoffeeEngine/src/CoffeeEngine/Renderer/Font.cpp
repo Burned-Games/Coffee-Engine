@@ -144,22 +144,38 @@ namespace Coffee {
 		delete m_Data;
 	}
 
-    float Font::GetTextWidth(const std::string& text, float fontSize) const
+	double Font::CalculateTextWidth(const std::string& text, double fsScale, float kerning)
     {
-        float width = 0.0f;
-
-        float scale = fontSize / m_Data->FontGeometry.getMetrics().emSize;
-
-        for (char c : text)
+        double totalWidth = 0.0;
+        for (size_t i = 0; i < text.size(); i++)
         {
-            const msdf_atlas::GlyphGeometry* glyph = m_Data->FontGeometry.getGlyph(c);
-            if (glyph)
+            char character = text[i];
+            if (character == ' ')
             {
-                width += glyph->getAdvance() * scale;
+                totalWidth += m_Data->FontGeometry.getGlyph(' ')->getAdvance() * fsScale + kerning;
+            }
+            else if (character == '\t')
+            {
+                totalWidth += 4.0f * (m_Data->FontGeometry.getGlyph(' ')->getAdvance() * fsScale + kerning);
+            }
+            else if (character != '\r' && character != '\n')
+            {
+                auto glyph = m_Data->FontGeometry.getGlyph(character);
+                if (!glyph)
+                    glyph = m_Data->FontGeometry.getGlyph('?');
+                if (glyph)
+                {
+                    double advance = glyph->getAdvance();
+                    if (i < text.size() - 1)
+                    {
+                        char nextCharacter = text[i + 1];
+                        m_Data->FontGeometry.getAdvance(advance, character, nextCharacter);
+                    }
+                    totalWidth += advance * fsScale + kerning;
+                }
             }
         }
-
-        return width;
+        return totalWidth;
     }
 
 	Ref<Font> Font::GetDefault()

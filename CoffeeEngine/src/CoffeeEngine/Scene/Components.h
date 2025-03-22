@@ -46,6 +46,7 @@
  // FIXME : DONT MOVE THIS INCLUDE
  #include "CoffeeEngine/Audio/Audio.h"
 
+
  
  
  namespace Coffee {
@@ -959,11 +960,7 @@
      * @ingroup scene
      */
 
-     enum class UITextAlignment {
-         Left,
-         Center,
-         Right
-     };
+
 
      struct UITextComponent : public UIComponent {
          std::string Text = "Default Text"; ///< The text to display.
@@ -971,7 +968,7 @@
          Ref<Font> font; ///< The font used for rendering the text.
          float FontSize = 24.0f; ///< The size of the font.
          glm::vec4 Color = { 1.0f, 1.0f, 1.0f, 1.0f }; ///< The color of the text.
-         UITextAlignment Alignment = UITextAlignment::Left; ///< The alignment of the text.
+         Font::UITextAlignment Alignment = Font::UITextAlignment::Left; ///< The alignment of the text.
 
          UITextComponent() = default;
 
@@ -1004,7 +1001,7 @@
                  cereal::make_nvp("Color", Color),
                  cereal::make_nvp("Alignment", alignment)
              );
-             Alignment = static_cast<UITextAlignment>(alignment);
+             Alignment = static_cast<Font::UITextAlignment>(alignment);
              if (!FontPath.empty()) {
                  font = Font::GetDefault();
              }

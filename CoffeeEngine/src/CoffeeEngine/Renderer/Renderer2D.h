@@ -4,6 +4,7 @@
 #include "CoffeeEngine/Renderer/RenderTarget.h"
 #include "CoffeeEngine/Scene/Scene.h"
 #include "CoffeeEngine/Core/DataStructures/Octree.h"
+#include "CoffeeEngine/Scene/Components.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -81,11 +82,13 @@ namespace Coffee {
 
         static void DrawCylinder(const glm::vec3& position, const glm::quat& rotation, float radius, float height, const glm::vec4& color = glm::vec4(1.0f));
 
+
         struct TextParams
 		{
 			glm::vec4 Color{ 1.0f };
 			float Kerning = 0.0f;
 			float LineSpacing = 0.0f;
+            Font::UITextAlignment Alignment = Font::UITextAlignment::Left;
 		};
 
         static void DrawString(const std::string& text, Ref<Font> font, const glm::mat4& transform, const TextParams& textParams, RenderMode mode, uint32_t entityID = 4294967295);

@@ -1260,7 +1260,7 @@ namespace Coffee
                 const char* alignmentOptions[] = { "Left", "Center", "Right" };
                 int currentAlignment = static_cast<int>(uiTextComponent.Alignment);
                 if (ImGui::Combo("##TextAlignment", &currentAlignment, alignmentOptions, IM_ARRAYSIZE(alignmentOptions))) {
-                    uiTextComponent.Alignment = static_cast<UITextAlignment>(currentAlignment);
+                    uiTextComponent.Alignment = static_cast<Font::UITextAlignment>(currentAlignment);
                 }
 
                 // visibility

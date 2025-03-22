@@ -713,32 +713,22 @@ namespace Coffee {
             glm::vec2 anchorOffset = CalculateAnchorOffset(uiTextComponent.Anchor, windowSize);
             glm::vec2 basePosition = anchorOffset + glm::vec2(transformComponent.Position);
 
-            float lineHeight = uiTextComponent.FontSize * 1.2f;
-            float totalTextHeight = lines.size() * lineHeight;
+            float lineHeight = uiTextComponent.FontSize * 1.02f;
+       
 
             for (size_t i = 0; i < lines.size(); i++) {
                 glm::vec2 linePosition = basePosition;
 
-                linePosition.y -= i * lineHeight;
-                float lineWidth = uiTextComponent.font->GetTextWidth(lines[i], uiTextComponent.FontSize);
-
-                switch (uiTextComponent.Alignment) {
-                    case UITextAlignment::Left:
-                        break;
-                    case UITextAlignment::Center:
-                        linePosition.x -= lineWidth / 2.0f;
-                        break;
-                    case UITextAlignment::Right:
-                        linePosition.x -= lineWidth;
-                        break;
-                }
+                linePosition.y += i * lineHeight;
 
                 glm::mat4 transform = glm::mat4(1.0f);
                 transform = glm::translate(transform, glm::vec3(linePosition, 0.0f));
                 transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
                 transform = glm::scale(transform, glm::vec3(uiTextComponent.FontSize, -uiTextComponent.FontSize, 1.0f));
 
-                Renderer2D::DrawString(lines[i], uiTextComponent.font, transform, {uiTextComponent.Color, 0.0f, 0.0f}, Renderer2D::RenderMode::Screen, (uint32_t)entity);
+                Renderer2D::DrawString(lines[i], uiTextComponent.font, transform,
+                                       {uiTextComponent.Color, 0.0f, 0.0f, uiTextComponent.Alignment},
+                                       Renderer2D::RenderMode::Screen, (uint32_t)entity);
             }
         }
 
