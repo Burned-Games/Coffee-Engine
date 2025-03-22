@@ -1240,7 +1240,12 @@ namespace Coffee
             auto& uiImageComponent = entity.GetComponent<UIImageComponent>();
             bool isCollapsingHeaderOpen = true;
 
-            if (ImGui::Button(ICON_LC_EYE "##HideUIImageComponent", {24, 24}))
+            ImGui::Text("UI Utils");
+            ImGui::Separator();
+
+            const char* eyeIcon = uiImageComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
+
+            if (ImGui::Button(eyeIcon, {24, 24}))
             {
                 uiImageComponent.Visible = !uiImageComponent.Visible;
 
@@ -1360,7 +1365,12 @@ namespace Coffee
             auto& uiTextComponent = entity.GetComponent<UITextComponent>();
             bool isCollapsingHeaderOpen = true;
 
-            if (ImGui::Button(ICON_LC_EYE "##HideUITextComponent", {24, 24}))
+            ImGui::Text("UI Utils");
+            ImGui::Separator();
+
+            const char* eyeIcon = uiTextComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
+
+            if (ImGui::Button(eyeIcon, {24, 24}))
             {
                 uiTextComponent.Visible = !uiTextComponent.Visible;
 
@@ -1518,7 +1528,12 @@ namespace Coffee
             auto& uiButtonComponent = entity.GetComponent<UIButtonComponent>();
             bool isCollapsingHeaderOpen = true;
 
-            if (ImGui::Button(ICON_LC_EYE "##HideUITextComponent", {24, 24}))
+            ImGui::Text("UI Utils");
+            ImGui::Separator();
+
+            const char* eyeIcon = uiButtonComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
+
+            if (ImGui::Button(eyeIcon, {24, 24}))
             {
                 uiButtonComponent.Visible = !uiButtonComponent.Visible;
 
@@ -1581,7 +1596,6 @@ namespace Coffee
 
                     while ((entt::entity)childEntity != entt::null)
                     {
-                        // Aplicar la capa a los componentes de UI del hijo
                         if (childEntity.HasComponent<UIImageComponent>())
                         {
                             auto& childUIImageComponent = childEntity.GetComponent<UIImageComponent>();
@@ -1663,9 +1677,12 @@ namespace Coffee
             auto& uiSliderComponent = entity.GetComponent<UISliderComponent>();
             bool isCollapsingHeaderOpen = true;
 
-            DrawAnchorPointCombo(uiSliderComponent.Anchor);
+            ImGui::Text("UI Utils");
+            ImGui::Separator();
 
-            if (ImGui::Button(ICON_LC_EYE "##HideUISliderComponent", {24, 24}))
+            const char* eyeIcon = uiSliderComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
+
+            if (ImGui::Button(eyeIcon, {24, 24}))
             {
                 uiSliderComponent.Visible = !uiSliderComponent.Visible;
 
@@ -1712,6 +1729,8 @@ namespace Coffee
                 ImGui::SetTooltip("Toggle visibility of this UI component and its children.");
             }
             ImGui::SameLine();
+
+            DrawAnchorPointCombo(uiSliderComponent.Anchor);
 
             ImGui::Text("Layer");
             ImGui::DragInt("##Layer", &uiSliderComponent.Layer, 1, 0);
@@ -1793,8 +1812,12 @@ namespace Coffee
             auto& uiToggleComponent = entity.GetComponent<UIToggleComponent>();
             bool isCollapsingHeaderOpen = true;
 
-            if (ImGui::Button(ICON_LC_EYE "##HideUIToggleComponent", {24, 24}))
-            {
+            ImGui::Text("UI Utils");
+            ImGui::Separator();
+
+            const char* eyeIcon = uiToggleComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
+
+            if (ImGui::Button(eyeIcon, {24, 24}))            {
                 uiToggleComponent.Visible = !uiToggleComponent.Visible;
 
                 if (entity.HasComponent<HierarchyComponent>())
