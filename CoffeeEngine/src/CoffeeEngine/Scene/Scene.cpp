@@ -773,7 +773,7 @@ namespace Coffee {
             if (!currentTexture) continue;
 
             glm::vec2 anchorOffset = CalculateAnchorOffset(uiButtonComponent.Anchor, windowSize);
-            glm::vec2 finalPosition = anchorOffset + uiButtonComponent.Position;
+            glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
 
             glm::mat4 transform = glm::mat4(1.0f);
             try {

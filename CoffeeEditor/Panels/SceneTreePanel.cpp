@@ -1166,6 +1166,74 @@ namespace Coffee
                 anchor = static_cast<UIAnchorPosition>(currentAnchor);
             }
         };
+        auto DrawTextureWidget = [&](const std::string& label, Ref<Texture2D>& texture) {
+            uint32_t textureID = texture ? texture->GetID() : 0;
+            ImGui::ImageButton(label.c_str(), (ImTextureID)textureID, {64, 64});
+
+            auto textureImageFormat = [](ImageFormat format) -> std::string {
+                switch (format)
+                {
+                case ImageFormat::R8:
+                    return "R8";
+                case ImageFormat::RGB8:
+                    return "RGB8";
+                case ImageFormat::RGBA8:
+                    return "RGBA8";
+                case ImageFormat::SRGB8:
+                    return "SRGB8";
+                case ImageFormat::SRGBA8:
+                    return "SRGBA8";
+                case ImageFormat::RGBA32F:
+                    return "RGBA32F";
+                case ImageFormat::DEPTH24STENCIL8:
+                    return "DEPTH24STENCIL8";
+                default:
+                    return "Unknown";
+                }
+            };
+
+            if (ImGui::IsItemHovered() && texture)
+            {
+                ImGui::SetTooltip("Name: %s\nSize: %d x %d\nFormat: %s\nPath: %s",
+                                  texture->GetName().c_str(),
+                                  texture->GetWidth(), texture->GetHeight(),
+                                  textureImageFormat(texture->GetImageFormat()).c_str(),
+                                  texture->GetPath().c_str());
+            }
+
+            if (ImGui::BeginDragDropTarget())
+            {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("RESOURCE"))
+                {
+                    const Ref<Resource>& resource = *(Ref<Resource>*)payload->Data;
+                    if (resource->GetType() == ResourceType::Texture2D)
+                    {
+                        const Ref<Texture2D>& t = std::static_pointer_cast<Texture2D>(resource);
+                        texture = t;
+                    }
+                }
+                ImGui::EndDragDropTarget();
+            }
+
+            ImGui::SameLine();
+            if (ImGui::BeginCombo((label + "texture").c_str(), "", ImGuiComboFlags_NoPreview))
+            {
+                if (ImGui::Selectable("Clear"))
+                {
+                    texture = nullptr;
+                }
+                if (ImGui::Selectable("Open"))
+                {
+                    std::string path = FileDialog::OpenFile({}).string();
+                    if (!path.empty())
+                    {
+                        Ref<Texture2D> t = Texture2D::Load(path);
+                        texture = t;
+                    }
+                }
+                ImGui::EndCombo();
+            }
+        };
 
         if (entity.HasComponent<UIImageComponent>())
         {
@@ -1179,32 +1247,10 @@ namespace Coffee
                 ImGui::Text("Size");
                 ImGui::DragFloat2("##Size", glm::value_ptr(uiImageComponent.Size), 0.1f);
 
+                ImGui::Text("Texture");
+                DrawTextureWidget("##UIImageTexture", uiImageComponent.texture);
+
                 ImGui::Checkbox("Visible", &uiImageComponent.Visible);
-
-
-                if (uiImageComponent.texture)
-                {
-                    ImGui::Text("Current Texture: %s", uiImageComponent.texture->GetPath().c_str());
-                    ImGui::Image((void*)(intptr_t)uiImageComponent.texture->GetID(), ImVec2(64, 64));
-                }
-                else
-                {
-                    ImGui::Text("No Texture Selected");
-                }
-
-
-                if (ImGui::Button("Select Texture"))
-                {
-                    std::string path = FileDialog::OpenFile({}).string();
-                    if (!path.empty())
-                    {
-                        Ref<Texture2D> texture = Texture2D::Load(path);
-                        if (texture)
-                        {
-                            uiImageComponent.SetTexture(texture);
-                        }
-                    }
-                }
 
                 if (!isCollapsingHeaderOpen)
                 {
@@ -1272,86 +1318,6 @@ namespace Coffee
             }
         }
 
-       if (entity.HasComponent<UISliderComponent>())
-        {
-            auto& uiSliderComponent = entity.GetComponent<UISliderComponent>();
-            bool isCollapsingHeaderOpen = true;
-
-            DrawAnchorPointCombo(uiSliderComponent.Anchor);
-
-            if (ImGui::CollapsingHeader("UI Slider", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
-            {
-
-                ImGui::Text("Value");
-                ImGui::SliderFloat("##SliderValue", &uiSliderComponent.Value, 0.0f, 1.0f);
-
-
-                ImGui::Text("Size");
-                ImGui::DragFloat2("##SliderSize", glm::value_ptr(uiSliderComponent.Size), 0.1f);
-
-
-                ImGui::Text("Handle Size");
-                ImGui::DragFloat2("##HandleSize", glm::value_ptr(uiSliderComponent.HandleSize), 0.1f);
-
-
-                ImGui::Text("Bar Texture");
-                if (uiSliderComponent.barTexture)
-                {
-                    ImGui::Text("Current Texture: %s", uiSliderComponent.barTexture->GetPath().c_str());
-                    ImGui::Image((void*)(intptr_t)uiSliderComponent.barTexture->GetID(), ImVec2(64, 64));
-                }
-                else
-                {
-                    ImGui::Text("No Bar Texture Selected");
-                }
-
-
-                if (ImGui::Button("Select Bar Texture"))
-                {
-                    std::string path = FileDialog::OpenFile({}).string();
-                    if (!path.empty())
-                    {
-                        Ref<Texture2D> texture = Texture2D::Load(path);
-                        if (texture)
-                        {
-                            uiSliderComponent.SetBarTexture(texture);
-                        }
-                    }
-                }
-
-
-                ImGui::Text("Handle Texture");
-                if (uiSliderComponent.handleTexture)
-                {
-                    ImGui::Text("Current Texture: %s", uiSliderComponent.handleTexture->GetPath().c_str());
-                    ImGui::Image((void*)(intptr_t)uiSliderComponent.handleTexture->GetID(), ImVec2(64, 64));
-                }
-                else
-                {
-                    ImGui::Text("No Handle Texture Selected");
-                }
-
-
-                if (ImGui::Button("Select Handle Texture"))
-                {
-                    std::string path = FileDialog::OpenFile({}).string();
-                    if (!path.empty())
-                    {
-                        Ref<Texture2D> texture = Texture2D::Load(path);
-                        if (texture)
-                        {
-                            uiSliderComponent.SetHandleTexture(texture);
-                        }
-                    }
-                }
-
-
-                ImGui::Checkbox("Visible", &uiSliderComponent.Visible);
-
-
-            }
-        }
-
         if (entity.HasComponent<UIButtonComponent>())
         {
             auto& uiButtonComponent = entity.GetComponent<UIButtonComponent>();
@@ -1361,145 +1327,74 @@ namespace Coffee
 
             if (ImGui::CollapsingHeader("UI Button", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
-
-                const char* currentStateName = "";
-                switch (uiButtonComponent.currentState)
+                ImGui::Text("State");
+                const char* stateNames[] = { "Base", "Selected", "Pressed" };
+                int currentState = static_cast<int>(uiButtonComponent.currentState);
+                if (ImGui::Combo("##State", &currentState, stateNames, IM_ARRAYSIZE(stateNames)))
                 {
-                    case UIButtonComponent::ButtonState::Base:     currentStateName = "Base";     break;
-                    case UIButtonComponent::ButtonState::Selected: currentStateName = "Selected"; break;
-                    case UIButtonComponent::ButtonState::Pressed:  currentStateName = "Pressed";  break;
+                    uiButtonComponent.currentState = static_cast<UIButtonComponent::ButtonState>(currentState);
                 }
-
-
-                if (ImGui::BeginCombo("Current State", currentStateName))
-                {
-                    if (ImGui::Selectable("Base", uiButtonComponent.currentState == UIButtonComponent::ButtonState::Base))
-                    {
-                        uiButtonComponent.currentState = UIButtonComponent::ButtonState::Base;
-                    }
-                    if (ImGui::Selectable("Selected", uiButtonComponent.currentState == UIButtonComponent::ButtonState::Selected))
-                    {
-                        uiButtonComponent.currentState = UIButtonComponent::ButtonState::Selected;
-                    }
-                    if (ImGui::Selectable("Pressed", uiButtonComponent.currentState == UIButtonComponent::ButtonState::Pressed))
-                    {
-                        uiButtonComponent.currentState = UIButtonComponent::ButtonState::Pressed;
-                    }
-
-                    ImGui::EndCombo();
-                }
-
 
                 ImGui::Text("Base Texture");
-                if (uiButtonComponent.baseTexture)
-                {
-                    ImGui::Image((void*)(intptr_t)uiButtonComponent.baseTexture->GetID(), ImVec2(64, 64));
-                    ImGui::SameLine();
-                    if (ImGui::Button("Change Base Texture"))
-                    {
-                        std::string path = FileDialog::OpenFile({}).string();
-                        if (!path.empty())
-                        {
-                            uiButtonComponent.baseTexture = Texture2D::Load(path);
-                        }
-                    }
-                }
-                else
-                {
-                    ImGui::Text("No Base Texture Selected");
-                    ImGui::SameLine();
-                    if (ImGui::Button("Select Base Texture"))
-                    {
-                        std::string path = FileDialog::OpenFile({}).string();
-                        if (!path.empty())
-                        {
-                            uiButtonComponent.baseTexture = Texture2D::Load(path);
-                        }
-                    }
-                }
-
+                DrawTextureWidget("##UIButtonBaseTexture", uiButtonComponent.baseTexture);
 
                 ImGui::Text("Selected Texture");
-                if (uiButtonComponent.selectedTexture)
-                {
-                    ImGui::Image((void*)(intptr_t)uiButtonComponent.selectedTexture->GetID(), ImVec2(64, 64));
-                    ImGui::SameLine();
-                    if (ImGui::Button("Change Selected Texture"))
-                    {
-                        std::string path = FileDialog::OpenFile({}).string();
-                        if (!path.empty())
-                        {
-                            uiButtonComponent.selectedTexture = Texture2D::Load(path);
-                        }
-                    }
-                }
-                else
-                {
-                    ImGui::Text("No Selected Texture Selected");
-                    ImGui::SameLine();
-                    if (ImGui::Button("Select Selected Texture"))
-                    {
-                        std::string path = FileDialog::OpenFile({}).string();
-                        if (!path.empty())
-                        {
-                            uiButtonComponent.selectedTexture = Texture2D::Load(path);
-                        }
-                    }
-                }
-
+                DrawTextureWidget("##UIButtonSelectedTexture", uiButtonComponent.selectedTexture);
 
                 ImGui::Text("Pressed Texture");
-                if (uiButtonComponent.pressedTexture)
-                {
-                    ImGui::Image((void*)(intptr_t)uiButtonComponent.pressedTexture->GetID(), ImVec2(64, 64));
-                    ImGui::SameLine();
-                    if (ImGui::Button("Change Pressed Texture"))
-                    {
-                        std::string path = FileDialog::OpenFile({}).string();
-                        if (!path.empty())
-                        {
-                            uiButtonComponent.pressedTexture = Texture2D::Load(path);
-                        }
-                    }
-                }
-                else
-                {
-                    ImGui::Text("No Pressed Texture Selected");
-                    ImGui::SameLine();
-                    if (ImGui::Button("Select Pressed Texture"))
-                    {
-                        std::string path = FileDialog::OpenFile({}).string();
-                        if (!path.empty())
-                        {
-                            uiButtonComponent.pressedTexture = Texture2D::Load(path);
-                        }
-                    }
-                }
+                DrawTextureWidget("##UIButtonPressedTexture", uiButtonComponent.pressedTexture);
 
-
-                ImGui::Text("Base Size");
-                ImGui::DragFloat2("##BaseSize", glm::value_ptr(uiButtonComponent.baseSize), 0.1f);
-
-
-                ImGui::Text("Selected Size");
-                ImGui::DragFloat2("##SelectedSize", glm::value_ptr(uiButtonComponent.selectedSize), 0.1f);
-
-
-                ImGui::Text("Pressed Size");
-                ImGui::DragFloat2("##PressedSize", glm::value_ptr(uiButtonComponent.pressedSize), 0.1f);
-
+                ImGui::Text("Size");
+                ImGui::DragFloat2("##UIButtonSize", glm::value_ptr(uiButtonComponent.baseSize), 0.1f, 0.0f, 1000.0f);
 
                 ImGui::Text("Base Color");
                 ImGui::ColorEdit4("##BaseColor", glm::value_ptr(uiButtonComponent.baseColor));
 
-
                 ImGui::Text("Selected Color");
                 ImGui::ColorEdit4("##SelectedColor", glm::value_ptr(uiButtonComponent.selectedColor));
-
 
                 ImGui::Text("Pressed Color");
                 ImGui::ColorEdit4("##PressedColor", glm::value_ptr(uiButtonComponent.pressedColor));
 
+                ImGui::Checkbox("Visible", &uiButtonComponent.Visible);
+
+                if (!isCollapsingHeaderOpen)
+                {
+                    entity.RemoveComponent<UIButtonComponent>();
+                }
+            }
+        }
+
+        if (entity.HasComponent<UISliderComponent>())
+        {
+            auto& uiSliderComponent = entity.GetComponent<UISliderComponent>();
+            bool isCollapsingHeaderOpen = true;
+
+            DrawAnchorPointCombo(uiSliderComponent.Anchor);
+
+            if (ImGui::CollapsingHeader("UI Slider", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::Text("Bar Texture");
+                DrawTextureWidget("##UISliderBarTexture", uiSliderComponent.barTexture);
+
+                ImGui::Text("Handle Texture");
+                DrawTextureWidget("##UISliderHandleTexture", uiSliderComponent.handleTexture);
+
+                ImGui::Text("Bar Size");
+                ImGui::DragFloat2("##UISliderBarSize", glm::value_ptr(uiSliderComponent.Size), 0.1f, 0.0f, 1000.0f);
+
+                ImGui::Text("Handle Size");
+                ImGui::DragFloat2("##UISliderHandleSize", glm::value_ptr(uiSliderComponent.HandleSize), 0.1f, 0.0f, 1000.0f);
+
+                ImGui::Text("Value");
+                ImGui::SliderFloat("##SliderValue", &uiSliderComponent.Value, 0.0f, 1.0f);
+
+                ImGui::Checkbox("Visible", &uiSliderComponent.Visible);
+
+                if (!isCollapsingHeaderOpen)
+                {
+                    entity.RemoveComponent<UISliderComponent>();
+                }
             }
         }
 
@@ -1513,30 +1408,15 @@ namespace Coffee
             if (ImGui::CollapsingHeader("UI Toggle", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::Text("Active Texture");
-                if (uiToggleComponent.ActiveTexture)
-                {
-                    ImGui::Image((void*)(intptr_t)uiToggleComponent.ActiveTexture->GetID(), ImVec2(64, 64));
-                }
-                else
-                {
-                    ImGui::Text("No Active Texture Selected");
-                }
+                DrawTextureWidget("##UIToggleActiveTexture", uiToggleComponent.ActiveTexture);
 
                 ImGui::Text("Inactive Texture");
-                if (uiToggleComponent.InactiveTexture)
-                {
-                    ImGui::Image((void*)(intptr_t)uiToggleComponent.InactiveTexture->GetID(), ImVec2(64, 64));
-                }
-                else
-                {
-                    ImGui::Text("No Inactive Texture Selected");
-                }
-
-                ImGui::Checkbox("Is Active", &uiToggleComponent.IsActive);
+                DrawTextureWidget("##UIToggleInactiveTexture", uiToggleComponent.InactiveTexture);
 
                 ImGui::Text("Size");
-                ImGui::DragFloat2("##Size", glm::value_ptr(uiToggleComponent.Size), 0.1f);
+                ImGui::DragFloat2("##UIToggleSize", glm::value_ptr(uiToggleComponent.Size), 0.1f, 0.0f, 1000.0f);
 
+                ImGui::Checkbox("Is Active", &uiToggleComponent.IsActive);
                 ImGui::Checkbox("Visible", &uiToggleComponent.Visible);
 
                 if (!isCollapsingHeaderOpen)

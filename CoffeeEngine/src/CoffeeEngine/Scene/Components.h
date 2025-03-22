@@ -847,20 +847,18 @@
          Ref<Texture2D> texture; ///< The texture of the image.
          glm::vec2 Size = { 100.0f, 100.0f }; ///< The size of the image.
 
-         UIImageComponent() = default;
+         UIImageComponent() {
+             texture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+         }
 
-         /**
-          * @brief Constructs a UIImageComponent with the given texture and size.
-          * @param texturePath The path to the texture file.
-          * @param size The size of the image.
-          * @param visible Whether the image is visible.
-          */
          UIImageComponent(const std::string& texturePath, const glm::vec2& size, bool visible)
              : Size(size) {
              if (!texturePath.empty()) {
                  texture = Texture2D::Load(texturePath);
+             } else {
+                 texture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
              }
-             Visible = visible; // Heredado de UIComponent
+             Visible = visible;
          }
 
         /**
@@ -918,9 +916,6 @@
      * @brief Component representing a UI Text.
      * @ingroup scene
      */
-
-
-
      struct UITextComponent : public UIComponent {
          std::string Text = "Default Text"; ///< The text to display.
          std::string FontPath; ///< The path to the font file.
@@ -982,22 +977,23 @@
         glm::vec2 HandleSize = { 75.0f, 75.0f }; ///< The size of the slider handle.
         float Value = 0.5f; ///< The current value of the slider.
 
-        UISliderComponent() = default;
+        UISliderComponent() {
+            barTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+            handleTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+        }
 
-        /**
-         * @brief Constructs a UISliderComponent with the given textures and size.
-         * @param barTexturePath The path to the bar texture file.
-         * @param handleTexturePath The path to the handle texture file.
-         * @param size The size of the slider bar.
-         * @param handleSize The size of the slider handle.
-         */
         UISliderComponent(const std::string& barTexturePath, const std::string& handleTexturePath, const glm::vec2& size, const glm::vec2& handleSize)
             : Size(size), HandleSize(handleSize) {
             if (!barTexturePath.empty()) {
                 barTexture = Texture2D::Load(barTexturePath);
+            } else {
+                barTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
             }
+
             if (!handleTexturePath.empty()) {
                 handleTexture = Texture2D::Load(handleTexturePath);
+            } else {
+                handleTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
             }
         }
 
@@ -1090,42 +1086,61 @@
      * @ingroup scene
      */
     struct UIButtonComponent : public UIComponent
-{
-    bool Visible = true;
-
-    Ref<Texture2D> baseTexture;
-    Ref<Texture2D> selectedTexture;
-    Ref<Texture2D> pressedTexture;
-
-    glm::vec2 baseSize = {100.0f, 100.0f}; // Tamaño base (fijo)
-    glm::vec2 selectedSize = {120.0f, 120.0f}; // Tamaño seleccionado (no se usará)
-    glm::vec2 pressedSize = {90.0f, 90.0f}; // Tamaño presionado (no se usará)
-
-    glm::vec4 baseColor = {1.0f, 1.0f, 1.0f, 1.0f};
-    glm::vec4 selectedColor = {0.8f, 0.8f, 1.0f, 1.0f};
-    glm::vec4 pressedColor = {0.6f, 0.6f, 1.0f, 1.0f};
-
-    enum class ButtonState
     {
-        Base,
-        Selected,
-        Pressed
-    };
+     bool Visible = true;
 
-    ButtonState currentState = ButtonState::Base;
-    ButtonState targetState = ButtonState::Base;
+     Ref<Texture2D> baseTexture;
+     Ref<Texture2D> selectedTexture;
+     Ref<Texture2D> pressedTexture;
 
-    float transitionTime = 0.0f;
-    float transitionDuration = 0.2f;
+     glm::vec2 baseSize = {100.0f, 100.0f};
+     glm::vec2 selectedSize = {120.0f, 120.0f};
+     glm::vec2 pressedSize = {90.0f, 90.0f};
 
-    UIButtonComponent() = default;
+     glm::vec4 baseColor = {1.0f, 1.0f, 1.0f, 1.0f};
+     glm::vec4 selectedColor = {0.8f, 0.8f, 1.0f, 1.0f};
+     glm::vec4 pressedColor = {0.6f, 0.6f, 1.0f, 1.0f};
 
-    UIButtonComponent(const std::string& baseTexturePath, const std::string& selectedTexturePath, const std::string& pressedTexturePath)
-    {
-        if (!baseTexturePath.empty()) baseTexture = Texture2D::Load(baseTexturePath);
-        if (!selectedTexturePath.empty()) selectedTexture = Texture2D::Load(selectedTexturePath);
-        if (!pressedTexturePath.empty()) pressedTexture = Texture2D::Load(pressedTexturePath);
-    }
+     enum class ButtonState
+     {
+         Base,
+         Selected,
+         Pressed
+     };
+
+     ButtonState currentState = ButtonState::Base;
+     ButtonState targetState = ButtonState::Base;
+
+     float transitionTime = 0.0f;
+     float transitionDuration = 0.2f;
+
+     UIButtonComponent() {
+         // Cargar la textura por defecto
+         baseTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+         selectedTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+         pressedTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+     }
+
+     UIButtonComponent(const std::string& baseTexturePath, const std::string& selectedTexturePath, const std::string& pressedTexturePath)
+     {
+         if (!baseTexturePath.empty()) {
+             baseTexture = Texture2D::Load(baseTexturePath);
+         } else {
+             baseTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+         }
+
+         if (!selectedTexturePath.empty()) {
+             selectedTexture = Texture2D::Load(selectedTexturePath);
+         } else {
+             selectedTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+         }
+
+         if (!pressedTexturePath.empty()) {
+             pressedTexture = Texture2D::Load(pressedTexturePath);
+         } else {
+             pressedTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+         }
+     }
 
     void SetState(ButtonState newState)
     {
@@ -1162,7 +1177,6 @@
 
     glm::vec2 GetCurrentSize() const
     {
-        // Devuelve siempre el tamaño base, sin interpolación
         return baseSize;
     }
 
