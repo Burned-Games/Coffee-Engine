@@ -806,6 +806,7 @@
          UIAnchorPosition Anchor = UIAnchorPosition::Center; ///< The anchor position of the UI element.
          glm::vec2 Position = { 0.0f, 0.0f }; ///< The position of the UI element relative to its anchor.
          bool Visible = true; ///< Whether the UI element is visible.
+         int Layer = 0; ///< The rendering layer of the UI element (higher values are rendered on top).
 
          UIComponent() = default;
          UIComponent(const UIComponent&) = default;
@@ -820,7 +821,8 @@
              archive(
                  cereal::make_nvp("Anchor", Anchor),
                  cereal::make_nvp("Position", Position),
-                 cereal::make_nvp("Visible", Visible)
+                 cereal::make_nvp("Visible", Visible),
+                 cereal::make_nvp("Layer", Layer)
              );
          }
 
@@ -834,7 +836,8 @@
              archive(
                  cereal::make_nvp("Anchor", Anchor),
                  cereal::make_nvp("Position", Position),
-                 cereal::make_nvp("Visible", Visible)
+                 cereal::make_nvp("Visible", Visible),
+                 cereal::make_nvp("Layer", Layer)
              );
          }
      };

@@ -680,144 +680,169 @@ namespace Coffee {
         };
 
         auto uiImageView = registry.view<UIImageComponent, TransformComponent>();
-        for (auto& entity : uiImageView) {
+        auto uiTextView = registry.view<UITextComponent, TransformComponent>();
+        auto uiSliderView = registry.view<UISliderComponent, TransformComponent>();
+        auto uiButtonView = registry.view<UIButtonComponent, TransformComponent>();
+        auto uiToggleView = registry.view<UIToggleComponent, TransformComponent>();
+
+        std::vector<std::pair<entt::entity, int>> uiEntities;
+
+        for (auto entity : uiImageView) {
             auto& uiImageComponent = uiImageView.get<UIImageComponent>(entity);
-            auto& transformComponent = uiImageView.get<TransformComponent>(entity);
-
-            if (!uiImageComponent.Visible || !uiImageComponent.texture) continue;
-
-            glm::vec2 anchorOffset = CalculateAnchorOffset(uiImageComponent.Anchor, windowSize);
-            glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
-
-            glm::mat4 transform = glm::mat4(1.0f);
-            transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
-            transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-            transform = glm::scale(transform, glm::vec3(uiImageComponent.Size.x, uiImageComponent.Size.y, 1.0f));
-
-            Renderer2D::DrawQuad(transform, uiImageComponent.texture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
+            uiEntities.push_back({entity, uiImageComponent.Layer});
         }
 
-        auto uiTextView = registry.view<UITextComponent, TransformComponent>();
-        for (auto& entity : uiTextView) {
+        for (auto entity : uiTextView) {
             auto& uiTextComponent = uiTextView.get<UITextComponent>(entity);
-            auto& transformComponent = uiTextView.get<TransformComponent>(entity);
+            uiEntities.push_back({entity, uiTextComponent.Layer});
+        }
 
-            if (!uiTextComponent.Visible || uiTextComponent.Text.empty()) continue;
+        for (auto entity : uiSliderView) {
+            auto& uiSliderComponent = uiSliderView.get<UISliderComponent>(entity);
+            uiEntities.push_back({entity, uiSliderComponent.Layer});
+        }
 
-            if (!uiTextComponent.font) uiTextComponent.font = Font::GetDefault();
+        for (auto entity : uiButtonView) {
+            auto& uiButtonComponent = uiButtonView.get<UIButtonComponent>(entity);
+            uiEntities.push_back({entity, uiButtonComponent.Layer});
+        }
 
-            std::vector<std::string> lines = SplitTextIntoLines(uiTextComponent.Text);
+        for (auto entity : uiToggleView) {
+            auto& uiToggleComponent = uiToggleView.get<UIToggleComponent>(entity);
+            uiEntities.push_back({entity, uiToggleComponent.Layer});
+        }
 
-            glm::vec2 anchorOffset = CalculateAnchorOffset(uiTextComponent.Anchor, windowSize);
-            glm::vec2 basePosition = anchorOffset + glm::vec2(transformComponent.Position);
+        std::sort(uiEntities.begin(), uiEntities.end(), [](const std::pair<entt::entity, int>& a, const std::pair<entt::entity, int>& b) {
+            return a.second < b.second;
+        });
 
-            float lineHeight = uiTextComponent.FontSize * uiTextComponent.LineSpacing; // Ajusta el interlineado
+        for (auto& [entity, layer] : uiEntities) {
+            if (uiImageView.contains(entity)) {
+                auto& uiImageComponent = uiImageView.get<UIImageComponent>(entity);
+                auto& transformComponent = uiImageView.get<TransformComponent>(entity);
 
-            for (size_t i = 0; i < lines.size(); i++) {
-                glm::vec2 linePosition = basePosition;
+                if (!uiImageComponent.Visible || !uiImageComponent.texture) continue;
 
-                linePosition.y += i * lineHeight;
+                glm::vec2 anchorOffset = CalculateAnchorOffset(uiImageComponent.Anchor, windowSize);
+                glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
 
                 glm::mat4 transform = glm::mat4(1.0f);
-                transform = glm::translate(transform, glm::vec3(linePosition, 0.0f));
-                transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-                transform = glm::scale(transform, glm::vec3(uiTextComponent.FontSize, -uiTextComponent.FontSize, 1.0f));
-
-                Renderer2D::DrawString(lines[i], uiTextComponent.font, transform,
-                                       {uiTextComponent.Color, 0.0f, 0.0f, uiTextComponent.Alignment},
-                                       Renderer2D::RenderMode::Screen, (uint32_t)entity);
-            }
-        }
-
-        auto uiSliderView = registry.view<UISliderComponent, TransformComponent>();
-        for (auto& entity : uiSliderView) {
-            auto& uiSliderComponent = uiSliderView.get<UISliderComponent>(entity);
-            auto& transformComponent = uiSliderView.get<TransformComponent>(entity);
-
-            if (!uiSliderComponent.Visible) continue;
-
-            glm::vec2 anchorOffset = CalculateAnchorOffset(uiSliderComponent.Anchor, windowSize);
-            glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
-
-            glm::mat4 transform = glm::mat4(1.0f);
-            transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
-            transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
-            glm::mat4 barTransform = glm::scale(transform, glm::vec3(uiSliderComponent.Size.x, uiSliderComponent.Size.y, 1.0f));
-            if (uiSliderComponent.barTexture) {
-                Renderer2D::DrawQuad(barTransform, uiSliderComponent.barTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
-            }
-
-            if (uiSliderComponent.handleTexture) {
-                float normalizedValue = glm::clamp(uiSliderComponent.Value, 0.0f, 1.0f);
-                float handleOffset = normalizedValue * (uiSliderComponent.Size.x - uiSliderComponent.HandleSize.x);
-                handleOffset -= (uiSliderComponent.Size.x / 2.0f) - (uiSliderComponent.HandleSize.x / 2.0f);
-
-                glm::mat4 handleTransform = glm::translate(transform, glm::vec3(handleOffset, 0.0f, 0.0f));
-                handleTransform = glm::scale(handleTransform, glm::vec3(uiSliderComponent.HandleSize.x, uiSliderComponent.HandleSize.y, 1.0f));
-
-                Renderer2D::DrawQuad(handleTransform, uiSliderComponent.handleTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
-            }
-        }
-
-        auto uiButtonView = registry.view<UIButtonComponent, TransformComponent>();
-        for (auto& entity : uiButtonView) {
-            auto& uiButtonComponent = uiButtonView.get<UIButtonComponent>(entity);
-            auto& transformComponent = uiButtonView.get<TransformComponent>(entity);
-
-            uiButtonComponent.Update(dt);
-
-            if (!uiButtonComponent.Visible) continue;
-
-            Ref<Texture2D> currentTexture = uiButtonComponent.GetCurrentTexture();
-            if (!currentTexture) continue;
-
-            glm::vec2 anchorOffset = CalculateAnchorOffset(uiButtonComponent.Anchor, windowSize);
-            glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
-
-            glm::mat4 transform = glm::mat4(1.0f);
-            try {
                 transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
                 transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-                transform = glm::scale(transform, glm::vec3(
-                    glm::max(uiButtonComponent.GetCurrentSize().x, 0.1f),
-                    glm::max(uiButtonComponent.GetCurrentSize().y, 0.1f),
-                    1.0f
-                ));
-            }
-            catch (...) {
-                COFFEE_CORE_ERROR("Invalid transform for button entity {}", (uint32_t)entity);
-                continue;
-            }
+                transform = glm::scale(transform, glm::vec3(uiImageComponent.Size.x, uiImageComponent.Size.y, 1.0f));
 
-            Renderer2D::DrawQuad(
-                transform,
-                currentTexture,
-                1.0f,
-                uiButtonComponent.GetCurrentColor(),
-                Renderer2D::RenderMode::Screen,
-                (uint32_t)entity
-            );
-        }
+                Renderer2D::DrawQuad(transform, uiImageComponent.texture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
+            } else if (uiTextView.contains(entity)) {
+                auto& uiTextComponent = uiTextView.get<UITextComponent>(entity);
+                auto& transformComponent = uiTextView.get<TransformComponent>(entity);
 
-        auto uiToggleView = registry.view<UIToggleComponent, TransformComponent>();
-        for (auto& entity : uiToggleView) {
-            auto& uiToggleComponent = uiToggleView.get<UIToggleComponent>(entity);
-            auto& transformComponent = uiToggleView.get<TransformComponent>(entity);
+                if (!uiTextComponent.Visible || uiTextComponent.Text.empty()) continue;
 
-            if (!uiToggleComponent.Visible) continue;
+                if (!uiTextComponent.font) uiTextComponent.font = Font::GetDefault();
 
-            glm::vec2 anchorOffset = CalculateAnchorOffset(uiToggleComponent.Anchor, windowSize);
-            glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
+                std::vector<std::string> lines = SplitTextIntoLines(uiTextComponent.Text);
 
-            glm::mat4 transform = glm::mat4(1.0f);
-            transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
-            transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-            transform = glm::scale(transform, glm::vec3(uiToggleComponent.Size.x, uiToggleComponent.Size.y, 1.0f));
+                glm::vec2 anchorOffset = CalculateAnchorOffset(uiTextComponent.Anchor, windowSize);
+                glm::vec2 basePosition = anchorOffset + glm::vec2(transformComponent.Position);
 
-            Ref<Texture2D> currentTexture = uiToggleComponent.IsActive ? uiToggleComponent.ActiveTexture : uiToggleComponent.InactiveTexture;
-            if (currentTexture) {
-                Renderer2D::DrawQuad(transform, currentTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
+                float lineHeight = uiTextComponent.FontSize * uiTextComponent.LineSpacing;
+
+                for (size_t i = 0; i < lines.size(); i++) {
+                    glm::vec2 linePosition = basePosition;
+                    linePosition.y += i * lineHeight;
+
+                    glm::mat4 transform = glm::mat4(1.0f);
+                    transform = glm::translate(transform, glm::vec3(linePosition, 0.0f));
+                    transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+                    transform = glm::scale(transform, glm::vec3(uiTextComponent.FontSize, -uiTextComponent.FontSize, 1.0f));
+
+                    Renderer2D::DrawString(lines[i], uiTextComponent.font, transform,
+                                           {uiTextComponent.Color, 0.0f, 0.0f, uiTextComponent.Alignment},
+                                           Renderer2D::RenderMode::Screen, (uint32_t)entity);
+                }
+            } else if (uiSliderView.contains(entity)) {
+                auto& uiSliderComponent = uiSliderView.get<UISliderComponent>(entity);
+                auto& transformComponent = uiSliderView.get<TransformComponent>(entity);
+
+                if (!uiSliderComponent.Visible) continue;
+
+                glm::vec2 anchorOffset = CalculateAnchorOffset(uiSliderComponent.Anchor, windowSize);
+                glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
+
+                glm::mat4 transform = glm::mat4(1.0f);
+                transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
+                transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+
+                glm::mat4 barTransform = glm::scale(transform, glm::vec3(uiSliderComponent.Size.x, uiSliderComponent.Size.y, 1.0f));
+                if (uiSliderComponent.barTexture) {
+                    Renderer2D::DrawQuad(barTransform, uiSliderComponent.barTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
+                }
+
+                if (uiSliderComponent.handleTexture) {
+                    float normalizedValue = glm::clamp(uiSliderComponent.Value, 0.0f, 1.0f);
+                    float handleOffset = normalizedValue * (uiSliderComponent.Size.x - uiSliderComponent.HandleSize.x);
+                    handleOffset -= (uiSliderComponent.Size.x / 2.0f) - (uiSliderComponent.HandleSize.x / 2.0f);
+
+                    glm::mat4 handleTransform = glm::translate(transform, glm::vec3(handleOffset, 0.0f, 0.0f));
+                    handleTransform = glm::scale(handleTransform, glm::vec3(uiSliderComponent.HandleSize.x, uiSliderComponent.HandleSize.y, 1.0f));
+
+                    Renderer2D::DrawQuad(handleTransform, uiSliderComponent.handleTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
+                }
+            } else if (uiButtonView.contains(entity)) {
+                auto& uiButtonComponent = uiButtonView.get<UIButtonComponent>(entity);
+                auto& transformComponent = uiButtonView.get<TransformComponent>(entity);
+
+                uiButtonComponent.Update(dt);
+
+                if (!uiButtonComponent.Visible) continue;
+
+                Ref<Texture2D> currentTexture = uiButtonComponent.GetCurrentTexture();
+                if (!currentTexture) continue;
+
+                glm::vec2 anchorOffset = CalculateAnchorOffset(uiButtonComponent.Anchor, windowSize);
+                glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
+
+                glm::mat4 transform = glm::mat4(1.0f);
+                try {
+                    transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
+                    transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+                    transform = glm::scale(transform, glm::vec3(
+                        glm::max(uiButtonComponent.GetCurrentSize().x, 0.1f),
+                        glm::max(uiButtonComponent.GetCurrentSize().y, 0.1f),
+                        1.0f
+                    ));
+                }
+                catch (...) {
+                    COFFEE_CORE_ERROR("Invalid transform for button entity {}", (uint32_t)entity);
+                    continue;
+                }
+
+                Renderer2D::DrawQuad(
+                    transform,
+                    currentTexture,
+                    1.0f,
+                    uiButtonComponent.GetCurrentColor(),
+                    Renderer2D::RenderMode::Screen,
+                    (uint32_t)entity
+                );
+            } else if (uiToggleView.contains(entity)) {
+                auto& uiToggleComponent = uiToggleView.get<UIToggleComponent>(entity);
+                auto& transformComponent = uiToggleView.get<TransformComponent>(entity);
+
+                if (!uiToggleComponent.Visible) continue;
+
+                glm::vec2 anchorOffset = CalculateAnchorOffset(uiToggleComponent.Anchor, windowSize);
+                glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
+
+                glm::mat4 transform = glm::mat4(1.0f);
+                transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
+                transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+                transform = glm::scale(transform, glm::vec3(uiToggleComponent.Size.x, uiToggleComponent.Size.y, 1.0f));
+
+                Ref<Texture2D> currentTexture = uiToggleComponent.IsActive ? uiToggleComponent.ActiveTexture : uiToggleComponent.InactiveTexture;
+                if (currentTexture) {
+                    Renderer2D::DrawQuad(transform, currentTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
+                }
             }
         }
     }
