@@ -171,7 +171,6 @@ namespace Coffee {
             .template get<AudioListenerComponent>(archive)
             .template get<AudioZoneComponent>(archive)
             .template get<UIImageComponent>(archive)
-            .template get<UICanvasComponent>(archive)
             .template get<UITextComponent>(archive)
             .template get<UISliderComponent>(archive)
             .template get<UIButtonComponent>(archive)
@@ -205,7 +204,6 @@ namespace Coffee {
             .template get<AudioListenerComponent>(archive)
             .template get<AudioZoneComponent>(archive)
             .template get<UIImageComponent>(archive)
-            .template get<UICanvasComponent>(archive)
             .template get<UITextComponent>(archive)
             .template get<UISliderComponent>(archive)
             .template get<UIButtonComponent>(archive)
@@ -217,7 +215,7 @@ namespace Coffee {
 
     private:
         // NOTE: this macro should be modified when adding new components
-        #define ALL_COMPONENTS TagComponent, TransformComponent, HierarchyComponent, CameraComponent, MeshComponent, MaterialComponent, LightComponent, RigidbodyComponent, ScriptComponent, AudioSourceComponent, AudioListenerComponent, AudioZoneComponent, UIImageComponent, UICanvasComponent, UITextComponent, UISliderComponent, UIButtonComponent, UIToggleComponent, ParticlesSystemComponent //, AnimatorComponent
+        #define ALL_COMPONENTS TagComponent, TransformComponent, HierarchyComponent, CameraComponent, MeshComponent, MaterialComponent, LightComponent, RigidbodyComponent, ScriptComponent, AudioSourceComponent, AudioListenerComponent, AudioZoneComponent, UIImageComponent, UITextComponent, UISliderComponent, UIButtonComponent, UIToggleComponent, ParticlesSystemComponent //, AnimatorComponent
 
         entt::registry m_Registry;
         Scope<SceneTree> m_SceneTree;

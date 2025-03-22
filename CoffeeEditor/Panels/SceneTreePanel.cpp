@@ -1247,15 +1247,19 @@ namespace Coffee
                     uiTextComponent.font = Font::GetDefault();
                 }
 
-                // size
+                // Font size
                 ImGui::Text("Font Size");
                 ImGui::DragFloat("##FontSize", &uiTextComponent.FontSize, 0.1f, 5.0f, 100.0f);
 
-                // color
+                // Line spacing
+                ImGui::Text("Line Spacing");
+                ImGui::DragFloat("##LineSpacing", &uiTextComponent.LineSpacing, 0.1f, 0.5f, 3.0f);
+
+                // Color
                 ImGui::Text("Text Color");
                 ImGui::ColorEdit4("##TextColor", glm::value_ptr(uiTextComponent.Color));
 
-                // alignment
+                // Alignment
                 ImGui::Text("Text Alignment");
                 const char* alignmentOptions[] = { "Left", "Center", "Right" };
                 int currentAlignment = static_cast<int>(uiTextComponent.Alignment);
@@ -1263,7 +1267,7 @@ namespace Coffee
                     uiTextComponent.Alignment = static_cast<Font::UITextAlignment>(currentAlignment);
                 }
 
-                // visibility
+                // Visibility
                 ImGui::Checkbox("Visible", &uiTextComponent.Visible);
             }
         }
@@ -1576,21 +1580,6 @@ namespace Coffee
             {
                 // entity.RemoveComponent<AnimatorComponent>();
                 // TODO remove animator component from entity and all the animation data
-            }
-        }
-        if (entity.HasComponent<UICanvasComponent>())
-        {
-            auto& uiCanvasComponent = entity.GetComponent<UICanvasComponent>();
-            bool isCollapsingHeaderOpen = true;
-
-            // Display the UICanvas header in the inspector
-            if (ImGui::CollapsingHeader("UI Canvas", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
-            {
-                // Remove the component if the header is closed
-                if (!isCollapsingHeaderOpen)
-                {
-                    entity.RemoveComponent<UICanvasComponent>();
-                }
             }
         }
 
@@ -2326,7 +2315,7 @@ namespace Coffee
             static char buffer[256] = "";
             ImGui::InputTextWithHint("##Search Component", "Search Component:", buffer, 256);
 
-            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "NavMesh Component", "Navigation Agent Component", "UI Canvas Component", "Image Component", "Text Component", "Slider Component", "Button Component", "Toggle Component", "Particles System Component" };
+            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "NavMesh Component", "Navigation Agent Component", "Image Component", "Text Component", "Slider Component", "Button Component", "Toggle Component", "Particles System Component" };
 
             static int item_current = 1;
 
@@ -2512,13 +2501,6 @@ namespace Coffee
 
                     ImGui::CloseCurrentPopup();
                 }
-                else if (items[item_current] == "UI Canvas Component")
-                {
-                    if (!entity.HasComponent<UICanvasComponent>())
-                        entity.AddComponent<UICanvasComponent>();
-                    auto& uiCanvasComponent = entity.GetComponent<UICanvasComponent>();
-                    ImGui::CloseCurrentPopup();
-                }
                 else if (items[item_current] == "Image Component")
                 {
                     if (!entity.HasComponent<UIImageComponent>())
@@ -2645,7 +2627,7 @@ namespace Coffee
             static char buffer[256] = "";
             ImGui::InputTextWithHint("##Search Component", "Search Component:", buffer, 256);
 
-            std::string items[] = {"Empty", "Camera", "Primitive", "Light", "UI Canvas", "Particle System"};
+            std::string items[] = {"Empty", "Camera", "Primitive", "Light", "UI Image","UI Text","UI Button","UI Slider","UI Toggle", "Particle System"};
 
             static int item_current = 1;
 
@@ -2704,10 +2686,38 @@ namespace Coffee
                     SetSelectedEntity(e);
                     ImGui::CloseCurrentPopup();
                 }
-                else if (items[item_current] == "UI Canvas")
+                else if (items[item_current] == "UI Image")
                 {
-                    Entity e = m_Context->CreateEntity("UI Canvas");
-                    e.AddComponent<UICanvasComponent>();
+                    Entity e = m_Context->CreateEntity("UI Image");
+                    e.AddComponent<UIImageComponent>();
+                    SetSelectedEntity(e);
+                    ImGui::CloseCurrentPopup();
+                }
+                else if (items[item_current] == "UI Text")
+                {
+                    Entity e = m_Context->CreateEntity("UI Text");
+                    e.AddComponent<UITextComponent>();
+                    SetSelectedEntity(e);
+                    ImGui::CloseCurrentPopup();
+                }
+                else if (items[item_current] == "UI Button")
+                {
+                    Entity e = m_Context->CreateEntity("UI Button");
+                    e.AddComponent<UIButtonComponent>();
+                    SetSelectedEntity(e);
+                    ImGui::CloseCurrentPopup();
+                }
+                else if (items[item_current] == "UI Slider")
+                {
+                    Entity e = m_Context->CreateEntity("UI Slider");
+                    e.AddComponent<UISliderComponent>();
+                    SetSelectedEntity(e);
+                    ImGui::CloseCurrentPopup();
+                }
+                else if (items[item_current] == "UI Toggle")
+                {
+                    Entity e = m_Context->CreateEntity("UI Toggle");
+                    e.AddComponent<UIToggleComponent>();
                     SetSelectedEntity(e);
                     ImGui::CloseCurrentPopup();
                 }

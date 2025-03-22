@@ -679,8 +679,6 @@ namespace Coffee {
             }
         };
 
-
-
         auto uiImageView = registry.view<UIImageComponent, TransformComponent>();
         for (auto& entity : uiImageView) {
             auto& uiImageComponent = uiImageView.get<UIImageComponent>(entity);
@@ -713,8 +711,7 @@ namespace Coffee {
             glm::vec2 anchorOffset = CalculateAnchorOffset(uiTextComponent.Anchor, windowSize);
             glm::vec2 basePosition = anchorOffset + glm::vec2(transformComponent.Position);
 
-            float lineHeight = uiTextComponent.FontSize * 1.02f;
-       
+            float lineHeight = uiTextComponent.FontSize * uiTextComponent.LineSpacing; // Ajusta el interlineado
 
             for (size_t i = 0; i < lines.size(); i++) {
                 glm::vec2 linePosition = basePosition;

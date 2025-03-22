@@ -840,47 +840,6 @@
      };
 
     /**
-     * @brief Component representing a UI Canvas.
-     * @ingroup scene
-     */
-     struct UICanvasComponent : public UIComponent {
-         Ref<Texture2D> CanvasTexture; ///< The texture of the canvas.
-
-         UICanvasComponent() = default;
-         UICanvasComponent(const UICanvasComponent&) = default;
-
-         /**
-          * @brief Serializes the UICanvasComponent.
-          * @tparam Archive The type of the archive.
-          * @param archive The archive to serialize to.
-          */
-         template<class Archive>
-         void save(Archive& archive) const {
-             archive(
-                 cereal::make_nvp("CanvasTextureUUID", CanvasTexture ? CanvasTexture->GetUUID() : UUID(0))
-             );
-             UIComponent::save(archive); // Llama a la serialización de la clase base
-         }
-
-         /**
-          * @brief Deserializes the UICanvasComponent.
-          * @tparam Archive The type of the archive.
-          * @param archive The archive to deserialize from.
-          */
-         template<class Archive>
-         void load(Archive& archive) {
-             UUID textureUUID;
-             archive(
-                 cereal::make_nvp("CanvasTextureUUID", textureUUID)
-             );
-             if (textureUUID != 0) {
-                 CanvasTexture = ResourceLoader::GetResource<Texture2D>(textureUUID);
-             }
-             UIComponent::load(archive); // Llama a la deserialización de la clase base
-         }
-     };
-
-    /**
      * @brief Component representing a UI Image.
      * @ingroup scene
      */
@@ -967,6 +926,7 @@
          std::string FontPath; ///< The path to the font file.
          Ref<Font> font; ///< The font used for rendering the text.
          float FontSize = 24.0f; ///< The size of the font.
+         float LineSpacing = 1.0f; ///< The line spacing (interlineado).
          glm::vec4 Color = { 1.0f, 1.0f, 1.0f, 1.0f }; ///< The color of the text.
          Font::UITextAlignment Alignment = Font::UITextAlignment::Left; ///< The alignment of the text.
 
@@ -985,6 +945,7 @@
                  cereal::make_nvp("Text", Text),
                  cereal::make_nvp("FontPath", FontPath),
                  cereal::make_nvp("FontSize", FontSize),
+                 cereal::make_nvp("LineSpacing", LineSpacing),
                  cereal::make_nvp("Color", Color),
                  cereal::make_nvp("Alignment", static_cast<int>(Alignment))
              );
@@ -998,6 +959,7 @@
                  cereal::make_nvp("Text", Text),
                  cereal::make_nvp("FontPath", FontPath),
                  cereal::make_nvp("FontSize", FontSize),
+                 cereal::make_nvp("LineSpacing", LineSpacing),
                  cereal::make_nvp("Color", Color),
                  cereal::make_nvp("Alignment", alignment)
              );
