@@ -1240,10 +1240,104 @@ namespace Coffee
             auto& uiImageComponent = entity.GetComponent<UIImageComponent>();
             bool isCollapsingHeaderOpen = true;
 
+            if (ImGui::Button(ICON_LC_EYE "##HideUIImageComponent", {24, 24}))
+            {
+                uiImageComponent.Visible = !uiImageComponent.Visible;
+
+                if (entity.HasComponent<HierarchyComponent>())
+                {
+                    auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
+                    Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                    while ((entt::entity)childEntity != entt::null)
+                    {
+                        if (childEntity.HasComponent<UIImageComponent>())
+                        {
+                            auto& childUIImageComponent = childEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Visible = uiImageComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = childEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Visible = uiImageComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = childEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Visible = uiImageComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = childEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Visible = uiImageComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = childEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Visible = uiImageComponent.Visible;
+                        }
+
+                        auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                        childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                    }
+                }
+            }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("Toggle visibility of this UI component and its children.");
+            }
+            ImGui::SameLine();
+
             DrawAnchorPointCombo(uiImageComponent.Anchor);
 
             ImGui::Text("Layer");
             ImGui::DragInt("##Layer", &uiImageComponent.Layer, 1, 0);
+
+            ImGui::SameLine();
+            if (ImGui::Button("Apply Children"))
+            {
+                if (entity.HasComponent<HierarchyComponent>())
+                {
+                    auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
+                    Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                    while ((entt::entity)childEntity != entt::null)
+                    {
+                        if (childEntity.HasComponent<UIImageComponent>())
+                        {
+                            auto& childUIImageComponent = childEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Layer = uiImageComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = childEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Layer = uiImageComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = childEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Layer = uiImageComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = childEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Layer = uiImageComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = childEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Layer = uiImageComponent.Layer;
+                        }
+
+                        auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                        childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                    }
+                }
+            }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("Apply this layer to all children.");
+            }
 
             if (ImGui::CollapsingHeader("UI Image", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
@@ -1266,10 +1360,105 @@ namespace Coffee
             auto& uiTextComponent = entity.GetComponent<UITextComponent>();
             bool isCollapsingHeaderOpen = true;
 
+            if (ImGui::Button(ICON_LC_EYE "##HideUITextComponent", {24, 24}))
+            {
+                uiTextComponent.Visible = !uiTextComponent.Visible;
+
+                if (entity.HasComponent<HierarchyComponent>())
+                {
+                    auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
+                    Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                    while ((entt::entity)childEntity != entt::null)
+                    {
+                        if (childEntity.HasComponent<UIImageComponent>())
+                        {
+                            auto& childUIImageComponent = childEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Visible = uiTextComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = childEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Visible = uiTextComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = childEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Visible = uiTextComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = childEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Visible = uiTextComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = childEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Visible = uiTextComponent.Visible;
+                        }
+
+                        auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                        childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                    }
+                }
+            }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("Toggle visibility of this UI component and its children.");
+            }
+            ImGui::SameLine();
+
+
             DrawAnchorPointCombo(uiTextComponent.Anchor);
 
             ImGui::Text("Layer");
             ImGui::DragInt("##Layer", &uiTextComponent.Layer, 1, 0);
+
+            ImGui::SameLine();
+            if (ImGui::Button("Apply Children"))
+            {
+                if (entity.HasComponent<HierarchyComponent>())
+                {
+                    auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
+                    Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                    while ((entt::entity)childEntity != entt::null)
+                    {
+                        if (childEntity.HasComponent<UIImageComponent>())
+                        {
+                            auto& childUIImageComponent = childEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Layer = uiTextComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = childEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Layer = uiTextComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = childEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Layer = uiTextComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = childEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Layer = uiTextComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = childEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Layer = uiTextComponent.Layer;
+                        }
+
+                        auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                        childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                    }
+                }
+            }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("Apply this layer to all children.");
+            }
 
             if (ImGui::CollapsingHeader("UI Text", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen)) {
                 // Show text content
@@ -1281,7 +1470,6 @@ namespace Coffee
                 if (ImGui::InputTextMultiline("##Text", buffer, sizeof(buffer))) {
                     uiTextComponent.Text = std::string(buffer);
                 }
-
 
                 // Select font with a button
                 ImGui::Text("Font Path");
@@ -1330,10 +1518,105 @@ namespace Coffee
             auto& uiButtonComponent = entity.GetComponent<UIButtonComponent>();
             bool isCollapsingHeaderOpen = true;
 
+            if (ImGui::Button(ICON_LC_EYE "##HideUITextComponent", {24, 24}))
+            {
+                uiButtonComponent.Visible = !uiButtonComponent.Visible;
+
+                if (entity.HasComponent<HierarchyComponent>())
+                {
+                    auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
+                    Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                    while ((entt::entity)childEntity != entt::null)
+                    {
+                        if (childEntity.HasComponent<UIImageComponent>())
+                        {
+                            auto& childUIImageComponent = childEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Visible = uiButtonComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = childEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Visible = uiButtonComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = childEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Visible = uiButtonComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = childEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Visible = uiButtonComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = childEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Visible = uiButtonComponent.Visible;
+                        }
+
+                        auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                        childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                    }
+                }
+            }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("Toggle visibility of this UI component and its children.");
+            }
+            ImGui::SameLine();
+
             DrawAnchorPointCombo(uiButtonComponent.Anchor);
 
             ImGui::Text("Layer");
             ImGui::DragInt("##Layer", &uiButtonComponent.Layer, 1, 0);
+
+            ImGui::SameLine();
+            if (ImGui::Button("Apply Children"))
+            {
+                if (entity.HasComponent<HierarchyComponent>())
+                {
+                    auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
+                    Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                    while ((entt::entity)childEntity != entt::null)
+                    {
+                        // Aplicar la capa a los componentes de UI del hijo
+                        if (childEntity.HasComponent<UIImageComponent>())
+                        {
+                            auto& childUIImageComponent = childEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Layer = uiButtonComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = childEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Layer = uiButtonComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = childEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Layer = uiButtonComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = childEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Layer = uiButtonComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = childEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Layer = uiButtonComponent.Layer;
+                        }
+
+                        auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                        childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                    }
+                }
+            }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("Apply this layer to all children.");
+            }
 
             if (ImGui::CollapsingHeader("UI Button", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
@@ -1382,8 +1665,102 @@ namespace Coffee
 
             DrawAnchorPointCombo(uiSliderComponent.Anchor);
 
+            if (ImGui::Button(ICON_LC_EYE "##HideUISliderComponent", {24, 24}))
+            {
+                uiSliderComponent.Visible = !uiSliderComponent.Visible;
+
+                if (entity.HasComponent<HierarchyComponent>())
+                {
+                    auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
+                    Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                    while ((entt::entity)childEntity != entt::null)
+                    {
+                        if (childEntity.HasComponent<UIImageComponent>())
+                        {
+                            auto& childUIImageComponent = childEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Visible = uiSliderComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = childEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Visible = uiSliderComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = childEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Visible = uiSliderComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = childEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Visible = uiSliderComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = childEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Visible = uiSliderComponent.Visible;
+                        }
+
+                        auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                        childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                    }
+                }
+            }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("Toggle visibility of this UI component and its children.");
+            }
+            ImGui::SameLine();
+
             ImGui::Text("Layer");
             ImGui::DragInt("##Layer", &uiSliderComponent.Layer, 1, 0);
+
+            ImGui::SameLine();
+            if (ImGui::Button("Apply Children"))
+            {
+                if (entity.HasComponent<HierarchyComponent>())
+                {
+                    auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
+                    Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                    while ((entt::entity)childEntity != entt::null)
+                    {
+                        if (childEntity.HasComponent<UIImageComponent>())
+                        {
+                            auto& childUIImageComponent = childEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Layer = uiSliderComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = childEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Layer = uiSliderComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = childEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Layer = uiSliderComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = childEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Layer = uiSliderComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = childEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Layer = uiSliderComponent.Layer;
+                        }
+
+                        auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                        childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                    }
+                }
+            }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("Apply this layer to all children.");
+            }
 
             if (ImGui::CollapsingHeader("UI Slider", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
@@ -1416,10 +1793,104 @@ namespace Coffee
             auto& uiToggleComponent = entity.GetComponent<UIToggleComponent>();
             bool isCollapsingHeaderOpen = true;
 
+            if (ImGui::Button(ICON_LC_EYE "##HideUIToggleComponent", {24, 24}))
+            {
+                uiToggleComponent.Visible = !uiToggleComponent.Visible;
+
+                if (entity.HasComponent<HierarchyComponent>())
+                {
+                    auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
+                    Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                    while ((entt::entity)childEntity != entt::null)
+                    {
+                        if (childEntity.HasComponent<UIImageComponent>())
+                        {
+                            auto& childUIImageComponent = childEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Visible = uiToggleComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = childEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Visible = uiToggleComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = childEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Visible = uiToggleComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = childEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Visible = uiToggleComponent.Visible;
+                        }
+                        if (childEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = childEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Visible = uiToggleComponent.Visible;
+                        }
+
+                        auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                        childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                    }
+                }
+            }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("Toggle visibility of this UI component and its children.");
+            }
+            ImGui::SameLine();
+
             DrawAnchorPointCombo(uiToggleComponent.Anchor);
 
             ImGui::Text("Layer");
             ImGui::DragInt("##Layer", &uiToggleComponent.Layer, 1, 0);
+
+            ImGui::SameLine();
+            if (ImGui::Button("Apply Children"))
+            {
+                if (entity.HasComponent<HierarchyComponent>())
+                {
+                    auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
+                    Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                    while ((entt::entity)childEntity != entt::null)
+                    {
+                        if (childEntity.HasComponent<UIImageComponent>())
+                        {
+                            auto& childUIImageComponent = childEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Layer = uiToggleComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = childEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Layer = uiToggleComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = childEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Layer = uiToggleComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = childEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Layer = uiToggleComponent.Layer;
+                        }
+                        if (childEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = childEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Layer = uiToggleComponent.Layer;
+                        }
+
+                        auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                        childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                    }
+                }
+            }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("Apply this layer to all children.");
+            }
 
             if (ImGui::CollapsingHeader("UI Toggle", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {

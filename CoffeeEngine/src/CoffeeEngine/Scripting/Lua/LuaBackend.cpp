@@ -634,8 +634,11 @@ namespace Coffee {
                     self->AddComponent<UISliderComponent>();
                 }else if (componentName == "UIButtonComponent"){
                     self->AddComponent<UIButtonComponent>();
-                }else if (componentName == "UIToggleComponent"){
+                }else if (componentName == "UIToggleComponent")
+                {
                     self->AddComponent<UIToggleComponent>();
+                }else if (componentName == "UIAnchorPosition"){
+                    self->AddComponent<UIAnchorPosition>();
                 }else if (componentName == "ParticlesSystemComponent"){
                     self->AddComponent<ParticlesSystemComponent>();
                 } else if (componentName == "AudioSourceComponent") {
@@ -665,6 +668,8 @@ namespace Coffee {
                     return sol::make_object(luaState, std::ref(self->GetComponent<UISliderComponent>()));
                 }else if (componentName == "UIButtonComponent"){
                     return sol::make_object(luaState, std::ref(self->GetComponent<UIButtonComponent>()));
+                }else if (componentName == "UIAnchorPosition"){
+                    return sol::make_object(luaState, std::ref(self->GetComponent<UIAnchorPosition>()));
                 }else if (componentName == "UIToggleComponent"){
                     return sol::make_object(luaState, std::ref(self->GetComponent<UIToggleComponent>()));
                 }else if (componentName == "ParticlesSystemComponent") {
@@ -705,6 +710,8 @@ namespace Coffee {
                     return self->HasComponent<UISliderComponent>();
                 }else if (componentName == "UIButtonComponent"){
                     return self->HasComponent<UIButtonComponent>();
+                }else if (componentName == "UIAnchorPosition"){
+                    return self->HasComponent<UIAnchorPosition>();
                 }else if (componentName == "UIToggleComponent"){
                     return self->HasComponent<UIToggleComponent>();
                 }else if (componentName == "ParticlesSystemComponent") {
@@ -740,6 +747,8 @@ namespace Coffee {
                     self->RemoveComponent<UIImageComponent>();
                 } else if (componentName == "UITextComponent") {
                     self->RemoveComponent<UITextComponent>();
+                }else if (componentName == "UIAnchorPosition") {
+                    self->RemoveComponent<UIAnchorPosition>();
                 }else if (componentName == "UIButtonComponent") {
                     self->RemoveComponent<UIButtonComponent>();
                 } else if (componentName == "UITextComponent") {
@@ -841,6 +850,8 @@ namespace Coffee {
             "set_size", [](UIImageComponent& self, const glm::vec2& size) { self.Size = size; },
             "is_visible", &UIImageComponent::Visible,
             "set_visible", [](UIImageComponent& self, bool visible) { self.Visible = visible; },
+            "get_layer", &UIImageComponent::Layer,
+            "set_layer", [](UIImageComponent& self, int layer) { self.Layer = layer; },
             "set_texture", sol::overload(
                 [](UIImageComponent& self, const Ref<Texture2D>& newTexture) { self.SetTexture(newTexture); }, // Sobrecarga para Ref<Texture2D>
                 [](UIImageComponent& self, const std::string& texturePath) { self.SetTexture(texturePath); }   // Sobrecarga para std::string
@@ -857,13 +868,31 @@ namespace Coffee {
                 "set_font_size", [](UITextComponent& self, float fontSize) { self.FontSize = fontSize; },
                 "get_color", &UITextComponent::Color,
                 "set_color", [](UITextComponent& self, const glm::vec4& color) { self.Color = color; },
+               "get_layer", &UIImageComponent::Layer,
+               "set_layer", [](UIImageComponent& self, int layer) { self.Layer = layer; },
                 "is_visible", &UITextComponent::Visible,
                 "set_visible", [](UITextComponent& self, bool visible) { self.Visible = visible; }
             );
 
+
+        luaState.new_enum<UIAnchorPosition>("UIAnchorPosition",
+                                            {
+                                                {"TopLeft", UIAnchorPosition::TopLeft},
+                                                {"TopCenter", UIAnchorPosition::TopCenter},
+                                                {"TopRight", UIAnchorPosition::TopRight},
+                                                {"CenterLeft", UIAnchorPosition::CenterLeft},
+                                                {"Center", UIAnchorPosition::Center},
+                                                {"CenterRight", UIAnchorPosition::CenterRight},
+                                                {"BottomLeft", UIAnchorPosition::BottomLeft},
+                                                {"BottomCenter", UIAnchorPosition::BottomCenter},
+                                                {"BottomRight", UIAnchorPosition::BottomRight}
+                                            }
+        );
+
+
+
             luaState.new_usertype<UIButtonComponent>("UIButtonComponent",
         sol::constructors<UIButtonComponent(), UIButtonComponent(const std::string&, const std::string&, const std::string&)>(),
-
 
         "set_state", [](UIButtonComponent& self, const std::string& state) {
             if (state == "Base") {
@@ -942,6 +971,8 @@ namespace Coffee {
             colorTable[4] = color.a;
             return colorTable;
         },
+         "get_layer", &UIImageComponent::Layer,
+         "set_layer", [](UIImageComponent& self, int layer) { self.Layer = layer; },
 
         "update", &UIButtonComponent::Update
     );
@@ -960,6 +991,8 @@ namespace Coffee {
         "set_value", [](UISliderComponent& self, float value) { self.Value = glm::clamp(value, 0.0f, 1.0f); },
         "is_visible", [](UISliderComponent& self) { return self.Visible; },
         "set_visible", [](UISliderComponent& self, bool visible) { self.Visible = visible; },
+         "get_layer", &UIImageComponent::Layer,
+         "set_layer", [](UIImageComponent& self, int layer) { self.Layer = layer; },
         "on_value_changed", [](UISliderComponent& self, sol::function callback){}
         );
 
@@ -972,6 +1005,8 @@ namespace Coffee {
             "set_visible", [](UIToggleComponent& self, bool visible) { self.Visible = visible; },
             "get_size", &UIToggleComponent::Size,
             "set_size", [](UIToggleComponent& self, const glm::vec2& size) { self.Size = size; },
+             "get_layer", &UIImageComponent::Layer,
+             "set_layer", [](UIImageComponent& self, int layer) { self.Layer = layer; },
             "get_active_texture", &UIToggleComponent::ActiveTexture,
             "set_active_texture", [](UIToggleComponent& self, const Ref<Texture2D>& texture) { self.ActiveTexture = texture; },
             "get_inactive_texture", &UIToggleComponent::InactiveTexture,
