@@ -685,38 +685,84 @@ namespace Coffee {
         auto uiButtonView = registry.view<UIButtonComponent, TransformComponent>();
         auto uiToggleView = registry.view<UIToggleComponent, TransformComponent>();
 
-        std::vector<std::pair<entt::entity, int>> uiEntities;
+        std::vector<std::tuple<entt::entity, int, int, int>> uiEntities;
 
+        // Función para obtener la profundidad en la jerarquía y el índice del hermano
+        auto GetHierarchyDepthAndSiblingIndex = [&registry](entt::entity entity) -> std::pair<int, int> {
+            int depth = 0;
+            int siblingIndex = 0;
+            auto* hierarchyComponent = registry.try_get<HierarchyComponent>(entity);
+            if (hierarchyComponent && hierarchyComponent->m_Parent != entt::null) {
+                // Calcular la profundidad
+                auto* parentHierarchy = registry.try_get<HierarchyComponent>(hierarchyComponent->m_Parent);
+                while (parentHierarchy) {
+                    depth++;
+                    parentHierarchy = registry.try_get<HierarchyComponent>(parentHierarchy->m_Parent);
+                }
+
+                // Calcular el índice del hermano
+                auto parent = hierarchyComponent->m_Parent;
+                auto* parentChildren = registry.try_get<HierarchyComponent>(parent);
+                if (parentChildren) {
+                    entt::entity currentChild = parentChildren->m_First;
+                    while (currentChild != entt::null) {
+                        if (currentChild == entity) {
+                            break;
+                        }
+                        siblingIndex++;
+                        currentChild = registry.get<HierarchyComponent>(currentChild).m_Next;
+                    }
+                }
+            }
+            return {depth, siblingIndex};
+        };
+
+        // Recopilar todas las entidades de UI con su layer, profundidad y índice de hermano
         for (auto entity : uiImageView) {
             auto& uiImageComponent = uiImageView.get<UIImageComponent>(entity);
-            uiEntities.push_back({entity, uiImageComponent.Layer});
+            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
+            uiEntities.push_back({entity, uiImageComponent.Layer, depth, siblingIndex});
         }
 
         for (auto entity : uiTextView) {
             auto& uiTextComponent = uiTextView.get<UITextComponent>(entity);
-            uiEntities.push_back({entity, uiTextComponent.Layer});
+            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
+            uiEntities.push_back({entity, uiTextComponent.Layer, depth, siblingIndex});
         }
 
         for (auto entity : uiSliderView) {
             auto& uiSliderComponent = uiSliderView.get<UISliderComponent>(entity);
-            uiEntities.push_back({entity, uiSliderComponent.Layer});
+            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
+            uiEntities.push_back({entity, uiSliderComponent.Layer, depth, siblingIndex});
         }
 
         for (auto entity : uiButtonView) {
             auto& uiButtonComponent = uiButtonView.get<UIButtonComponent>(entity);
-            uiEntities.push_back({entity, uiButtonComponent.Layer});
+            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
+            uiEntities.push_back({entity, uiButtonComponent.Layer, depth, siblingIndex});
         }
 
         for (auto entity : uiToggleView) {
             auto& uiToggleComponent = uiToggleView.get<UIToggleComponent>(entity);
-            uiEntities.push_back({entity, uiToggleComponent.Layer});
+            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
+            uiEntities.push_back({entity, uiToggleComponent.Layer, depth, siblingIndex});
         }
 
-        std::sort(uiEntities.begin(), uiEntities.end(), [](const std::pair<entt::entity, int>& a, const std::pair<entt::entity, int>& b) {
-            return a.second < b.second;
+        // Ordenar primero por layer, luego por profundidad y finalmente por índice de hermano
+        std::sort(uiEntities.begin(), uiEntities.end(), [](const std::tuple<entt::entity, int, int, int>& a, const std::tuple<entt::entity, int, int, int>& b) {
+            if (std::get<1>(a) == std::get<1>(b)) {
+                if (std::get<2>(a) == std::get<2>(b)) {
+                    return std::get<3>(a) < std::get<3>(b); // Menor índice de hermano primero
+                }
+                return std::get<2>(a) < std::get<2>(b); // Menor profundidad primero
+            }
+            return std::get<1>(a) < std::get<1>(b); // Menor layer primero
         });
 
-        for (auto& [entity, layer] : uiEntities) {
+        // Renderizar las entidades en el orden correcto
+        for (auto& [entity, layer, depth, siblingIndex] : uiEntities) {
+            float zOffset = depth * 0.1f + siblingIndex * 0.01f; // Ajustar zOffset con profundidad y orden de hermanos
+
             if (uiImageView.contains(entity)) {
                 auto& uiImageComponent = uiImageView.get<UIImageComponent>(entity);
                 auto& transformComponent = uiImageView.get<TransformComponent>(entity);
@@ -727,7 +773,7 @@ namespace Coffee {
                 glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
 
                 glm::mat4 transform = glm::mat4(1.0f);
-                transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
+                transform = glm::translate(transform, glm::vec3(finalPosition, zOffset)); // Usar zOffset
                 transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
                 transform = glm::scale(transform, glm::vec3(uiImageComponent.Size.x, uiImageComponent.Size.y, 1.0f));
 
@@ -752,7 +798,7 @@ namespace Coffee {
                     linePosition.y += i * lineHeight;
 
                     glm::mat4 transform = glm::mat4(1.0f);
-                    transform = glm::translate(transform, glm::vec3(linePosition, 0.0f));
+                    transform = glm::translate(transform, glm::vec3(linePosition, zOffset)); // Usar zOffset
                     transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
                     transform = glm::scale(transform, glm::vec3(uiTextComponent.FontSize, -uiTextComponent.FontSize, 1.0f));
 
@@ -770,7 +816,7 @@ namespace Coffee {
                 glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
 
                 glm::mat4 transform = glm::mat4(1.0f);
-                transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
+                transform = glm::translate(transform, glm::vec3(finalPosition, zOffset)); // Usar zOffset
                 transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
                 glm::mat4 barTransform = glm::scale(transform, glm::vec3(uiSliderComponent.Size.x, uiSliderComponent.Size.y, 1.0f));
@@ -804,13 +850,13 @@ namespace Coffee {
 
                 glm::mat4 transform = glm::mat4(1.0f);
                 try {
-                    transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
+                    transform = glm::translate(transform, glm::vec3(finalPosition, zOffset)); // Usar zOffset
                     transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
                     transform = glm::scale(transform, glm::vec3(
-                        glm::max(uiButtonComponent.GetCurrentSize().x, 0.1f),
-                        glm::max(uiButtonComponent.GetCurrentSize().y, 0.1f),
-                        1.0f
-                    ));
+                                                          glm::max(uiButtonComponent.GetCurrentSize().x, 0.1f),
+                                                          glm::max(uiButtonComponent.GetCurrentSize().y, 0.1f),
+                                                          1.0f
+                                                          ));
                 }
                 catch (...) {
                     COFFEE_CORE_ERROR("Invalid transform for button entity {}", (uint32_t)entity);
@@ -835,7 +881,7 @@ namespace Coffee {
                 glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
 
                 glm::mat4 transform = glm::mat4(1.0f);
-                transform = glm::translate(transform, glm::vec3(finalPosition, 0.0f));
+                transform = glm::translate(transform, glm::vec3(finalPosition, zOffset)); // Usar zOffset
                 transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
                 transform = glm::scale(transform, glm::vec3(uiToggleComponent.Size.x, uiToggleComponent.Size.y, 1.0f));
 

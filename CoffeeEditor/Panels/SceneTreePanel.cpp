@@ -1242,11 +1242,11 @@ namespace Coffee
 
             DrawAnchorPointCombo(uiImageComponent.Anchor);
 
+            ImGui::Text("Layer");
+            ImGui::DragInt("##Layer", &uiImageComponent.Layer, 1, 0);
+
             if (ImGui::CollapsingHeader("UI Image", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
-                ImGui::Text("Layer");
-                ImGui::DragInt("##Layer", &uiImageComponent.Layer, 1, 0, 10);
-
                 ImGui::Text("Size");
                 ImGui::DragFloat2("##Size", glm::value_ptr(uiImageComponent.Size), 0.1f);
 
@@ -1268,6 +1268,9 @@ namespace Coffee
 
             DrawAnchorPointCombo(uiTextComponent.Anchor);
 
+            ImGui::Text("Layer");
+            ImGui::DragInt("##Layer", &uiTextComponent.Layer, 1, 0);
+
             if (ImGui::CollapsingHeader("UI Text", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen)) {
                 // Show text content
                 ImGui::Text("Text Content");
@@ -1279,8 +1282,6 @@ namespace Coffee
                     uiTextComponent.Text = std::string(buffer);
                 }
 
-                ImGui::Text("Layer");
-                ImGui::DragInt("##Layer", &uiTextComponent.Layer, 1, 0, 10);
 
                 // Select font with a button
                 ImGui::Text("Font Path");
@@ -1305,7 +1306,7 @@ namespace Coffee
 
                 // Line spacing
                 ImGui::Text("Line Spacing");
-                ImGui::DragFloat("##LineSpacing", &uiTextComponent.LineSpacing, 0.1f, 0.5f, 3.0f);
+                ImGui::DragFloat("##LineSpacing", &uiTextComponent.LineSpacing, 0.1f, 0.5f);
 
                 // Color
                 ImGui::Text("Text Color");
@@ -1331,11 +1332,11 @@ namespace Coffee
 
             DrawAnchorPointCombo(uiButtonComponent.Anchor);
 
+            ImGui::Text("Layer");
+            ImGui::DragInt("##Layer", &uiButtonComponent.Layer, 1, 0);
+
             if (ImGui::CollapsingHeader("UI Button", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
-                ImGui::Text("Layer");
-                ImGui::DragInt("##Layer", &uiButtonComponent.Layer, 1, 0, 10);
-
                 ImGui::Text("State");
                 const char* stateNames[] = { "Base", "Selected", "Pressed" };
                 int currentState = static_cast<int>(uiButtonComponent.currentState);
@@ -1381,11 +1382,11 @@ namespace Coffee
 
             DrawAnchorPointCombo(uiSliderComponent.Anchor);
 
+            ImGui::Text("Layer");
+            ImGui::DragInt("##Layer", &uiSliderComponent.Layer, 1, 0);
+
             if (ImGui::CollapsingHeader("UI Slider", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
-                ImGui::Text("Layer");
-                ImGui::DragInt("##Layer", &uiSliderComponent.Layer, 1, 0, 10);
-
                 ImGui::Text("Bar Texture");
                 DrawTextureWidget("##UISliderBarTexture", uiSliderComponent.barTexture);
 
@@ -1417,11 +1418,11 @@ namespace Coffee
 
             DrawAnchorPointCombo(uiToggleComponent.Anchor);
 
+            ImGui::Text("Layer");
+            ImGui::DragInt("##Layer", &uiToggleComponent.Layer, 1, 0);
+
             if (ImGui::CollapsingHeader("UI Toggle", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
-                ImGui::Text("Layer");
-                ImGui::DragInt("##Layer", &uiToggleComponent.Layer, 1, 0, 10);
-
                 ImGui::Text("Active Texture");
                 DrawTextureWidget("##UIToggleActiveTexture", uiToggleComponent.ActiveTexture);
 
