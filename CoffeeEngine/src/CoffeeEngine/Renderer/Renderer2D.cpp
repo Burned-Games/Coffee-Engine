@@ -31,7 +31,7 @@ namespace Coffee {
         glm::vec3 Position;
         glm::vec4 Color;
         glm::vec2 TexCoord;
-
+        
         float TexIndex;
         float TilingFactor;
 
@@ -42,7 +42,7 @@ namespace Coffee {
     {
         glm::vec3 Position;
         glm::vec4 Color;
-
+        
         glm::vec3 EntityID;
     };
 
@@ -290,7 +290,7 @@ namespace Coffee {
     {
         glm::mat4 transform = glm::translate(glm::mat4(1.0f), {position.x, position.y, 0.0f})
                             * glm::scale(glm::mat4(1.0f), {size.x, size.y, 1.0f});
-
+        
         DrawRect(transform, color, RenderMode::Screen, entityID);
     }
 
@@ -299,7 +299,7 @@ namespace Coffee {
         glm::mat4 transform = glm::translate(glm::mat4(1.0f), {position.x, position.y, 0.0f})
                             * glm::rotate(glm::mat4(1.0f), rotation, {0.0f, 0.0f, 1.0f})
                             * glm::scale(glm::mat4(1.0f), {size.x, size.y, 1.0f});
-
+        
         DrawRect(transform, color, RenderMode::Screen, entityID);
     }
 
@@ -307,7 +307,7 @@ namespace Coffee {
     {
         glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
                             * glm::scale(glm::mat4(1.0f), {size.x, size.y, 1.0f});
-
+        
         DrawRect(transform, color, RenderMode::World, entityID);
     }
 
@@ -339,11 +339,11 @@ namespace Coffee {
         {
             batch.QuadVertices.push_back(
             {
-                transform * s_Renderer2DData.QuadVertexPositions[i],
-                color,
-                texCoords[i],
-                0.0f,
-                1.0f,
+                transform * s_Renderer2DData.QuadVertexPositions[i], 
+                color, 
+                texCoords[i], 
+                0.0f, 
+                1.0f, 
                 entityIDVec3
                 });
         }
@@ -402,11 +402,11 @@ namespace Coffee {
         {
             batch.QuadVertices.push_back(
             {
-                transform * s_Renderer2DData.QuadVertexPositions[i],
-                tintColor,
-                texCoords[i],
-                textureIndex,
-                tilingFactor,
+                transform * s_Renderer2DData.QuadVertexPositions[i], 
+                tintColor, 
+                texCoords[i], 
+                textureIndex, 
+                tilingFactor, 
                 entityIDVec3
                 });
         }
@@ -600,7 +600,7 @@ namespace Coffee {
             DrawLine(obb.corners[i], obb.corners[i + 4], color, linewidth);
         }
     }
-
+    
     void Renderer2D::DrawArrow(const glm::vec3& start, const glm::vec3& end, bool fixedLength, glm::vec4 color , float linewidth)
     {
         Batch& batch = GetBatch(RenderMode::World);
@@ -674,19 +674,19 @@ namespace Coffee {
     void Renderer2D::DrawFrustum(const Frustum& frustum, const glm::vec4& color , float linewidth)
     {
         const glm::vec3* points = frustum.GetPoints();
-
+        
         // Draw near plane rectangle
         DrawLine(points[0], points[1], color, linewidth);
         DrawLine(points[0], points[2], color, linewidth);
         DrawLine(points[2], points[3], color, linewidth);
         DrawLine(points[1], points[3], color, linewidth);
-
+        
         // Draw far plane rectangle
         DrawLine(points[4], points[5], color, linewidth);
         DrawLine(points[4], points[6], color, linewidth);
         DrawLine(points[6], points[7], color, linewidth);
         DrawLine(points[5], points[7], color, linewidth);
-
+        
         // Draw connecting lines between near and far planes
         DrawLine(points[0], points[4], color, linewidth);
         DrawLine(points[1], points[5], color, linewidth);
@@ -734,56 +734,56 @@ namespace Coffee {
     void Renderer2D::DrawCapsule(const glm::vec3& position, const glm::quat& rotation, float radius, float height, const glm::vec4& color)
     {
         float halfCylinderHeight = height * 0.5f;
-
+        
         glm::vec3 upVector = rotation * glm::vec3(0, 1, 0);
         glm::vec3 topSpherePos = position + upVector * halfCylinderHeight;
         glm::vec3 bottomSpherePos = position - upVector * halfCylinderHeight;
-
+        
         DrawSphere(topSpherePos, radius,glm::identity<glm::quat>(), color);
         DrawSphere(bottomSpherePos, radius,glm::identity<glm::quat>(), color);
-
+        
         DrawCylinder(position, rotation, radius, height, color);
     }
-
+    
     void Renderer2D::DrawCylinder(const glm::vec3& position, const glm::quat& rotation, float radius, float height, const glm::vec4& color)
     {
         const int segments = 24;
         const float angleStep = 2.0f * glm::pi<float>() / segments;
-
-        glm::vec3 topPoints[25];
+        
+        glm::vec3 topPoints[25]; 
         glm::vec3 bottomPoints[25];
-
+        
         float halfHeight = height * 0.5f;
-
+        
         for (int i = 0; i <= segments; i++)
         {
             float angle = i * angleStep;
             float x = radius * cos(angle);
             float z = radius * sin(angle);
-
+            
             glm::vec3 localTop(x, halfHeight, z);
             glm::vec3 localBottom(x, -halfHeight, z);
-
+            
             glm::vec3 worldTop = position + rotation * localTop;
             glm::vec3 worldBottom = position + rotation * localBottom;
-
+            
             topPoints[i] = worldTop;
             bottomPoints[i] = worldBottom;
         }
-
+        
         for (int i = 0; i < segments; i++)
         {
             DrawLine(topPoints[i], topPoints[i + 1], color);
-
+            
             DrawLine(bottomPoints[i], bottomPoints[i + 1], color);
-
+            
             if (i % 4 == 0) {
                 DrawLine(topPoints[i], bottomPoints[i], color);
             }
         }
     }
 
-    void Renderer2D::DrawString(const std::string &text, Ref<Font> font, const glm::mat4 &transform, const TextParams &textParams, RenderMode mode, uint32_t entityID)
+    void Renderer2D::DrawText(const std::string &text, Ref<Font> font, const glm::mat4 &transform, const TextParams &textParams, RenderMode mode, uint32_t entityID)
     {
 
         Batch& batch = GetBatch(mode);
@@ -797,7 +797,7 @@ namespace Coffee {
         const auto& fontGeometry = font->GetMSDFData()->FontGeometry;
         const auto& metrics = fontGeometry.getMetrics();
         Ref<Texture2D> fontAtlas = font->GetAtlasTexture();
-
+        
         // TODO: Skip to the next batch if the font is different
         batch.FontAtlasTexture = fontAtlas;
 
@@ -895,28 +895,28 @@ namespace Coffee {
                 texCoordMin,
                 entityIDVec3
             });
-
+            
             batch.TextVertices.push_back({
                 transform * glm::vec4(quadMin.x, quadMax.y, 0.0f, 1.0f),
                 textParams.Color,
                 { texCoordMin.x, texCoordMax.y },
                 entityIDVec3
             });
-
+            
             batch.TextVertices.push_back({
                 transform * glm::vec4(quadMax, 0.0f, 1.0f),
                 textParams.Color,
                 texCoordMax,
                 entityIDVec3
             });
-
+            
             batch.TextVertices.push_back({
                 transform * glm::vec4(quadMax.x, quadMin.y, 0.0f, 1.0f),
                 textParams.Color,
                 { texCoordMax.x, texCoordMin.y },
                 entityIDVec3
             });
-
+            
             batch.TextIndexCount += 6;
 
             if (i < text.size() - 1)
@@ -939,7 +939,7 @@ namespace Coffee {
         }
         return batches.back();
     }
-
+    
     void Renderer2D::NextBatch(RenderMode mode)
     {
         auto& batches = (mode == RenderMode::World) ? s_Renderer2DData.WorldBatches : s_Renderer2DData.ScreenBatches;

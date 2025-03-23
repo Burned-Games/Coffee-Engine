@@ -761,9 +761,10 @@ namespace Coffee {
                             self->RemoveComponent<UIToggleComponent>();
                 }
                 else if (componentName == "ParticlesSystemComponent") {
+                    
                     self->RemoveComponent<ParticlesSystemComponent>();
-                } else if (componentName == "RigidbodyComponent") {
 
+                } else if (componentName == "RigidbodyComponent") {
                     self->RemoveComponent<RigidbodyComponent>();
                 } else if (componentName == "AudioSourceComponent") {
                     self->RemoveComponent<AudioSourceComponent>();
@@ -1071,9 +1072,13 @@ namespace Coffee {
             },
             "change_scene", sol::overload(
                 [](const std::string& scenePath) {
+                    AudioZone::RemoveAllReverbZones();
+                    Audio::UnregisterAllGameObjects();
                     SceneManager::ChangeScene(scenePath);
                 },
                 [](const Ref<Scene>& scene) {
+                    AudioZone::RemoveAllReverbZones();
+                    Audio::UnregisterAllGameObjects();
                     SceneManager::ChangeScene(scene);
                 }
             ),
@@ -1212,6 +1217,57 @@ namespace Coffee {
         luaState.set_function("create_rigidbody", [](const RigidBody::Properties& props, const Ref<Collider>& collider) {
             return RigidBody::Create(props, collider);
         });
+
+        sol::table physicsTable = luaState.create_table();
+        luaState["Physics"] = physicsTable;
+
+        // Bind RaycastHit type to Lua
+        luaState.new_usertype<RaycastHit>(
+            "RaycastHit",
+            "hasHit", &RaycastHit::hasHit,
+            "hitEntity", &RaycastHit::hitEntity,
+            "hitPoint", &RaycastHit::hitPoint,
+            "hitNormal", &RaycastHit::hitNormal,
+            "hitFraction", &RaycastHit::hitFraction
+        );
+
+        // Bind Raycast functions
+        physicsTable["Raycast"] = [](const glm::vec3& origin, const glm::vec3& direction, float maxDistance) -> RaycastHit {
+            auto scene = SceneManager::GetActiveScene();
+            if (!scene)
+                return RaycastHit{};
+
+            return scene->GetPhysicsWorld().Raycast(origin, direction, maxDistance);
+        };
+
+        physicsTable["RaycastAll"] = [](const glm::vec3& origin, const glm::vec3& direction, float maxDistance) -> std::vector<RaycastHit> {
+            auto scene = SceneManager::GetActiveScene();
+            if (!scene)
+                return std::vector<RaycastHit>{};
+
+            return scene->GetPhysicsWorld().RaycastAll(origin, direction, maxDistance);
+        };
+
+        physicsTable["RaycastAny"] = [](const glm::vec3& origin, const glm::vec3& direction, float maxDistance) -> bool {
+            auto scene = SceneManager::GetActiveScene();
+            if (!scene)
+                return false;
+
+            return scene->GetPhysicsWorld().RaycastAny(origin, direction, maxDistance);
+        };
+
+        physicsTable["DebugDrawRaycast"] = [](const glm::vec3& origin, const glm::vec3& direction, float maxDistance,
+            sol::optional<glm::vec4> rayColor, sol::optional<glm::vec4> hitColor) {
+            auto scene = SceneManager::GetActiveScene();
+            if (!scene)
+            return;
+
+            // Default colors if not provided
+            glm::vec4 rColor = rayColor.value_or(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+            glm::vec4 hColor = hitColor.value_or(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+
+            scene->GetPhysicsWorld().DebugDrawRaycast(origin, direction, maxDistance, rColor, hColor);
+        };
 
         # pragma endregion
     }

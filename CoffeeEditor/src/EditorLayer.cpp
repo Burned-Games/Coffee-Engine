@@ -19,7 +19,6 @@
 #include "CoffeeEngine/Renderer/Renderer.h"
 #include "CoffeeEngine/Renderer/Renderer2D.h"
 #include "CoffeeEngine/Renderer/Renderer3D.h"
-#include "CoffeeEngine/Renderer/Renderer2D.h"
 #include "CoffeeEngine/Scene/Components.h"
 #include "CoffeeEngine/Scene/PrimitiveMesh.h"
 #include "CoffeeEngine/Scene/Scene.h"
@@ -111,7 +110,7 @@ namespace Coffee {
             break;
 
         }
-
+        
         Renderer::SetCurrentRenderTarget(nullptr);
     }
 
@@ -788,6 +787,9 @@ namespace Coffee {
 
         if (!path.empty() and path.extension() == ".TeaScene")
         {
+            AudioZone::RemoveAllReverbZones();
+            Audio::UnregisterAllGameObjects();
+
             m_EditorScene = Scene::Load(path);
             SceneManager::ChangeScene(m_EditorScene);
 

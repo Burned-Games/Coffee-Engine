@@ -58,12 +58,14 @@ namespace Coffee
 
     void Audio::UnregisterAllGameObjects()
     {
-        for (auto& audioSource : audioSources)
+        std::vector<AudioSourceComponent*> sourcesToUnregister = audioSources;
+        for (auto& audioSource : sourcesToUnregister)
         {
             UnregisterAudioSourceComponent(*audioSource);
         }
 
-        for (auto& audioListener : audioListeners)
+        std::vector<AudioListenerComponent*> listenersToUnregister = audioListeners;
+        for (auto& audioListener : listenersToUnregister)
         {
             UnregisterAudioListenerComponent(*audioListener);
         }

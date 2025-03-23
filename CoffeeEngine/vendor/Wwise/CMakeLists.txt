@@ -19,11 +19,13 @@ set(SAMPLES_DIR "${WWISE_SDK_DIR}/samples")
 # Determine platform-specific variables
 if (WIN32)
     set(PLATFORM_DIR "Win32")
-    set(WWISE_LIB_DIR "${WWISE_SDK_DIR}/x64_vc170/Debug/lib")
+    set(WWISE_LIB_DIR_DEBUG "${WWISE_SDK_DIR}/x64_vc170/Debug/lib")
+    set(WWISE_LIB_DIR_RELEASE "${WWISE_SDK_DIR}/x64_vc170/Release/lib")
     set(PLATFORM_LIBS ws2_32.dll)
 elseif(UNIX)
     set(PLATFORM_DIR "POSIX")
-    set(WWISE_LIB_DIR "${WWISE_SDK_DIR}/Linux_x64/Debug/lib")
+    set(WWISE_LIB_DIR_DEBUG "${WWISE_SDK_DIR}/Linux_x64/Debug/lib")
+    set(WWISE_LIB_DIR_RELEASE "${WWISE_SDK_DIR}/Linux_x64/Release/lib")
     set(PLATFORM_LIBS "")
 endif()
 
@@ -46,7 +48,19 @@ target_include_directories(${PROJECT_NAME}
 )
 
 # Link necessary libraries
-file(GLOB LIB_FILES ${WWISE_LIB_DIR}/*${CMAKE_STATIC_LIBRARY_SUFFIX})
+file(GLOB LIB_FILES_DEBUG ${WWISE_LIB_DIR_DEBUG}/*${CMAKE_STATIC_LIBRARY_SUFFIX})
+file(GLOB LIB_FILES_RELEASE ${WWISE_LIB_DIR_RELEASE}/*${CMAKE_STATIC_LIBRARY_SUFFIX})
+
 target_link_libraries(${PROJECT_NAME}
-    INTERFACE ${LIB_FILES} ${PLATFORM_LIBS}
+    INTERFACE
+        $<$<CONFIG:Debug>:${LIB_FILES_DEBUG} ${PLATFORM_LIBS}>
+        $<$<CONFIG:Release>:${LIB_FILES_RELEASE} ${PLATFORM_LIBS}>
+        $<$<CONFIG:RelWithDebInfo>:${LIB_FILES_RELEASE} ${PLATFORM_LIBS}>
+)
+
+# Define AK_OPTIMIZED for release builds
+target_compile_definitions(${PROJECT_NAME}
+    PUBLIC
+        $<$<CONFIG:Release>:AK_OPTIMIZED>
+        $<$<CONFIG:RelWithDebInfo>:AK_OPTIMIZED>
 )

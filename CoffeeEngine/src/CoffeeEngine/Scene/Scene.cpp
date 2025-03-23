@@ -14,7 +14,6 @@
 #include "CoffeeEngine/Renderer/Mesh.h"
 #include "CoffeeEngine/Renderer/Model.h"
 #include "CoffeeEngine/Renderer/Renderer.h"
-#include "CoffeeEngine/Renderer/Renderer2D.h"
 #include "CoffeeEngine/Renderer/Renderer3D.h"
 #include "CoffeeEngine/Scene/Components.h"
 #include "CoffeeEngine/Scene/Entity.h"
@@ -27,11 +26,9 @@
 #include "entt/entity/fwd.hpp"
 #include "entt/entity/snapshot.hpp"
 
-
 #include <cstdint>
 #include <cstdlib>
 #include <glm/detail/type_quat.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <glm/fwd.hpp>
 #include <memory>
 #include <string>
@@ -40,7 +37,6 @@
 #include <CoffeeEngine/Scripting/Script.h>
 #include <cereal/archives/json.hpp>
 #include <fstream>
-#include <spdlog/details/registry.h>
 
 
 
@@ -134,6 +130,18 @@ namespace Coffee {
 
     void Scene::DestroyEntity(Entity entity)
     {
+        // TODO think where we can put this. If we don't remove first the rigidbody from the physics world we will have a crash
+        if (entity.HasComponent<RigidbodyComponent>())
+        {
+            auto& rbComponent = entity.GetComponent<RigidbodyComponent>();
+            if (rbComponent.rb && rbComponent.rb->GetNativeBody())
+            {
+                m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
+                rbComponent.rb->GetNativeBody()->setUserPointer(nullptr);
+                rbComponent.rb.reset();
+            }
+        }
+
         auto& hierarchyComponent = m_Registry.get<HierarchyComponent>(entity);
         auto curr = hierarchyComponent.m_First;
 
@@ -144,6 +152,7 @@ namespace Coffee {
             DestroyEntity(e);
         }
 
+        // Finally destroy the entity itself
         m_Registry.destroy((entt::entity)entity);
     }
 
@@ -191,7 +200,7 @@ namespace Coffee {
 
         CollisionSystem::Initialize(this);
 
-        auto view = m_Registry.view<MeshComponent>();
+/*         auto view = m_Registry.view<MeshComponent>();
 
         for (auto& entity : view)
         {
@@ -201,7 +210,7 @@ namespace Coffee {
             ObjectContainer<Ref<Mesh>> objectContainer = {transformComponent.GetWorldTransform(), meshComponent.GetMesh()->GetAABB(), meshComponent.GetMesh()};
 
             m_Octree.Insert(objectContainer);
-        }
+        } */
 
         Audio::StopAllEvents();
         Audio::PlayInitialAudios();
@@ -222,14 +231,13 @@ namespace Coffee {
         }
     }
 
-    void Scene::OnUpdateEditor(EditorCamera& camera, float dt) {
+    void Scene::OnUpdateEditor(EditorCamera& camera, float dt)
+    {
         ZoneScoped;
 
         m_SceneTree->Update();
 
         Renderer::GetCurrentRenderTarget()->SetCamera(camera, glm::inverse(camera.GetViewMatrix()));
-        // TEST ------------------------------
-        m_Octree.DebugDraw();
 
         // TEMPORAL - Navigation
         auto navMeshView = m_Registry.view<NavMeshComponent>();
@@ -240,6 +248,17 @@ namespace Coffee {
             if (navMeshComponent.ShowDebug && navMeshComponent.GetNavMesh() && navMeshComponent.GetNavMesh()->IsCalculated())
             {
                 navMeshComponent.GetNavMesh()->RenderWalkableAreas();
+            }
+        }
+
+
+        auto viewRigidbody = m_Registry.view<RigidbodyComponent, TransformComponent>();
+
+        for (auto entity : viewRigidbody) {
+            auto [rb, transform] = viewRigidbody.get<RigidbodyComponent, TransformComponent>(entity);
+            if (rb.rb) {
+                rb.rb->SetPosition(transform.Position);
+                rb.rb->SetRotation(transform.Rotation);
             }
         }
 
@@ -257,12 +276,12 @@ namespace Coffee {
         auto view = m_Registry.view<MeshComponent, TransformComponent>();
 
         // Loop through each entity with the specified components
-
-        for (auto& entity : view) {
+        for (auto& entity : view)
+        {
+            // Get the ModelComponent and TransformComponent for the current entity
             auto& meshComponent = view.get<MeshComponent>(entity);
             auto& transformComponent = view.get<TransformComponent>(entity);
             auto materialComponent = m_Registry.try_get<MaterialComponent>(entity);
-
 
             Ref<Mesh> mesh = meshComponent.GetMesh();
             Ref<Material> material = (materialComponent) ? materialComponent->material : nullptr;
@@ -270,6 +289,22 @@ namespace Coffee {
             //Renderer::Submit(material, mesh, transformComponent.GetWorldTransform(), (uint32_t)entity);
             Renderer3D::Submit(RenderCommand{transformComponent.GetWorldTransform(), mesh, material, (uint32_t)entity, meshComponent.animator});
         }
+
+        //Get all entities with LightComponent and TransformComponent
+        auto lightView = m_Registry.view<LightComponent, TransformComponent>();
+
+        //Loop through each entity with the specified components
+        for(auto& entity : lightView)
+        {
+            auto& lightComponent = lightView.get<LightComponent>(entity);
+            auto& transformComponent = lightView.get<TransformComponent>(entity);
+
+            lightComponent.Position = transformComponent.GetWorldTransform()[3];
+            lightComponent.Direction = glm::normalize(glm::vec3(-transformComponent.GetWorldTransform()[1]));
+
+            Renderer3D::Submit(lightComponent);
+        }
+
 
         // Get all entities with ParticlesSystemComponent and TransformComponent
         auto particleSystemView = m_Registry.view<ParticlesSystemComponent, TransformComponent>();
@@ -292,28 +327,8 @@ namespace Coffee {
             particlesSystemComponent.GetParticleEmitter()->DrawDebug();
         }
 
-
-        // Get all entities with LightComponent and TransformComponent
-        auto lightView = m_Registry.view<LightComponent, TransformComponent>();
-
-        // Loop through each entity with the specified components
-        for (auto& entity : lightView) {
-            auto& lightComponent = lightView.get<LightComponent>(entity);
-            auto& transformComponent = lightView.get<TransformComponent>(entity);
-
-            lightComponent.Position = transformComponent.GetWorldTransform()[3];
-            lightComponent.Direction = glm::normalize(glm::vec3(-transformComponent.GetWorldTransform()[1]));
-
-            Renderer3D::Submit(lightComponent);
-        }
-
-        OnEditorUpdateUI(dt, m_Registry);
+        m_PhysicsWorld.drawCollisionShapes();
     }
-
-
-
-
-
 
     void Scene::OnUpdateRuntime(float dt)
     {
@@ -364,7 +379,6 @@ namespace Coffee {
         }
 
         m_PhysicsWorld.stepSimulation(dt);
-        m_PhysicsWorld.drawCollisionShapes();
 
         // Update transforms from physics
         auto viewPhysics = m_Registry.view<RigidbodyComponent, TransformComponent>();
@@ -385,6 +399,8 @@ namespace Coffee {
         {
             auto& scriptComponent = scriptView.get<ScriptComponent>(entity);
             scriptComponent.script->OnUpdate(dt);
+            if(SceneManager::GetActiveScene().get() != this)
+                return;
         }
 
         if(SceneManager::GetActiveScene().get() != this)
@@ -472,8 +488,6 @@ namespace Coffee {
             particlesSystemComponent.GetParticleEmitter()->Update(dt);
 
         }
-
-        OnRuntimeUpdateUI(dt, m_Registry);
     }
 
     void Scene::OnEvent(Event& e)
@@ -484,12 +498,21 @@ namespace Coffee {
     void Scene::OnExitEditor()
     {
         ZoneScoped;
+
+        auto view = m_Registry.view<ScriptComponent>();
+        for (auto entity : view)
+        {
+            auto& scriptComponent = view.get<ScriptComponent>(entity);
+            if (scriptComponent.script)
+            {
+                scriptComponent.script->OnExit();
+                scriptComponent.script.reset();
+            }
+        }
     }
 
     void Scene::OnExitRuntime()
     {
-
-
         // Clear collision system state
         CollisionSystem::Shutdown();
         Audio::StopAllEvents();

@@ -70,6 +70,7 @@ namespace Coffee
         {
             particleMesh = Coffee::PrimitiveMesh::CreatePlane(glm::vec2(1,1));
         }
+        particleMaterial = CreateRef<Material>("Default Particle Material");
     }
 
     void ParticleEmitter::InitParticle(Ref<Particle> particle)

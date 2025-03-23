@@ -793,7 +793,7 @@ namespace Coffee
         }
 
         // Add RigidBody component editor UI
-       if (entity.HasComponent<RigidbodyComponent>())
+        if (entity.HasComponent<RigidbodyComponent>())
         {
             auto& rbComponent = entity.GetComponent<RigidbodyComponent>();
             bool isCollapsingHeaderOpen = true;
@@ -804,13 +804,13 @@ namespace Coffee
                     // Rigidbody type
                     static const char* typeStrings[] = { "Static", "Dynamic", "Kinematic" };
                     int currentType = static_cast<int>(rbComponent.rb->GetBodyType());
-
+                    
                     ImGui::Text("Type");
                     if (ImGui::Combo("##Type", &currentType, typeStrings, IM_ARRAYSIZE(typeStrings)))
                     {
                         rbComponent.rb->SetBodyType(static_cast<RigidBody::Type>(currentType));
                     }
-
+                    
                     // Mass (only for dynamic bodies)
                     if (rbComponent.rb->GetBodyType() != RigidBody::Type::Static)
                     {
@@ -820,7 +820,7 @@ namespace Coffee
                         {
                             rbComponent.rb->SetMass(mass);
                         }
-
+                        
                         // Use gravity
                         ImGui::Text("Use Gravity");
                         bool useGravity = rbComponent.rb->GetUseGravity();
@@ -829,11 +829,11 @@ namespace Coffee
                             rbComponent.rb->SetUseGravity(useGravity);
                         }
                     }
-
+                    
                     // Freeze axes
                     ImGui::Text("Freeze Position");
                     ImGui::Columns(3, "FreezePositionColumns", false);
-
+                    
                     // X Axis
                     bool freezeX = rbComponent.rb->GetFreezeX();
                     if (ImGui::Checkbox("X##FreezeX", &freezeX))
@@ -841,7 +841,7 @@ namespace Coffee
                         rbComponent.rb->SetFreezeX(freezeX);
                     }
                     ImGui::NextColumn();
-
+                    
                     // Y Axis
                     bool freezeY = rbComponent.rb->GetFreezeY();
                     if (ImGui::Checkbox("Y##FreezeY", &freezeY))
@@ -849,20 +849,20 @@ namespace Coffee
                         rbComponent.rb->SetFreezeY(freezeY);
                     }
                     ImGui::NextColumn();
-
+                    
                     // Z Axis
                     bool freezeZ = rbComponent.rb->GetFreezeZ();
                     if (ImGui::Checkbox("Z##FreezeZ", &freezeZ))
                     {
                         rbComponent.rb->SetFreezeZ(freezeZ);
                     }
-
+                    
                     ImGui::Columns(1);
-
+                    
                     // Freeze rotation axes
                     ImGui::Text("Freeze Rotation");
                     ImGui::Columns(3, "FreezeRotationColumns", false);
-
+                    
                     // X Rotation Axis
                     bool freezeRotX = rbComponent.rb->GetFreezeRotX();
                     if (ImGui::Checkbox("X##FreezeRotX", &freezeRotX))
@@ -870,7 +870,7 @@ namespace Coffee
                         rbComponent.rb->SetFreezeRotX(freezeRotX);
                     }
                     ImGui::NextColumn();
-
+                    
                     // Y Rotation Axis
                     bool freezeRotY = rbComponent.rb->GetFreezeRotY();
                     if (ImGui::Checkbox("Y##FreezeRotY", &freezeRotY))
@@ -878,23 +878,23 @@ namespace Coffee
                         rbComponent.rb->SetFreezeRotY(freezeRotY);
                     }
                     ImGui::NextColumn();
-
+                    
                     // Z Rotation Axis
                     bool freezeRotZ = rbComponent.rb->GetFreezeRotZ();
                     if (ImGui::Checkbox("Z##FreezeRotZ", &freezeRotZ))
                     {
                         rbComponent.rb->SetFreezeRotZ(freezeRotZ);
                     }
-
+                    
                     ImGui::Columns(1);
-
+                    
                     // Add collider type selection and configuration
                     ImGui::Separator();
                     ImGui::Text("Collider");
-
+                    
                     Ref<Collider> currentCollider = rbComponent.rb->GetCollider();
                     int colliderType = -1; // -1: Unknown, 0: Box, 1: Sphere, 2: Capsule
-
+                    
                     if (currentCollider) {
                         if (std::dynamic_pointer_cast<BoxCollider>(currentCollider)) {
                             colliderType = 0;
@@ -904,14 +904,14 @@ namespace Coffee
                             colliderType = 2;
                         }
                     }
-
+                    
                     static const char* colliderTypeNames[] = { "Box", "Sphere", "Capsule" };
                     int newColliderType = colliderType;
-
+                    
                     if (ImGui::Combo("Type##ColliderType", &newColliderType, colliderTypeNames, 3)) {
                         // User selected a new collider type
                         Ref<Collider> newCollider;
-
+                        
                         // Create new collider based on selection
                         switch (newColliderType) {
                             case 0: { // Box
@@ -941,30 +941,30 @@ namespace Coffee
                                 break;
                             }
                         }
-
+                        
                         if (newCollider) {
                             // Store current rigidbody properties
                             RigidBody::Properties props = rbComponent.rb->GetProperties();
                             glm::vec3 position = rbComponent.rb->GetPosition();
                             glm::vec3 rotation = rbComponent.rb->GetRotation();
-
+                            
                             // Remove from physics world
                             m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-
+                            
                             // Create new rigidbody with new collider
                             rbComponent.rb = RigidBody::Create(props, newCollider);
                             rbComponent.rb->SetPosition(position);
                             rbComponent.rb->SetRotation(rotation);
-
+                            
                             // Add back to physics world
                             m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
-
+                            
                             // Set user pointer for collision detection
                             rbComponent.rb->GetNativeBody()->setUserPointer(
                                 reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
                         }
                     }
-
+                    
                     // Show collider-specific properties
                     if (currentCollider) {
                         switch (colliderType) {
@@ -972,27 +972,27 @@ namespace Coffee
                                 auto boxCollider = std::dynamic_pointer_cast<BoxCollider>(currentCollider);
                                 if (boxCollider) {
                                     glm::vec3 size = boxCollider->GetSize();
-
+                                    
                                     ImGui::Text("Size");
                                     if (ImGui::DragFloat3("##BoxSize", glm::value_ptr(size), 0.1f, 0.01f, 100.0f)) {
                                         // Create new box collider with updated size
                                         Ref<BoxCollider> newCollider = CreateRef<BoxCollider>(size);
-
+                                        
                                         // Store current rigidbody properties
                                         RigidBody::Properties props = rbComponent.rb->GetProperties();
                                         glm::vec3 position = rbComponent.rb->GetPosition();
                                         glm::vec3 rotation = rbComponent.rb->GetRotation();
                                         glm::vec3 velocity = rbComponent.rb->GetVelocity();
-
+                                        
                                         // Remove from physics world
                                         m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-
+                                        
                                         // Create new rigidbody with new collider
                                         rbComponent.rb = RigidBody::Create(props, newCollider);
                                         rbComponent.rb->SetPosition(position);
                                         rbComponent.rb->SetRotation(rotation);
                                         rbComponent.rb->SetVelocity(velocity);
-
+                                        
                                         // Add back to physics world
                                         m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
                                         rbComponent.rb->GetNativeBody()->setUserPointer(
@@ -1005,27 +1005,27 @@ namespace Coffee
                                 auto sphereCollider = std::dynamic_pointer_cast<SphereCollider>(currentCollider);
                                 if (sphereCollider) {
                                     float radius = sphereCollider->GetRadius();
-
+                                    
                                     ImGui::Text("Radius");
                                     if (ImGui::DragFloat("##SphereRadius", &radius, 0.1f, 0.01f, 100.0f)) {
                                         // Create new sphere collider with updated radius
                                         Ref<Collider> newCollider = CreateRef<SphereCollider>(radius);
-
+                                        
                                         // Store current rigidbody properties
                                         RigidBody::Properties props = rbComponent.rb->GetProperties();
                                         glm::vec3 position = rbComponent.rb->GetPosition();
                                         glm::vec3 rotation = rbComponent.rb->GetRotation();
                                         glm::vec3 velocity = rbComponent.rb->GetVelocity();
-
+                                        
                                         // Remove from physics world
                                         m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-
+                                        
                                         // Create new rigidbody with new collider
                                         rbComponent.rb = RigidBody::Create(props, newCollider);
                                         rbComponent.rb->SetPosition(position);
                                         rbComponent.rb->SetRotation(rotation);
                                         rbComponent.rb->SetVelocity(velocity);
-
+                                        
                                         // Add back to physics world
                                         m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
                                         rbComponent.rb->GetNativeBody()->setUserPointer(
@@ -1039,40 +1039,40 @@ namespace Coffee
                                 if (capsuleCollider) {
                                     float radius = capsuleCollider->GetRadius();
                                     float height = capsuleCollider->GetHeight();
-
+                                    
                                     float totalHeight = height + 2.0f * radius; // Total height including spherical caps
-
+                                    
                                     ImGui::Text("Radius");
                                     bool radiusChanged = ImGui::DragFloat("##CapsuleRadius", &radius, 0.1f, 0.01f, 100.0f);
-
+                                    
                                     ImGui::Text("Total Height");
                                     bool heightChanged = ImGui::DragFloat("##CapsuleHeight", &totalHeight, 0.1f, 0.01f, 100.0f);
-
+                                    
                                     if (radiusChanged || heightChanged) {
                                         if (totalHeight < radius * 2.0f) {
                                             totalHeight = radius * 2.0f;
                                         }
-
+                                        
                                         float cylinderHeight = totalHeight - 2.0f * radius;
-
+                                        
                                         // Create new capsule collider with updated parameters
                                         Ref<Collider> newCollider = CreateRef<CapsuleCollider>(radius, cylinderHeight);
-
+                                        
                                         // Store current rigidbody properties
                                         RigidBody::Properties props = rbComponent.rb->GetProperties();
                                         glm::vec3 position = rbComponent.rb->GetPosition();
                                         glm::vec3 rotation = rbComponent.rb->GetRotation();
                                         glm::vec3 velocity = rbComponent.rb->GetVelocity();
-
+                                        
                                         // Remove from physics world
                                         m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-
+                                        
                                         // Create new rigidbody with new collider
                                         rbComponent.rb = RigidBody::Create(props, newCollider);
                                         rbComponent.rb->SetPosition(position);
                                         rbComponent.rb->SetRotation(rotation);
                                         rbComponent.rb->SetVelocity(velocity);
-
+                                        
                                         // Add back to physics world
                                         m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
                                         rbComponent.rb->GetNativeBody()->setUserPointer(
@@ -1084,71 +1084,67 @@ namespace Coffee
                         }
                     }
 
+                    ImGui::Text("Collider Offset");
+                    glm::vec3 offset = currentCollider->getOffset();
+                    if (ImGui::DragFloat3("##ColliderOffset", glm::value_ptr(offset), 0.1f))
+                    {
+                        // Store current rigidbody properties before modifying
+                        RigidBody::Properties props = rbComponent.rb->GetProperties();
+                        glm::vec3 position = rbComponent.rb->GetPosition();
+                        glm::vec3 rotation = rbComponent.rb->GetRotation();
+                        glm::vec3 velocity = rbComponent.rb->GetVelocity();
+                        
+                        // Remove from physics world
+                        m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
+                        
+                        // Update the collider offset
+                        currentCollider->setOffset(offset);
+                        
+                        // Create new rigidbody with the updated collider
+                        rbComponent.rb = RigidBody::Create(props, currentCollider);
+                        rbComponent.rb->SetPosition(position);
+                        rbComponent.rb->SetRotation(rotation);
+                        rbComponent.rb->SetVelocity(velocity);
+                        
+                        // Add back to physics world
+                        m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
+                        rbComponent.rb->GetNativeBody()->setUserPointer(reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
+                    }
+
+                    if (ImGui::Button("Resize Collider to Fit Mesh AABB", ImVec2(-FLT_MIN, 0))) {
+                        if (!ResizeColliderToFitMeshAABB(entity, rbComponent)) {
+                            // Display error messages only if resize failed
+                            if (!entity.HasComponent<MeshComponent>()) {
+                                ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Entity has no mesh component!");
+                            } else if (!entity.GetComponent<MeshComponent>().GetMesh()) {
+                                ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "No valid mesh found!");
+                            }
+                        }
+                    }
+                    
                     // Add friction and drag controls
                     ImGui::Separator();
-
+                    
                     ImGui::Text("Friction");
                     float friction = rbComponent.rb->GetFriction();
                     if (ImGui::SliderFloat("##Friction", &friction, 0.0f, 1.0f))
                     {
                         rbComponent.rb->SetFriction(friction);
                     }
-
+                    
                     ImGui::Text("Linear Drag");
                     float linearDrag = rbComponent.rb->GetLinearDrag();
                     if (ImGui::SliderFloat("##LinearDrag", &linearDrag, 0.0f, 1.0f))
                     {
                         rbComponent.rb->SetLinearDrag(linearDrag);
                     }
-
+                    
                     ImGui::Text("Angular Drag");
                     float angularDrag = rbComponent.rb->GetAngularDrag();
                     if (ImGui::SliderFloat("##AngularDrag", &angularDrag, 0.0f, 1.0f))
                     {
                         rbComponent.rb->SetAngularDrag(angularDrag);
                     }
-
-                    // Show current velocity
-                    glm::vec3 velocity = rbComponent.rb->GetVelocity();
-                    ImGui::Text("Current Velocity: X: %.2f, Y: %.2f, Z: %.2f",
-                                velocity.x, velocity.y, velocity.z);
-
-                    // ---------------------Physics Debug Controls---------------------
-                    /*
-                    // Add force/impulse controls
-                    static glm::vec3 forceToApply = {0.0f, 0.0f, 0.0f};
-                    ImGui::Separator();
-                    ImGui::Text("Physics Controls");
-                    ImGui::DragFloat3("Vector", glm::value_ptr(forceToApply), 0.1f);
-
-                    // Force & Impulse buttons
-                    if (ImGui::Button("Apply Force"))
-                    {
-                        rbComponent.rb->ApplyForce(forceToApply);
-                    }
-                    ImGui::SameLine();
-                    if (ImGui::Button("Apply Impulse"))
-                    {
-                        rbComponent.rb->ApplyImpulse(forceToApply);
-                    }
-
-                    // Velocity buttons
-                    if (ImGui::Button("Set Velocity"))
-                    {
-                        rbComponent.rb->SetVelocity(forceToApply);
-                    }
-                    ImGui::SameLine();
-                    if (ImGui::Button("Add Velocity"))
-                    {
-                        rbComponent.rb->AddVelocity(forceToApply);
-                    }
-
-                    // Reset velocity
-                    if (ImGui::Button("Reset Velocity"))
-                    {
-                        rbComponent.rb->ResetVelocity();
-                    }
-                    */
                 }
                 else
                 {
@@ -1162,6 +1158,8 @@ namespace Coffee
                 if (rbComponent.rb && rbComponent.rb->GetNativeBody())
                 {
                     m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
+                    rbComponent.rb->GetNativeBody()->setUserPointer(nullptr); // Set user pointer to null to avoid dangling references
+                    rbComponent.rb.reset();
                 }
                 entity.RemoveComponent<RigidbodyComponent>();
             }
@@ -2032,7 +2030,7 @@ namespace Coffee
                 // TODO remove animator component from entity and all the animation data
             }
         }
-
+        
         if(entity.HasComponent<ScriptComponent>())
         {
             auto& scriptComponent = entity.GetComponent<ScriptComponent>();
@@ -2169,6 +2167,10 @@ namespace Coffee
                 {
                     navMeshComponent.GetNavMesh()->CalculateWalkableAreas(entity.GetComponent<MeshComponent>().GetMesh(), entity.GetComponent<TransformComponent>().GetWorldTransform());
                 }
+            }
+            if (!isCollapsingHeaderOpen)
+            {
+                entity.RemoveComponent<NavMeshComponent>();
             }
         }
 
@@ -2765,7 +2767,7 @@ namespace Coffee
             static char buffer[256] = "";
             ImGui::InputTextWithHint("##Search Component", "Search Component:", buffer, 256);
 
-            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "NavMesh Component", "Navigation Agent Component", "Image Component", "Text Component", "Slider Component", "Button Component", "Toggle Component", "Particles System Component" };
+            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "Particles System Component", "NavMesh Component", "Navigation Agent Component" , "Image Component", "Text Component", "Slider Component", "Button Component", "Toggle Component"};
 
             static int item_current = 1;
 
@@ -2884,11 +2886,11 @@ namespace Coffee
                     {
 
                         entity.AddComponent<ParticlesSystemComponent>();
-                        if (!entity.HasComponent<MaterialComponent>())
+                        /*if (!entity.HasComponent<MaterialComponent>())
                          {
                              entity.AddComponent<MaterialComponent>(Material::Create("Default Particle Material"));
                              
-                         }
+                         }*/
                         ImGui::CloseCurrentPopup();
                     }
                 }  
@@ -2898,27 +2900,27 @@ namespace Coffee
                     {
                         try {
                             Ref<BoxCollider> collider = CreateRef<BoxCollider>(glm::vec3(1.0f, 1.0f, 1.0f));
-
+                            
                             RigidBody::Properties props;
                             props.type = RigidBody::Type::Dynamic;
                             props.mass = 1.0f;
                             props.useGravity = true;
-
+                            
                             auto& rbComponent = entity.AddComponent<RigidbodyComponent>(props, collider);
-
-                            // Set initial transform from the entity
+                            
                             if (entity.HasComponent<TransformComponent>()) {
                                 auto& transform = entity.GetComponent<TransformComponent>();
                                 rbComponent.rb->SetPosition(transform.Position);
                                 rbComponent.rb->SetRotation(transform.Rotation);
                             }
-
-                            // Add the rigidbody to the physics world
+                            
                             m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
-
+                            
                             // Set user pointer for collision detection
-                            rbComponent.rb->GetNativeBody()->setUserPointer(
-                                reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
+                            rbComponent.rb->GetNativeBody()->setUserPointer(reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
+                            
+                            // Try to automatically size the collider to the mesh AABB
+                            ResizeColliderToFitMeshAABB(entity, rbComponent);
                         }
                         catch (const std::exception& e) {
                             COFFEE_CORE_ERROR("Exception creating rigidbody: {0}", e.what());
@@ -2927,7 +2929,7 @@ namespace Coffee
                             }
                         }
                     }
-
+                
                     ImGui::CloseCurrentPopup();
                 }
                 else if(items[item_current] == "NavMesh Component")
@@ -3077,8 +3079,7 @@ namespace Coffee
             static char buffer[256] = "";
             ImGui::InputTextWithHint("##Search Component", "Search Component:", buffer, 256);
 
-            std::string items[] = {"Empty", "Camera", "Primitive", "Light", "UI Image","UI Text","UI Button","UI Slider","UI Toggle", "Particle System"};
-
+            std::string items[] = {"Empty", "Camera", "Primitive", "Light", "Particle System","UI Image","UI Text","UI Button","UI Slider","UI Toggle"};
             static int item_current = 1;
 
             if (ImGui::BeginListBox("##listbox 2", ImVec2(-FLT_MIN, ImGui::GetContentRegionAvail().y - 200)))
@@ -3187,5 +3188,41 @@ namespace Coffee
 
             ImGui::EndPopup();
         }
+    }
+
+    bool SceneTreePanel::ResizeColliderToFitMeshAABB(Entity entity, RigidbodyComponent& rbComponent)
+    {
+        // Check if entity has a mesh component
+        if (entity.HasComponent<MeshComponent>()) {
+            auto& meshComponent = entity.GetComponent<MeshComponent>();
+            Ref<Collider> currentCollider = rbComponent.rb->GetCollider();
+            
+            // Make sure we have both a valid mesh and collider
+            if (meshComponent.GetMesh() && currentCollider) {
+                // Get the mesh's AABB
+                const AABB& meshAABB = meshComponent.GetMesh()->GetAABB();
+                
+                // Store current rigidbody properties
+                RigidBody::Properties props = rbComponent.rb->GetProperties();
+                glm::vec3 position = rbComponent.rb->GetPosition();
+                glm::vec3 rotation = rbComponent.rb->GetRotation();
+                glm::vec3 velocity = rbComponent.rb->GetVelocity();
+                
+                // Remove from physics world
+                m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
+                
+                // Resize the collider to fit the mesh AABB
+                rbComponent.rb->ResizeColliderToFitAABB(meshAABB);
+                
+                // Add back to physics world
+                m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
+                rbComponent.rb->GetNativeBody()->setUserPointer(
+                    reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
+                
+                return true;
+            }
+        }
+        
+        return false;
     }
 } // namespace Coffee

@@ -3,6 +3,7 @@
 #define BT_NO_SIMD_OPERATOR_OVERLOADS
 
 #include "CoffeeEngine/Core/Base.h"
+#include "CoffeeEngine/Math/BoundingBox.h"
 #include "Collider.h"
 #include "PhysicsWorld.h"
 
@@ -105,6 +106,7 @@ namespace Coffee {
         void ApplyTorqueImpulse(const glm::vec3& torque) const;
         void SetAngularVelocity(const glm::vec3& velocity) const;
         glm::vec3 GetAngularVelocity() const;
+        void ResizeColliderToFitAABB(const AABB& aabb);
 
         // Physics
         void ApplyForce(const glm::vec3& force) const;

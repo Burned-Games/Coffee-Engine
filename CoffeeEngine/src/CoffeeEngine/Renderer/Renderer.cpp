@@ -58,7 +58,7 @@ namespace Coffee {
             cameraData.view = glm::mat4(1.0f);
             s_RendererData.CameraUniformBuffer->SetData(&cameraData, sizeof(CameraData));
             
-            RendererAPI::SetFaceCulling(false);
+            //RendererAPI::SetFaceCulling(false);
             RendererAPI::SetDepthMask(false);
 
             Renderer2D::ScreenPass(target);

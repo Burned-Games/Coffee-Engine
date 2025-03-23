@@ -231,13 +231,11 @@ namespace Coffee {
          */
         static bool InitializeSpatialAudio();
 
-#ifndef AK_OPTIMIZED
         /**
          * @brief Initializes the communication module.
          * @return True if successful, false otherwise.
          */
         static bool InitializeCommunicationModule();
-#endif // AK_OPTIMIZED
 
         /**
          * @brief Loads audio banks.

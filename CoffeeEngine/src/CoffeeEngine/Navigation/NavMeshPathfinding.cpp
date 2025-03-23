@@ -24,8 +24,8 @@ namespace Coffee
         if (startTriangle == -1 || endTriangle == -1)
             return path;
 
-        glm::vec3 projectedStart = start;
-        glm::vec3 projectedEnd = end;
+        glm::vec3 projectedStart = ProjectPointToNavMesh(start, startTriangle);
+        glm::vec3 projectedEnd = ProjectPointToNavMesh(end, endTriangle);
 
         if (startTriangle == endTriangle)
         {
@@ -114,6 +114,16 @@ namespace Coffee
         }
 
         return path;
+    }
+
+    glm::vec3 NavMeshPathfinding::ProjectPointToNavMesh(const glm::vec3& point, int triangleIndex) const
+    {
+        const std::vector<NavMeshTriangle>& triangles = m_NavMesh->GetTriangles();
+        if (triangleIndex < 0 || triangleIndex >= triangles.size())
+            return point;
+
+        const NavMeshTriangle& triangle = triangles[triangleIndex];
+        return FindClosestPointOnTriangle(point, triangle);
     }
 
     void NavMeshPathfinding::RenderPath(const std::vector<glm::vec3>& path) const

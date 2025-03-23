@@ -46,7 +46,7 @@ namespace Coffee {
         {
             const sol::protected_function& onUpdate = m_Environment["on_update"];
             if (!onUpdate.valid()) {
-                COFFEE_CORE_ERROR("Lua: on_update function is not valid.");
+                COFFEE_CORE_ERROR("Lua: on_update function is not valid. {0}", m_Path.string());
                 return;
             }
 

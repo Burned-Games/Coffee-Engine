@@ -281,7 +281,7 @@ namespace Coffee
                     sizeOverLifetimeY, sizeOverLifetimeZ, sizeOverLifetimeGeneral, useRotationOverLifetime,
                     rotationOverLifetimeX, rotationOverLifetimeY, rotationOverLifetimeZ, useColorOverLifetime,
                     overLifetimecolor, colorOverLifetime_gradientPoints, useRenderer, renderMode, renderAlignment,
-                    elapsedTime, particleMaterial);
+                    elapsedTime);
         }
     };
 } // namespace Coffee

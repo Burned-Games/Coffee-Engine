@@ -7,7 +7,7 @@
 #include "entt/entity/fwd.hpp"
 
 namespace Coffee {
- class Entity;
+
     class SceneTreePanel : public Panel
     {
     public:
@@ -27,6 +27,7 @@ namespace Coffee {
 
         //UI functions for scenetree menus
         void ShowCreateEntityMenu();
+        bool ResizeColliderToFitMeshAABB(Entity entity, RigidbodyComponent& rbComponent);
 
     private:
         Ref<Scene> m_Context;

@@ -354,6 +354,12 @@ namespace Coffee {
         std::string directory = m_FilePath.parent_path().string();
         std::string texturePath = directory + "/" + std::string(textureName.C_Str());
 
+        if (!std::filesystem::exists(texturePath))
+        {
+            COFFEE_CORE_WARN("The texture is embedded: {0}", texturePath);
+            return nullptr;
+        }
+
         bool srgb = (type == aiTextureType_DIFFUSE || type == aiTextureType_EMISSIVE);
 
         if(!ImportDataUtils::HasImportFile(texturePath))

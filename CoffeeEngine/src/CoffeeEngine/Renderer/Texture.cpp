@@ -95,9 +95,7 @@ namespace Coffee {
         m_FilePath = path;
         m_Name = path.filename().string();
 
-        int nrComponents;
-        stbi_set_flip_vertically_on_load(false);
-        unsigned char* data = stbi_load(m_FilePath.string().c_str(), &m_Width, &m_Height, &nrComponents, 0);
+        m_Properties.srgb = srgb;
 
         LoadFromFile(path);
     }
