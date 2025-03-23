@@ -1285,6 +1285,9 @@ namespace Coffee
                     }
                 }
 
+                ImGui::Text("Size");
+                ImGui::DragFloat2("##Size", glm::value_ptr(uiImageComponent.Size), 0.1f);
+
                 const char* eyeIcon = uiImageComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
 
                 if (ImGui::Button(eyeIcon, {24, 24}))
@@ -1389,9 +1392,6 @@ namespace Coffee
 
             if (ImGui::CollapsingHeader("UI Image", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
-                ImGui::Text("Size");
-                ImGui::DragFloat2("##Size", glm::value_ptr(uiImageComponent.Size), 0.1f);
-
                 ImGui::Text("Texture");
                 DrawTextureWidget("##UIImageTexture", uiImageComponent.texture);
 
@@ -1563,6 +1563,9 @@ namespace Coffee
                     }
                 }
 
+                ImGui::Text("Size");
+                ImGui::DragFloat2("##UIButtonSize", glm::value_ptr(uiButtonComponent.baseSize), 0.1f, 0.0f, 1000.0f);
+
                 const char* eyeIcon = uiButtonComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
 
                 if (ImGui::Button(eyeIcon, {24, 24}))
@@ -1684,9 +1687,6 @@ namespace Coffee
                 ImGui::Text("Pressed Texture");
                 DrawTextureWidget("##UIButtonPressedTexture", uiButtonComponent.pressedTexture);
 
-                ImGui::Text("Size");
-                ImGui::DragFloat2("##UIButtonSize", glm::value_ptr(uiButtonComponent.baseSize), 0.1f, 0.0f, 1000.0f);
-
                 ImGui::Text("Base Color");
                 ImGui::ColorEdit4("##BaseColor", glm::value_ptr(uiButtonComponent.baseColor));
 
@@ -1742,6 +1742,13 @@ namespace Coffee
                         }
                     }
                 }
+
+                ImGui::Text("Bar Size");
+                ImGui::DragFloat2("##UISliderBarSize", glm::value_ptr(uiSliderComponent.Size), 0.1f, 0.0f, 1000.0f);
+
+                ImGui::Text("Handle Size");
+                ImGui::DragFloat2("##UISliderHandleSize", glm::value_ptr(uiSliderComponent.HandleSize), 0.1f, 0.0f, 1000.0f);
+
 
                 const char* eyeIcon = uiSliderComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
 
@@ -1853,12 +1860,6 @@ namespace Coffee
                 ImGui::Text("Handle Texture");
                 DrawTextureWidget("##UISliderHandleTexture", uiSliderComponent.handleTexture);
 
-                ImGui::Text("Bar Size");
-                ImGui::DragFloat2("##UISliderBarSize", glm::value_ptr(uiSliderComponent.Size), 0.1f, 0.0f, 1000.0f);
-
-                ImGui::Text("Handle Size");
-                ImGui::DragFloat2("##UISliderHandleSize", glm::value_ptr(uiSliderComponent.HandleSize), 0.1f, 0.0f, 1000.0f);
-
                 ImGui::Text("Value");
                 ImGui::SliderFloat("##SliderValue", &uiSliderComponent.Value, 0.0f, 1.0f);
 
@@ -1908,6 +1909,9 @@ namespace Coffee
                         }
                     }
                 }
+
+                ImGui::Text("Size");
+                ImGui::DragFloat2("##UIToggleSize", glm::value_ptr(uiToggleComponent.Size), 0.1f, 0.0f, 1000.0f);
 
                 const char* eyeIcon = uiToggleComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
                 if (ImGui::Button(eyeIcon, {24, 24}))
@@ -1982,9 +1986,6 @@ namespace Coffee
 
                 ImGui::Text("Inactive Texture");
                 DrawTextureWidget("##UIToggleInactiveTexture", uiToggleComponent.InactiveTexture);
-
-                ImGui::Text("Size");
-                ImGui::DragFloat2("##UIToggleSize", glm::value_ptr(uiToggleComponent.Size), 0.1f, 0.0f, 1000.0f);
 
                 ImGui::Checkbox("Is Active", &uiToggleComponent.IsActive);
                 ImGui::Checkbox("Visible", &uiToggleComponent.Visible);
