@@ -102,8 +102,7 @@ namespace Coffee {
         void OnExitEditor();
         void OnExitRuntime();
 
-        void OnEditorUpdateUI(float dt, entt::registry& registry);
-        void OnRuntimeUpdateUI(float dt, entt::registry& registry);
+        void OnUpdateUI(float dt, entt::registry& registry);
 
         const PhysicsWorld& GetPhysicsWorld() const { return m_PhysicsWorld; }
         PhysicsWorld& GetPhysicsWorld() { return m_PhysicsWorld; }
@@ -172,6 +171,7 @@ namespace Coffee {
             .template get<AudioSourceComponent>(archive)
             .template get<AudioListenerComponent>(archive)
             .template get<AudioZoneComponent>(archive)
+            .template get<UIComponent>(archive)
             .template get<UIImageComponent>(archive)
             .template get<UITextComponent>(archive)
             .template get<UISliderComponent>(archive)
@@ -205,6 +205,7 @@ namespace Coffee {
             .template get<AudioSourceComponent>(archive)
             .template get<AudioListenerComponent>(archive)
             .template get<AudioZoneComponent>(archive)
+            .template get<UIComponent>(archive)
             .template get<UIImageComponent>(archive)
             .template get<UITextComponent>(archive)
             .template get<UISliderComponent>(archive)
@@ -217,7 +218,7 @@ namespace Coffee {
 
     private:
         // NOTE: this macro should be modified when adding new components
-        #define ALL_COMPONENTS TagComponent, TransformComponent, HierarchyComponent, CameraComponent, MeshComponent, MaterialComponent, LightComponent, RigidbodyComponent, ScriptComponent, AudioSourceComponent, AudioListenerComponent, AudioZoneComponent, ParticlesSystemComponent, UIImageComponent, UITextComponent, UISliderComponent, UIButtonComponent, UIToggleComponent //, AnimatorComponent
+        #define ALL_COMPONENTS TagComponent, TransformComponent, HierarchyComponent, CameraComponent, MeshComponent, MaterialComponent, LightComponent, RigidbodyComponent, ScriptComponent, AudioSourceComponent, AudioListenerComponent, AudioZoneComponent, ParticlesSystemComponent, UIComponent, UIImageComponent, UITextComponent, UISliderComponent, UIButtonComponent, UIToggleComponent //, AnimatorComponent
 
         entt::registry m_Registry;
         Scope<SceneTree> m_SceneTree;

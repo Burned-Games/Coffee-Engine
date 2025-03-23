@@ -894,7 +894,7 @@
                 cereal::make_nvp("TextureUUID", texture ? texture->GetUUID() : UUID(0)),
                 cereal::make_nvp("Size", Size)
             );
-            UIComponent::save(archive); // Llama a la serialización de la clase base
+            UIComponent::save(archive);
         }
 
         /**
@@ -1051,7 +1051,7 @@
                 cereal::make_nvp("HandleSize", HandleSize),
                 cereal::make_nvp("Value", Value)
             );
-            UIComponent::save(archive); // Llama a la serialización de la clase base
+            UIComponent::save(archive);
         }
 
         /**
@@ -1319,7 +1319,7 @@
                 cereal::make_nvp("Size", Size),
                 cereal::make_nvp("IsActive", IsActive)
             );
-            UIComponent::save(archive); // Llama a la serialización de la clase base
+            UIComponent::save(archive);
         }
 
         /**

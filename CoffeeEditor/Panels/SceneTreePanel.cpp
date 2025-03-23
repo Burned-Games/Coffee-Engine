@@ -63,8 +63,8 @@ namespace Coffee
             m_Context->Duplicate(m_SelectionContext);
         }
 
-        //Button for adding entities to the scene tree
-        if(ImGui::Button(ICON_LC_PLUS, {24,24}))
+        // Button for adding entities to the scene tree
+        if (ImGui::Button(ICON_LC_PLUS, {24, 24}))
         {
             ImGui::OpenPopup("Add Entity...");
         }
@@ -240,19 +240,16 @@ namespace Coffee
                                   entity.HasComponent<UISliderComponent>() ||
                                   entity.HasComponent<UIToggleComponent>();
 
-            if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
+            if(!hasUIComponent)
             {
-                if (!hasUIComponent)
+                if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
                 {
                     ImGui::Text("Position");
                     ImGui::DragFloat3("##Position", glm::value_ptr(transformComponent.Position), 0.1f);
-                }
 
-                ImGui::Text("Rotation");
-                ImGui::DragFloat3("##Rotation", glm::value_ptr(transformComponent.Rotation), 0.1f);
+                    ImGui::Text("Rotation");
+                    ImGui::DragFloat3("##Rotation", glm::value_ptr(transformComponent.Rotation), 0.1f);
 
-                if (!hasUIComponent)
-                {
                     ImGui::Text("Scale");
                     ImGui::DragFloat3("##Scale", glm::value_ptr(transformComponent.Scale), 0.1f);
                 }
@@ -802,15 +799,15 @@ namespace Coffee
                 if (rbComponent.rb)
                 {
                     // Rigidbody type
-                    static const char* typeStrings[] = { "Static", "Dynamic", "Kinematic" };
+                    static const char* typeStrings[] = {"Static", "Dynamic", "Kinematic"};
                     int currentType = static_cast<int>(rbComponent.rb->GetBodyType());
-                    
+
                     ImGui::Text("Type");
                     if (ImGui::Combo("##Type", &currentType, typeStrings, IM_ARRAYSIZE(typeStrings)))
                     {
                         rbComponent.rb->SetBodyType(static_cast<RigidBody::Type>(currentType));
                     }
-                    
+
                     // Mass (only for dynamic bodies)
                     if (rbComponent.rb->GetBodyType() != RigidBody::Type::Static)
                     {
@@ -820,7 +817,7 @@ namespace Coffee
                         {
                             rbComponent.rb->SetMass(mass);
                         }
-                        
+
                         // Use gravity
                         ImGui::Text("Use Gravity");
                         bool useGravity = rbComponent.rb->GetUseGravity();
@@ -829,11 +826,11 @@ namespace Coffee
                             rbComponent.rb->SetUseGravity(useGravity);
                         }
                     }
-                    
+
                     // Freeze axes
                     ImGui::Text("Freeze Position");
                     ImGui::Columns(3, "FreezePositionColumns", false);
-                    
+
                     // X Axis
                     bool freezeX = rbComponent.rb->GetFreezeX();
                     if (ImGui::Checkbox("X##FreezeX", &freezeX))
@@ -841,7 +838,7 @@ namespace Coffee
                         rbComponent.rb->SetFreezeX(freezeX);
                     }
                     ImGui::NextColumn();
-                    
+
                     // Y Axis
                     bool freezeY = rbComponent.rb->GetFreezeY();
                     if (ImGui::Checkbox("Y##FreezeY", &freezeY))
@@ -849,20 +846,20 @@ namespace Coffee
                         rbComponent.rb->SetFreezeY(freezeY);
                     }
                     ImGui::NextColumn();
-                    
+
                     // Z Axis
                     bool freezeZ = rbComponent.rb->GetFreezeZ();
                     if (ImGui::Checkbox("Z##FreezeZ", &freezeZ))
                     {
                         rbComponent.rb->SetFreezeZ(freezeZ);
                     }
-                    
+
                     ImGui::Columns(1);
-                    
+
                     // Freeze rotation axes
                     ImGui::Text("Freeze Rotation");
                     ImGui::Columns(3, "FreezeRotationColumns", false);
-                    
+
                     // X Rotation Axis
                     bool freezeRotX = rbComponent.rb->GetFreezeRotX();
                     if (ImGui::Checkbox("X##FreezeRotX", &freezeRotX))
@@ -870,7 +867,7 @@ namespace Coffee
                         rbComponent.rb->SetFreezeRotX(freezeRotX);
                     }
                     ImGui::NextColumn();
-                    
+
                     // Y Rotation Axis
                     bool freezeRotY = rbComponent.rb->GetFreezeRotY();
                     if (ImGui::Checkbox("Y##FreezeRotY", &freezeRotY))
@@ -878,209 +875,231 @@ namespace Coffee
                         rbComponent.rb->SetFreezeRotY(freezeRotY);
                     }
                     ImGui::NextColumn();
-                    
+
                     // Z Rotation Axis
                     bool freezeRotZ = rbComponent.rb->GetFreezeRotZ();
                     if (ImGui::Checkbox("Z##FreezeRotZ", &freezeRotZ))
                     {
                         rbComponent.rb->SetFreezeRotZ(freezeRotZ);
                     }
-                    
+
                     ImGui::Columns(1);
-                    
+
                     // Add collider type selection and configuration
                     ImGui::Separator();
                     ImGui::Text("Collider");
-                    
+
                     Ref<Collider> currentCollider = rbComponent.rb->GetCollider();
                     int colliderType = -1; // -1: Unknown, 0: Box, 1: Sphere, 2: Capsule
-                    
-                    if (currentCollider) {
-                        if (std::dynamic_pointer_cast<BoxCollider>(currentCollider)) {
+
+                    if (currentCollider)
+                    {
+                        if (std::dynamic_pointer_cast<BoxCollider>(currentCollider))
+                        {
                             colliderType = 0;
-                        } else if (std::dynamic_pointer_cast<SphereCollider>(currentCollider)) {
+                        }
+                        else if (std::dynamic_pointer_cast<SphereCollider>(currentCollider))
+                        {
                             colliderType = 1;
-                        } else if (std::dynamic_pointer_cast<CapsuleCollider>(currentCollider)) {
+                        }
+                        else if (std::dynamic_pointer_cast<CapsuleCollider>(currentCollider))
+                        {
                             colliderType = 2;
                         }
                     }
-                    
-                    static const char* colliderTypeNames[] = { "Box", "Sphere", "Capsule" };
+
+                    static const char* colliderTypeNames[] = {"Box", "Sphere", "Capsule"};
                     int newColliderType = colliderType;
-                    
-                    if (ImGui::Combo("Type##ColliderType", &newColliderType, colliderTypeNames, 3)) {
+
+                    if (ImGui::Combo("Type##ColliderType", &newColliderType, colliderTypeNames, 3))
+                    {
                         // User selected a new collider type
                         Ref<Collider> newCollider;
-                        
+
                         // Create new collider based on selection
-                        switch (newColliderType) {
-                            case 0: { // Box
-                                glm::vec3 size(1.0f, 1.0f, 1.0f);
-                                if (auto boxCollider = std::dynamic_pointer_cast<BoxCollider>(currentCollider)) {
-                                    size = boxCollider->GetSize();
-                                }
-                                newCollider = CreateRef<BoxCollider>(size);
-                                break;
+                        switch (newColliderType)
+                        {
+                        case 0: { // Box
+                            glm::vec3 size(1.0f, 1.0f, 1.0f);
+                            if (auto boxCollider = std::dynamic_pointer_cast<BoxCollider>(currentCollider))
+                            {
+                                size = boxCollider->GetSize();
                             }
-                            case 1: { // Sphere
-                                float radius = 0.5f;
-                                if (auto sphereCollider = std::dynamic_pointer_cast<SphereCollider>(currentCollider)) {
-                                    radius = sphereCollider->GetRadius();
-                                }
-                                newCollider = CreateRef<SphereCollider>(radius);
-                                break;
-                            }
-                            case 2: { // Capsule
-                                float radius = 0.5f;
-                                float height = 2.0f;
-                                if (auto capsuleCollider = std::dynamic_pointer_cast<CapsuleCollider>(currentCollider)) {
-                                    radius = capsuleCollider->GetRadius();
-                                    height = capsuleCollider->GetHeight();
-                                }
-                                newCollider = CreateRef<CapsuleCollider>(radius, height);
-                                break;
-                            }
+                            newCollider = CreateRef<BoxCollider>(size);
+                            break;
                         }
-                        
-                        if (newCollider) {
+                        case 1: { // Sphere
+                            float radius = 0.5f;
+                            if (auto sphereCollider = std::dynamic_pointer_cast<SphereCollider>(currentCollider))
+                            {
+                                radius = sphereCollider->GetRadius();
+                            }
+                            newCollider = CreateRef<SphereCollider>(radius);
+                            break;
+                        }
+                        case 2: { // Capsule
+                            float radius = 0.5f;
+                            float height = 2.0f;
+                            if (auto capsuleCollider = std::dynamic_pointer_cast<CapsuleCollider>(currentCollider))
+                            {
+                                radius = capsuleCollider->GetRadius();
+                                height = capsuleCollider->GetHeight();
+                            }
+                            newCollider = CreateRef<CapsuleCollider>(radius, height);
+                            break;
+                        }
+                        }
+
+                        if (newCollider)
+                        {
                             // Store current rigidbody properties
                             RigidBody::Properties props = rbComponent.rb->GetProperties();
                             glm::vec3 position = rbComponent.rb->GetPosition();
                             glm::vec3 rotation = rbComponent.rb->GetRotation();
-                            
+
                             // Remove from physics world
                             m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-                            
+
                             // Create new rigidbody with new collider
                             rbComponent.rb = RigidBody::Create(props, newCollider);
                             rbComponent.rb->SetPosition(position);
                             rbComponent.rb->SetRotation(rotation);
-                            
+
                             // Add back to physics world
                             m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
-                            
+
                             // Set user pointer for collision detection
                             rbComponent.rb->GetNativeBody()->setUserPointer(
                                 reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
                         }
                     }
-                    
+
                     // Show collider-specific properties
-                    if (currentCollider) {
-                        switch (colliderType) {
-                            case 0: { // Box collider properties
-                                auto boxCollider = std::dynamic_pointer_cast<BoxCollider>(currentCollider);
-                                if (boxCollider) {
-                                    glm::vec3 size = boxCollider->GetSize();
-                                    
-                                    ImGui::Text("Size");
-                                    if (ImGui::DragFloat3("##BoxSize", glm::value_ptr(size), 0.1f, 0.01f, 100.0f)) {
-                                        // Create new box collider with updated size
-                                        Ref<BoxCollider> newCollider = CreateRef<BoxCollider>(size);
-                                        
-                                        // Store current rigidbody properties
-                                        RigidBody::Properties props = rbComponent.rb->GetProperties();
-                                        glm::vec3 position = rbComponent.rb->GetPosition();
-                                        glm::vec3 rotation = rbComponent.rb->GetRotation();
-                                        glm::vec3 velocity = rbComponent.rb->GetVelocity();
-                                        
-                                        // Remove from physics world
-                                        m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-                                        
-                                        // Create new rigidbody with new collider
-                                        rbComponent.rb = RigidBody::Create(props, newCollider);
-                                        rbComponent.rb->SetPosition(position);
-                                        rbComponent.rb->SetRotation(rotation);
-                                        rbComponent.rb->SetVelocity(velocity);
-                                        
-                                        // Add back to physics world
-                                        m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
-                                        rbComponent.rb->GetNativeBody()->setUserPointer(
-                                            reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
-                                    }
+                    if (currentCollider)
+                    {
+                        switch (colliderType)
+                        {
+                        case 0: { // Box collider properties
+                            auto boxCollider = std::dynamic_pointer_cast<BoxCollider>(currentCollider);
+                            if (boxCollider)
+                            {
+                                glm::vec3 size = boxCollider->GetSize();
+
+                                ImGui::Text("Size");
+                                if (ImGui::DragFloat3("##BoxSize", glm::value_ptr(size), 0.1f, 0.01f, 100.0f))
+                                {
+                                    // Create new box collider with updated size
+                                    Ref<BoxCollider> newCollider = CreateRef<BoxCollider>(size);
+
+                                    // Store current rigidbody properties
+                                    RigidBody::Properties props = rbComponent.rb->GetProperties();
+                                    glm::vec3 position = rbComponent.rb->GetPosition();
+                                    glm::vec3 rotation = rbComponent.rb->GetRotation();
+                                    glm::vec3 velocity = rbComponent.rb->GetVelocity();
+
+                                    // Remove from physics world
+                                    m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
+
+                                    // Create new rigidbody with new collider
+                                    rbComponent.rb = RigidBody::Create(props, newCollider);
+                                    rbComponent.rb->SetPosition(position);
+                                    rbComponent.rb->SetRotation(rotation);
+                                    rbComponent.rb->SetVelocity(velocity);
+
+                                    // Add back to physics world
+                                    m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
+                                    rbComponent.rb->GetNativeBody()->setUserPointer(
+                                        reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
                                 }
-                                break;
                             }
-                            case 1: { // Sphere collider properties
-                                auto sphereCollider = std::dynamic_pointer_cast<SphereCollider>(currentCollider);
-                                if (sphereCollider) {
-                                    float radius = sphereCollider->GetRadius();
-                                    
-                                    ImGui::Text("Radius");
-                                    if (ImGui::DragFloat("##SphereRadius", &radius, 0.1f, 0.01f, 100.0f)) {
-                                        // Create new sphere collider with updated radius
-                                        Ref<Collider> newCollider = CreateRef<SphereCollider>(radius);
-                                        
-                                        // Store current rigidbody properties
-                                        RigidBody::Properties props = rbComponent.rb->GetProperties();
-                                        glm::vec3 position = rbComponent.rb->GetPosition();
-                                        glm::vec3 rotation = rbComponent.rb->GetRotation();
-                                        glm::vec3 velocity = rbComponent.rb->GetVelocity();
-                                        
-                                        // Remove from physics world
-                                        m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-                                        
-                                        // Create new rigidbody with new collider
-                                        rbComponent.rb = RigidBody::Create(props, newCollider);
-                                        rbComponent.rb->SetPosition(position);
-                                        rbComponent.rb->SetRotation(rotation);
-                                        rbComponent.rb->SetVelocity(velocity);
-                                        
-                                        // Add back to physics world
-                                        m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
-                                        rbComponent.rb->GetNativeBody()->setUserPointer(
-                                            reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
-                                    }
+                            break;
+                        }
+                        case 1: { // Sphere collider properties
+                            auto sphereCollider = std::dynamic_pointer_cast<SphereCollider>(currentCollider);
+                            if (sphereCollider)
+                            {
+                                float radius = sphereCollider->GetRadius();
+
+                                ImGui::Text("Radius");
+                                if (ImGui::DragFloat("##SphereRadius", &radius, 0.1f, 0.01f, 100.0f))
+                                {
+                                    // Create new sphere collider with updated radius
+                                    Ref<Collider> newCollider = CreateRef<SphereCollider>(radius);
+
+                                    // Store current rigidbody properties
+                                    RigidBody::Properties props = rbComponent.rb->GetProperties();
+                                    glm::vec3 position = rbComponent.rb->GetPosition();
+                                    glm::vec3 rotation = rbComponent.rb->GetRotation();
+                                    glm::vec3 velocity = rbComponent.rb->GetVelocity();
+
+                                    // Remove from physics world
+                                    m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
+
+                                    // Create new rigidbody with new collider
+                                    rbComponent.rb = RigidBody::Create(props, newCollider);
+                                    rbComponent.rb->SetPosition(position);
+                                    rbComponent.rb->SetRotation(rotation);
+                                    rbComponent.rb->SetVelocity(velocity);
+
+                                    // Add back to physics world
+                                    m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
+                                    rbComponent.rb->GetNativeBody()->setUserPointer(
+                                        reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
                                 }
-                                break;
                             }
-                            case 2: { // Capsule collider properties
-                                auto capsuleCollider = std::dynamic_pointer_cast<CapsuleCollider>(currentCollider);
-                                if (capsuleCollider) {
-                                    float radius = capsuleCollider->GetRadius();
-                                    float height = capsuleCollider->GetHeight();
-                                    
-                                    float totalHeight = height + 2.0f * radius; // Total height including spherical caps
-                                    
-                                    ImGui::Text("Radius");
-                                    bool radiusChanged = ImGui::DragFloat("##CapsuleRadius", &radius, 0.1f, 0.01f, 100.0f);
-                                    
-                                    ImGui::Text("Total Height");
-                                    bool heightChanged = ImGui::DragFloat("##CapsuleHeight", &totalHeight, 0.1f, 0.01f, 100.0f);
-                                    
-                                    if (radiusChanged || heightChanged) {
-                                        if (totalHeight < radius * 2.0f) {
-                                            totalHeight = radius * 2.0f;
-                                        }
-                                        
-                                        float cylinderHeight = totalHeight - 2.0f * radius;
-                                        
-                                        // Create new capsule collider with updated parameters
-                                        Ref<Collider> newCollider = CreateRef<CapsuleCollider>(radius, cylinderHeight);
-                                        
-                                        // Store current rigidbody properties
-                                        RigidBody::Properties props = rbComponent.rb->GetProperties();
-                                        glm::vec3 position = rbComponent.rb->GetPosition();
-                                        glm::vec3 rotation = rbComponent.rb->GetRotation();
-                                        glm::vec3 velocity = rbComponent.rb->GetVelocity();
-                                        
-                                        // Remove from physics world
-                                        m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-                                        
-                                        // Create new rigidbody with new collider
-                                        rbComponent.rb = RigidBody::Create(props, newCollider);
-                                        rbComponent.rb->SetPosition(position);
-                                        rbComponent.rb->SetRotation(rotation);
-                                        rbComponent.rb->SetVelocity(velocity);
-                                        
-                                        // Add back to physics world
-                                        m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
-                                        rbComponent.rb->GetNativeBody()->setUserPointer(
-                                            reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
+                            break;
+                        }
+                        case 2: { // Capsule collider properties
+                            auto capsuleCollider = std::dynamic_pointer_cast<CapsuleCollider>(currentCollider);
+                            if (capsuleCollider)
+                            {
+                                float radius = capsuleCollider->GetRadius();
+                                float height = capsuleCollider->GetHeight();
+
+                                float totalHeight = height + 2.0f * radius; // Total height including spherical caps
+
+                                ImGui::Text("Radius");
+                                bool radiusChanged = ImGui::DragFloat("##CapsuleRadius", &radius, 0.1f, 0.01f, 100.0f);
+
+                                ImGui::Text("Total Height");
+                                bool heightChanged =
+                                    ImGui::DragFloat("##CapsuleHeight", &totalHeight, 0.1f, 0.01f, 100.0f);
+
+                                if (radiusChanged || heightChanged)
+                                {
+                                    if (totalHeight < radius * 2.0f)
+                                    {
+                                        totalHeight = radius * 2.0f;
                                     }
+
+                                    float cylinderHeight = totalHeight - 2.0f * radius;
+
+                                    // Create new capsule collider with updated parameters
+                                    Ref<Collider> newCollider = CreateRef<CapsuleCollider>(radius, cylinderHeight);
+
+                                    // Store current rigidbody properties
+                                    RigidBody::Properties props = rbComponent.rb->GetProperties();
+                                    glm::vec3 position = rbComponent.rb->GetPosition();
+                                    glm::vec3 rotation = rbComponent.rb->GetRotation();
+                                    glm::vec3 velocity = rbComponent.rb->GetVelocity();
+
+                                    // Remove from physics world
+                                    m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
+
+                                    // Create new rigidbody with new collider
+                                    rbComponent.rb = RigidBody::Create(props, newCollider);
+                                    rbComponent.rb->SetPosition(position);
+                                    rbComponent.rb->SetRotation(rotation);
+                                    rbComponent.rb->SetVelocity(velocity);
+
+                                    // Add back to physics world
+                                    m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
+                                    rbComponent.rb->GetNativeBody()->setUserPointer(
+                                        reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
                                 }
-                                break;
                             }
+                            break;
+                        }
                         }
                     }
 
@@ -1093,52 +1112,58 @@ namespace Coffee
                         glm::vec3 position = rbComponent.rb->GetPosition();
                         glm::vec3 rotation = rbComponent.rb->GetRotation();
                         glm::vec3 velocity = rbComponent.rb->GetVelocity();
-                        
+
                         // Remove from physics world
                         m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-                        
+
                         // Update the collider offset
                         currentCollider->setOffset(offset);
-                        
+
                         // Create new rigidbody with the updated collider
                         rbComponent.rb = RigidBody::Create(props, currentCollider);
                         rbComponent.rb->SetPosition(position);
                         rbComponent.rb->SetRotation(rotation);
                         rbComponent.rb->SetVelocity(velocity);
-                        
+
                         // Add back to physics world
                         m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
-                        rbComponent.rb->GetNativeBody()->setUserPointer(reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
+                        rbComponent.rb->GetNativeBody()->setUserPointer(
+                            reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
                     }
 
-                    if (ImGui::Button("Resize Collider to Fit Mesh AABB", ImVec2(-FLT_MIN, 0))) {
-                        if (!ResizeColliderToFitMeshAABB(entity, rbComponent)) {
+                    if (ImGui::Button("Resize Collider to Fit Mesh AABB", ImVec2(-FLT_MIN, 0)))
+                    {
+                        if (!ResizeColliderToFitMeshAABB(entity, rbComponent))
+                        {
                             // Display error messages only if resize failed
-                            if (!entity.HasComponent<MeshComponent>()) {
+                            if (!entity.HasComponent<MeshComponent>())
+                            {
                                 ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Entity has no mesh component!");
-                            } else if (!entity.GetComponent<MeshComponent>().GetMesh()) {
+                            }
+                            else if (!entity.GetComponent<MeshComponent>().GetMesh())
+                            {
                                 ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "No valid mesh found!");
                             }
                         }
                     }
-                    
+
                     // Add friction and drag controls
                     ImGui::Separator();
-                    
+
                     ImGui::Text("Friction");
                     float friction = rbComponent.rb->GetFriction();
                     if (ImGui::SliderFloat("##Friction", &friction, 0.0f, 1.0f))
                     {
                         rbComponent.rb->SetFriction(friction);
                     }
-                    
+
                     ImGui::Text("Linear Drag");
                     float linearDrag = rbComponent.rb->GetLinearDrag();
                     if (ImGui::SliderFloat("##LinearDrag", &linearDrag, 0.0f, 1.0f))
                     {
                         rbComponent.rb->SetLinearDrag(linearDrag);
                     }
-                    
+
                     ImGui::Text("Angular Drag");
                     float angularDrag = rbComponent.rb->GetAngularDrag();
                     if (ImGui::SliderFloat("##AngularDrag", &angularDrag, 0.0f, 1.0f))
@@ -1158,16 +1183,16 @@ namespace Coffee
                 if (rbComponent.rb && rbComponent.rb->GetNativeBody())
                 {
                     m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-                    rbComponent.rb->GetNativeBody()->setUserPointer(nullptr); // Set user pointer to null to avoid dangling references
+                    rbComponent.rb->GetNativeBody()->setUserPointer(
+                        nullptr); // Set user pointer to null to avoid dangling references
                     rbComponent.rb.reset();
                 }
                 entity.RemoveComponent<RigidbodyComponent>();
             }
         }
 
-        const char* anchorPoints[] = { "TopLeft", "TopCenter", "TopRight",
-                                  "CenterLeft", "Center", "CenterRight",
-                                  "BottomLeft", "BottomCenter", "BottomRight" };
+        const char* anchorPoints[] = {"TopLeft",     "TopCenter",  "TopRight",     "CenterLeft", "Center",
+                                      "CenterRight", "BottomLeft", "BottomCenter", "BottomRight"};
 
         auto DrawAnchorPointCombo = [&](UIAnchorPosition& anchor) {
             int currentAnchor = static_cast<int>(anchor);
@@ -1204,11 +1229,9 @@ namespace Coffee
 
             if (ImGui::IsItemHovered() && texture)
             {
-                ImGui::SetTooltip("Name: %s\nSize: %d x %d\nFormat: %s\nPath: %s",
-                                  texture->GetName().c_str(),
+                ImGui::SetTooltip("Name: %s\nSize: %d x %d\nFormat: %s\nPath: %s", texture->GetName().c_str(),
                                   texture->GetWidth(), texture->GetHeight(),
-                                  textureImageFormat(texture->GetImageFormat()).c_str(),
-                                  texture->GetPath().c_str());
+                                  textureImageFormat(texture->GetImageFormat()).c_str(), texture->GetPath().c_str());
             }
 
             if (ImGui::BeginDragDropTarget())
@@ -1250,7 +1273,7 @@ namespace Coffee
             auto& uiImageComponent = entity.GetComponent<UIImageComponent>();
             bool isCollapsingHeaderOpen = true;
 
-            if (ImGui::CollapsingHeader("UI", ImGuiTreeNodeFlags_DefaultOpen))
+            if (ImGui::CollapsingHeader("UI Transform", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::Text("Position");
 
@@ -1266,6 +1289,7 @@ namespace Coffee
                     transformComponent.Position.x = newPosition.x;
                     transformComponent.Position.y = newPosition.y;
 
+                    std::stack<Entity> entitiesToProcess;
                     if (entity.HasComponent<HierarchyComponent>())
                     {
                         auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
@@ -1273,121 +1297,251 @@ namespace Coffee
 
                         while ((entt::entity)childEntity != entt::null)
                         {
-                            auto& childTransform = childEntity.GetComponent<TransformComponent>();
-                            childTransform.Position.x += delta.x;
-                            childTransform.Position.y += delta.y;
+                            entitiesToProcess.push(childEntity);
 
                             auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
                             childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
                         }
                     }
-                }
 
-                ImGui::Text("Size");
-                ImGui::DragFloat2("##Size", glm::value_ptr(uiImageComponent.Size), 0.1f);
-
-                const char* eyeIcon = uiImageComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
-
-                if (ImGui::Button(eyeIcon, {24, 24}))
-                {
-                    uiImageComponent.Visible = !uiImageComponent.Visible;
-
-                    if (entity.HasComponent<HierarchyComponent>())
+                    while (!entitiesToProcess.empty())
                     {
-                        auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
-                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
 
-                        while ((entt::entity)childEntity != entt::null)
+                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
+                        currentTransformComponent.Position.x += delta.x;
+                        currentTransformComponent.Position.y += delta.y;
+
+                        if (currentEntity.HasComponent<HierarchyComponent>())
                         {
-                            if (childEntity.HasComponent<UIImageComponent>())
-                            {
-                                auto& childUIImageComponent = childEntity.GetComponent<UIImageComponent>();
-                                childUIImageComponent.Visible = uiImageComponent.Visible;
-                            }
-                            if (childEntity.HasComponent<UITextComponent>())
-                            {
-                                auto& childUITextComponent = childEntity.GetComponent<UITextComponent>();
-                                childUITextComponent.Visible = uiImageComponent.Visible;
-                            }
-                            if (childEntity.HasComponent<UIButtonComponent>())
-                            {
-                                auto& childUIButtonComponent = childEntity.GetComponent<UIButtonComponent>();
-                                childUIButtonComponent.Visible = uiImageComponent.Visible;
-                            }
-                            if (childEntity.HasComponent<UISliderComponent>())
-                            {
-                                auto& childUISliderComponent = childEntity.GetComponent<UISliderComponent>();
-                                childUISliderComponent.Visible = uiImageComponent.Visible;
-                            }
-                            if (childEntity.HasComponent<UIToggleComponent>())
-                            {
-                                auto& childUIToggleComponent = childEntity.GetComponent<UIToggleComponent>();
-                                childUIToggleComponent.Visible = uiImageComponent.Visible;
-                            }
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
 
-                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
                         }
                     }
                 }
-                if (ImGui::IsItemHovered())
+                ImGui::Text("Rotation");
+                float rotation = transformComponent.Rotation.z; // Assuming rotation around Z-axis for 2D UI
+                if (ImGui::DragFloat("##Rotation", &rotation, 0.1f))
                 {
-                    ImGui::SetTooltip("Toggle visibility of this UI component and its children.");
-                }
-                ImGui::SameLine();
+                    transformComponent.Rotation.z = rotation;
 
-                DrawAnchorPointCombo(uiImageComponent.Anchor);
+                    // Recursively set rotation for all child UI components
+                    std::stack<Entity> entitiesToProcess;
+                    entitiesToProcess.push(entity);
 
-                ImGui::Text("Layer");
-                ImGui::DragInt("##Layer", &uiImageComponent.Layer, 1, 0);
-
-                ImGui::SameLine();
-                if (ImGui::Button("Apply Children"))
-                {
-                    if (entity.HasComponent<HierarchyComponent>())
+                    while (!entitiesToProcess.empty())
                     {
-                        auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
-                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
 
-                        while ((entt::entity)childEntity != entt::null)
+                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
+                        currentTransformComponent.Rotation.z = rotation;
+
+                        if (currentEntity.HasComponent<HierarchyComponent>())
                         {
-                            if (childEntity.HasComponent<UIImageComponent>())
-                            {
-                                auto& childUIImageComponent = childEntity.GetComponent<UIImageComponent>();
-                                childUIImageComponent.Layer = uiImageComponent.Layer;
-                            }
-                            if (childEntity.HasComponent<UITextComponent>())
-                            {
-                                auto& childUITextComponent = childEntity.GetComponent<UITextComponent>();
-                                childUITextComponent.Layer = uiImageComponent.Layer;
-                            }
-                            if (childEntity.HasComponent<UIButtonComponent>())
-                            {
-                                auto& childUIButtonComponent = childEntity.GetComponent<UIButtonComponent>();
-                                childUIButtonComponent.Layer = uiImageComponent.Layer;
-                            }
-                            if (childEntity.HasComponent<UISliderComponent>())
-                            {
-                                auto& childUISliderComponent = childEntity.GetComponent<UISliderComponent>();
-                                childUISliderComponent.Layer = uiImageComponent.Layer;
-                            }
-                            if (childEntity.HasComponent<UIToggleComponent>())
-                            {
-                                auto& childUIToggleComponent = childEntity.GetComponent<UIToggleComponent>();
-                                childUIToggleComponent.Layer = uiImageComponent.Layer;
-                            }
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
 
-                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
                         }
                     }
-                }
-                if (ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Apply this layer to all children.");
                 }
             }
 
+            ImGui::Text("Size");
+            ImGui::DragFloat2("##Size", glm::value_ptr(uiImageComponent.Size), 0.1f);
+
+
+
+            const char* eyeIcon = uiImageComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
+
+            if (ImGui::Button(eyeIcon, {24, 24}))
+            {
+                uiImageComponent.Visible = !uiImageComponent.Visible;
+
+                // Recursively set visibility for all child UI components
+                std::stack<Entity> entitiesToProcess;
+                entitiesToProcess.push(entity);
+
+                while (!entitiesToProcess.empty())
+                {
+                    Entity currentEntity = entitiesToProcess.top();
+                    entitiesToProcess.pop();
+
+                    if (currentEntity.HasComponent<UIImageComponent>())
+                    {
+                        auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
+                        childUIImageComponent.Visible = uiImageComponent.Visible;
+                    }
+                    if (currentEntity.HasComponent<UITextComponent>())
+                    {
+                        auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
+                        childUITextComponent.Visible = uiImageComponent.Visible;
+                    }
+                    if (currentEntity.HasComponent<UIButtonComponent>())
+                    {
+                        auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
+                        childUIButtonComponent.Visible = uiImageComponent.Visible;
+                    }
+                    if (currentEntity.HasComponent<UISliderComponent>())
+                    {
+                        auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
+                        childUISliderComponent.Visible = uiImageComponent.Visible;
+                    }
+                    if (currentEntity.HasComponent<UIToggleComponent>())
+                    {
+                        auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
+                        childUIToggleComponent.Visible = uiImageComponent.Visible;
+                    }
+
+                    if (currentEntity.HasComponent<HierarchyComponent>())
+                    {
+                        auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                        while ((entt::entity)childEntity != entt::null)
+                        {
+                            entitiesToProcess.push(childEntity);
+                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                        }
+                    }
+                }
+            }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("Toggle visibility of this UI component and its children.");
+            }
+            ImGui::SameLine();
+
+            DrawAnchorPointCombo(uiImageComponent.Anchor);
+
+            if (ImGui::Button("Apply Anchor to Children"))
+            {
+                UIAnchorPosition anchorToApply = uiImageComponent.Anchor;
+
+                std::stack<Entity> entitiesToProcess;
+                entitiesToProcess.push(entity);
+
+                while (!entitiesToProcess.empty())
+                {
+                    Entity currentEntity = entitiesToProcess.top();
+                    entitiesToProcess.pop();
+
+                    if (currentEntity.HasComponent<UIImageComponent>())
+                    {
+                        auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
+                        childUIImageComponent.Anchor = anchorToApply;
+                    }
+                    if (currentEntity.HasComponent<UITextComponent>())
+                    {
+                        auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
+                        childUITextComponent.Anchor = anchorToApply;
+                    }
+                    if (currentEntity.HasComponent<UIButtonComponent>())
+                    {
+                        auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
+                        childUIButtonComponent.Anchor = anchorToApply;
+                    }
+                    if (currentEntity.HasComponent<UISliderComponent>())
+                    {
+                        auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
+                        childUISliderComponent.Anchor = anchorToApply;
+                    }
+                    if (currentEntity.HasComponent<UIToggleComponent>())
+                    {
+                        auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
+                        childUIToggleComponent.Anchor = anchorToApply;
+                    }
+
+                    if (currentEntity.HasComponent<HierarchyComponent>())
+                    {
+                        auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                        while ((entt::entity)childEntity != entt::null)
+                        {
+                            entitiesToProcess.push(childEntity);
+
+                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                        }
+                    }
+                }
+            }
+
+            ImGui::Text("Layer");
+            ImGui::DragInt("##Layer", &uiImageComponent.Layer, 1, 0);
+
+            ImGui::SameLine();
+            if (ImGui::Button("Apply Children"))
+            {
+                int layerToApply = uiImageComponent.Layer;
+
+                std::stack<Entity> entitiesToProcess;
+                entitiesToProcess.push(entity);
+
+                while (!entitiesToProcess.empty())
+                {
+                    Entity currentEntity = entitiesToProcess.top();
+                    entitiesToProcess.pop();
+
+                    if (currentEntity.HasComponent<UIImageComponent>())
+                    {
+                        auto& uiImageComponent = currentEntity.GetComponent<UIImageComponent>();
+                        uiImageComponent.Layer = layerToApply;
+                    }
+                    if (currentEntity.HasComponent<UITextComponent>())
+                    {
+                        auto& uiTextComponent = currentEntity.GetComponent<UITextComponent>();
+                        uiTextComponent.Layer = layerToApply;
+                    }
+                    if (currentEntity.HasComponent<UIButtonComponent>())
+                    {
+                        auto& uiButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
+                        uiButtonComponent.Layer = layerToApply;
+                    }
+                    if (currentEntity.HasComponent<UISliderComponent>())
+                    {
+                        auto& uiSliderComponent = currentEntity.GetComponent<UISliderComponent>();
+                        uiSliderComponent.Layer = layerToApply;
+                    }
+                    if (currentEntity.HasComponent<UIToggleComponent>())
+                    {
+                        auto& uiToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
+                        uiToggleComponent.Layer = layerToApply;
+                    }
+
+                    if (currentEntity.HasComponent<HierarchyComponent>())
+                    {
+                        auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                        while ((entt::entity)childEntity != entt::null)
+                        {
+                            entitiesToProcess.push(childEntity);
+
+                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                        }
+                    }
+                }
+            }
             if (ImGui::CollapsingHeader("UI Image", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::Text("Texture");
@@ -1402,11 +1556,12 @@ namespace Coffee
             }
         }
 
-        if (entity.HasComponent<UITextComponent>()) {
+        if (entity.HasComponent<UITextComponent>())
+        {
             auto& uiTextComponent = entity.GetComponent<UITextComponent>();
             bool isCollapsingHeaderOpen = true;
 
-            if (ImGui::CollapsingHeader("UI", ImGuiTreeNodeFlags_DefaultOpen))
+            if (ImGui::CollapsingHeader("UI Transform", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::Text("Position");
 
@@ -1422,6 +1577,7 @@ namespace Coffee
                     transformComponent.Position.x = newPosition.x;
                     transformComponent.Position.y = newPosition.y;
 
+                    std::stack<Entity> entitiesToProcess;
                     if (entity.HasComponent<HierarchyComponent>())
                     {
                         auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
@@ -1429,24 +1585,188 @@ namespace Coffee
 
                         while ((entt::entity)childEntity != entt::null)
                         {
-                            auto& childTransform = childEntity.GetComponent<TransformComponent>();
-                            childTransform.Position.x += delta.x;
-                            childTransform.Position.y += delta.y;
+                            entitiesToProcess.push(childEntity);
 
                             auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
                             childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
                         }
                     }
+
+                    while (!entitiesToProcess.empty())
+                    {
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
+
+                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
+                        currentTransformComponent.Position.x += delta.x;
+                        currentTransformComponent.Position.y += delta.y;
+
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
+                        }
+                    }
+                }
+
+                ImGui::Text("Rotation");
+                float rotation = transformComponent.Rotation.z; // Assuming rotation around Z-axis for 2D UI
+                if (ImGui::DragFloat("##Rotation", &rotation, 0.1f))
+                {
+                    transformComponent.Rotation.z = rotation;
+
+                    // Recursively set rotation for all child UI components
+                    std::stack<Entity> entitiesToProcess;
+                    entitiesToProcess.push(entity);
+
+                    while (!entitiesToProcess.empty())
+                    {
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
+
+                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
+                        currentTransformComponent.Rotation.z = rotation;
+
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
+                        }
+                    }
                 }
 
                 const char* eyeIcon = uiTextComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
+
                 if (ImGui::Button(eyeIcon, {24, 24}))
                 {
                     uiTextComponent.Visible = !uiTextComponent.Visible;
-                }
 
+                    // Recursively set visibility for all child UI components
+                    std::stack<Entity> entitiesToProcess;
+                    entitiesToProcess.push(entity);
+
+                    while (!entitiesToProcess.empty())
+                    {
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
+
+                        if (currentEntity.HasComponent<UIImageComponent>())
+                        {
+                            auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Visible = uiTextComponent.Visible;
+                        }
+                        if (currentEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Visible = uiTextComponent.Visible;
+                        }
+                        if (currentEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Visible = uiTextComponent.Visible;
+                        }
+                        if (currentEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Visible = uiTextComponent.Visible;
+                        }
+                        if (currentEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Visible = uiTextComponent.Visible;
+                        }
+
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
+                        }
+                    }
+                }
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Toggle visibility of this UI component and its children.");
+                }
                 ImGui::SameLine();
+
                 DrawAnchorPointCombo(uiTextComponent.Anchor);
+
+                if (ImGui::Button("Apply Anchor to Children"))
+                {
+                    UIAnchorPosition anchorToApply = uiTextComponent.Anchor;
+
+                    std::stack<Entity> entitiesToProcess;
+                    entitiesToProcess.push(entity);
+
+                    while (!entitiesToProcess.empty())
+                    {
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
+
+                        if (currentEntity.HasComponent<UIImageComponent>())
+                        {
+                            auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Anchor = anchorToApply;
+                        }
+                        if (currentEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Anchor = anchorToApply;
+                        }
+                        if (currentEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Anchor = anchorToApply;
+                        }
+                        if (currentEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Anchor = anchorToApply;
+                        }
+                        if (currentEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Anchor = anchorToApply;
+                        }
+
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
+                        }
+                    }
+                }
 
                 ImGui::Text("Layer");
                 ImGui::DragInt("##Layer", &uiTextComponent.Layer, 1, 0);
@@ -1454,48 +1774,85 @@ namespace Coffee
                 ImGui::SameLine();
                 if (ImGui::Button("Apply Children"))
                 {
-                    if (entity.HasComponent<HierarchyComponent>())
+                    int layerToApply = uiTextComponent.Layer;
+
+                    std::stack<Entity> entitiesToProcess;
+                    entitiesToProcess.push(entity);
+
+                    while (!entitiesToProcess.empty())
                     {
-                        auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
-                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
 
-                        while ((entt::entity)childEntity != entt::null)
+                        if (currentEntity.HasComponent<UIImageComponent>())
                         {
-                            childEntity.GetComponent<UITextComponent>().Layer = uiTextComponent.Layer;
+                            auto& uiImageComponent = currentEntity.GetComponent<UIImageComponent>();
+                            uiImageComponent.Layer = layerToApply;
+                        }
+                        if (currentEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& uiTextComponent = currentEntity.GetComponent<UITextComponent>();
+                            uiTextComponent.Layer = layerToApply;
+                        }
+                        if (currentEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& uiButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
+                            uiButtonComponent.Layer = layerToApply;
+                        }
+                        if (currentEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& uiSliderComponent = currentEntity.GetComponent<UISliderComponent>();
+                            uiSliderComponent.Layer = layerToApply;
+                        }
+                        if (currentEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& uiToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
+                            uiToggleComponent.Layer = layerToApply;
+                        }
 
-                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
                         }
                     }
                 }
             }
 
-            if (ImGui::CollapsingHeader("UI Text", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen)) {
-                // Show text content
+            if (ImGui::CollapsingHeader("UI Text", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                // Text content
                 ImGui::Text("Text Content");
                 char buffer[256];
                 memset(buffer, 0, sizeof(buffer));
                 strncpy(buffer, uiTextComponent.Text.c_str(), sizeof(buffer) - 1);
 
-                if (ImGui::InputTextMultiline("##Text", buffer, sizeof(buffer))) {
+                if (ImGui::InputTextMultiline("##Text", buffer, sizeof(buffer)))
+                {
                     uiTextComponent.Text = std::string(buffer);
                 }
 
-                // Select font with a button
+                // Font selection
                 ImGui::Text("Font Path");
                 ImGui::SameLine();
                 ImGui::Text("%s", uiTextComponent.FontPath.c_str());
 
-                if (ImGui::Button("Select Font")) {
+                if (ImGui::Button("Select Font"))
+                {
                     std::string path = FileDialog::OpenFile({}).string();
-                    if (!path.empty()) {
+                    if (!path.empty())
+                    {
                         uiTextComponent.FontPath = path;
                         uiTextComponent.font = std::make_shared<Font>(path);
                     }
-                }
-                // If there is no font, use default
-                if (!uiTextComponent.font) {
-                    uiTextComponent.font = Font::GetDefault();
                 }
 
                 // Font size
@@ -1506,19 +1863,19 @@ namespace Coffee
                 ImGui::Text("Line Spacing");
                 ImGui::DragFloat("##LineSpacing", &uiTextComponent.LineSpacing, 0.1f, 0.5f);
 
-                // Color
+                // Text color
                 ImGui::Text("Text Color");
                 ImGui::ColorEdit4("##TextColor", glm::value_ptr(uiTextComponent.Color));
 
-                // Alignment
+                // Text alignment
                 ImGui::Text("Text Alignment");
-                const char* alignmentOptions[] = { "Left", "Center", "Right" };
+                const char* alignmentOptions[] = {"Left", "Center", "Right"};
                 int currentAlignment = static_cast<int>(uiTextComponent.Alignment);
-                if (ImGui::Combo("##TextAlignment", &currentAlignment, alignmentOptions, IM_ARRAYSIZE(alignmentOptions))) {
+                if (ImGui::Combo("##TextAlignment", &currentAlignment, alignmentOptions, IM_ARRAYSIZE(alignmentOptions)))
+                {
                     uiTextComponent.Alignment = static_cast<Font::UITextAlignment>(currentAlignment);
                 }
 
-                // Visibility
                 ImGui::Checkbox("Visible", &uiTextComponent.Visible);
             }
         }
@@ -1528,7 +1885,7 @@ namespace Coffee
             auto& uiButtonComponent = entity.GetComponent<UIButtonComponent>();
             bool isCollapsingHeaderOpen = true;
 
-            if (ImGui::CollapsingHeader("UI", ImGuiTreeNodeFlags_DefaultOpen))
+            if (ImGui::CollapsingHeader("UI Transform", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::Text("Position");
 
@@ -1544,6 +1901,7 @@ namespace Coffee
                     transformComponent.Position.x = newPosition.x;
                     transformComponent.Position.y = newPosition.y;
 
+                    std::stack<Entity> entitiesToProcess;
                     if (entity.HasComponent<HierarchyComponent>())
                     {
                         auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
@@ -1551,18 +1909,73 @@ namespace Coffee
 
                         while ((entt::entity)childEntity != entt::null)
                         {
-                            auto& childTransform = childEntity.GetComponent<TransformComponent>();
-                            childTransform.Position.x += delta.x;
-                            childTransform.Position.y += delta.y;
+                            entitiesToProcess.push(childEntity);
 
                             auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
                             childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
                         }
                     }
+
+                    while (!entitiesToProcess.empty())
+                    {
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
+
+                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
+                        currentTransformComponent.Position.x += delta.x;
+                        currentTransformComponent.Position.y += delta.y;
+
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
+                        }
+                    }
+                }
+                ImGui::Text("Rotation");
+                float rotation = transformComponent.Rotation.z; // Assuming rotation around Z-axis for 2D UI
+                if (ImGui::DragFloat("##Rotation", &rotation, 0.1f))
+                {
+                    transformComponent.Rotation.z = rotation;
+
+                    // Recursively set rotation for all child UI components
+                    std::stack<Entity> entitiesToProcess;
+                    entitiesToProcess.push(entity);
+
+                    while (!entitiesToProcess.empty())
+                    {
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
+
+                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
+                        currentTransformComponent.Rotation.z = rotation;
+
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
+                        }
+                    }
                 }
 
                 ImGui::Text("Size");
-                ImGui::DragFloat2("##UIButtonSize", glm::value_ptr(uiButtonComponent.baseSize), 0.1f, 0.0f, 1000.0f);
+                ImGui::DragFloat2("##Size", glm::value_ptr(uiButtonComponent.baseSize), 0.1f);
 
                 const char* eyeIcon = uiButtonComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
 
@@ -1570,44 +1983,56 @@ namespace Coffee
                 {
                     uiButtonComponent.Visible = !uiButtonComponent.Visible;
 
-                    if (entity.HasComponent<HierarchyComponent>())
+                    // Recursively set visibility for all child UI components
+                    std::stack<Entity> entitiesToProcess;
+                    entitiesToProcess.push(entity);
+
+                    while (!entitiesToProcess.empty())
                     {
-                        auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
-                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
 
-                        while ((entt::entity)childEntity != entt::null)
+                        if (currentEntity.HasComponent<UIImageComponent>())
                         {
-                            if (childEntity.HasComponent<UIImageComponent>())
-                            {
-                                auto& childUIImageComponent = childEntity.GetComponent<UIImageComponent>();
-                                childUIImageComponent.Visible = uiButtonComponent.Visible;
-                            }
-                            if (childEntity.HasComponent<UITextComponent>())
-                            {
-                                auto& childUITextComponent = childEntity.GetComponent<UITextComponent>();
-                                childUITextComponent.Visible = uiButtonComponent.Visible;
-                            }
-                            if (childEntity.HasComponent<UIButtonComponent>())
-                            {
-                                auto& childUIButtonComponent = childEntity.GetComponent<UIButtonComponent>();
-                                childUIButtonComponent.Visible = uiButtonComponent.Visible;
-                            }
-                            if (childEntity.HasComponent<UISliderComponent>())
-                            {
-                                auto& childUISliderComponent = childEntity.GetComponent<UISliderComponent>();
-                                childUISliderComponent.Visible = uiButtonComponent.Visible;
-                            }
-                            if (childEntity.HasComponent<UIToggleComponent>())
-                            {
-                                auto& childUIToggleComponent = childEntity.GetComponent<UIToggleComponent>();
-                                childUIToggleComponent.Visible = uiButtonComponent.Visible;
-                            }
+                            auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Visible = uiButtonComponent.Visible;
+                        }
+                        if (currentEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Visible = uiButtonComponent.Visible;
+                        }
+                        if (currentEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Visible = uiButtonComponent.Visible;
+                        }
+                        if (currentEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Visible = uiButtonComponent.Visible;
+                        }
+                        if (currentEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Visible = uiButtonComponent.Visible;
+                        }
 
-                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
                         }
                     }
                 }
+
                 if (ImGui::IsItemHovered())
                 {
                     ImGui::SetTooltip("Toggle visibility of this UI component and its children.");
@@ -1616,60 +2041,124 @@ namespace Coffee
 
                 DrawAnchorPointCombo(uiButtonComponent.Anchor);
 
+                if (ImGui::Button("Apply Anchor to Children"))
+                {
+                    UIAnchorPosition anchorToApply = uiButtonComponent.Anchor;
+
+                    std::stack<Entity> entitiesToProcess;
+                    entitiesToProcess.push(entity);
+
+                    while (!entitiesToProcess.empty())
+                    {
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
+
+                        if (currentEntity.HasComponent<UIImageComponent>())
+                        {
+                            auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Anchor = anchorToApply;
+                        }
+                        if (currentEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Anchor = anchorToApply;
+                        }
+                        if (currentEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Anchor = anchorToApply;
+                        }
+                        if (currentEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Anchor = anchorToApply;
+                        }
+                        if (currentEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Anchor = anchorToApply;
+                        }
+
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
+                        }
+                    }
+                }
+
                 ImGui::Text("Layer");
                 ImGui::DragInt("##Layer", &uiButtonComponent.Layer, 1, 0);
 
                 ImGui::SameLine();
                 if (ImGui::Button("Apply Children"))
                 {
-                    if (entity.HasComponent<HierarchyComponent>())
+                    int layerToApply = uiButtonComponent.Layer;
+
+                    std::stack<Entity> entitiesToProcess;
+                    entitiesToProcess.push(entity);
+
+                    while (!entitiesToProcess.empty())
                     {
-                        auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
-                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
 
-                        while ((entt::entity)childEntity != entt::null)
+                        if (currentEntity.HasComponent<UIImageComponent>())
                         {
-                            if (childEntity.HasComponent<UIImageComponent>())
-                            {
-                                auto& childUIImageComponent = childEntity.GetComponent<UIImageComponent>();
-                                childUIImageComponent.Layer = uiButtonComponent.Layer;
-                            }
-                            if (childEntity.HasComponent<UITextComponent>())
-                            {
-                                auto& childUITextComponent = childEntity.GetComponent<UITextComponent>();
-                                childUITextComponent.Layer = uiButtonComponent.Layer;
-                            }
-                            if (childEntity.HasComponent<UIButtonComponent>())
-                            {
-                                auto& childUIButtonComponent = childEntity.GetComponent<UIButtonComponent>();
-                                childUIButtonComponent.Layer = uiButtonComponent.Layer;
-                            }
-                            if (childEntity.HasComponent<UISliderComponent>())
-                            {
-                                auto& childUISliderComponent = childEntity.GetComponent<UISliderComponent>();
-                                childUISliderComponent.Layer = uiButtonComponent.Layer;
-                            }
-                            if (childEntity.HasComponent<UIToggleComponent>())
-                            {
-                                auto& childUIToggleComponent = childEntity.GetComponent<UIToggleComponent>();
-                                childUIToggleComponent.Layer = uiButtonComponent.Layer;
-                            }
+                            auto& uiImageComponent = currentEntity.GetComponent<UIImageComponent>();
+                            uiImageComponent.Layer = layerToApply;
+                        }
+                        if (currentEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& uiTextComponent = currentEntity.GetComponent<UITextComponent>();
+                            uiTextComponent.Layer = layerToApply;
+                        }
+                        if (currentEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& uiButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
+                            uiButtonComponent.Layer = layerToApply;
+                        }
+                        if (currentEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& uiSliderComponent = currentEntity.GetComponent<UISliderComponent>();
+                            uiSliderComponent.Layer = layerToApply;
+                        }
+                        if (currentEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& uiToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
+                            uiToggleComponent.Layer = layerToApply;
+                        }
 
-                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
                         }
                     }
-                }
-                if (ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Apply this layer to all children.");
                 }
             }
 
             if (ImGui::CollapsingHeader("UI Button", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
+                // Button-specific properties
                 ImGui::Text("State");
-                const char* stateNames[] = { "Base", "Selected", "Pressed" };
+                const char* stateNames[] = {"Base", "Selected", "Pressed"};
                 int currentState = static_cast<int>(uiButtonComponent.currentState);
                 if (ImGui::Combo("##State", &currentState, stateNames, IM_ARRAYSIZE(stateNames)))
                 {
@@ -1695,11 +2184,6 @@ namespace Coffee
                 ImGui::ColorEdit4("##PressedColor", glm::value_ptr(uiButtonComponent.pressedColor));
 
                 ImGui::Checkbox("Visible", &uiButtonComponent.Visible);
-
-                if (!isCollapsingHeaderOpen)
-                {
-                    entity.RemoveComponent<UIButtonComponent>();
-                }
             }
         }
 
@@ -1708,7 +2192,7 @@ namespace Coffee
             auto& uiSliderComponent = entity.GetComponent<UISliderComponent>();
             bool isCollapsingHeaderOpen = true;
 
-            if (ImGui::CollapsingHeader("UI", ImGuiTreeNodeFlags_DefaultOpen))
+            if (ImGui::CollapsingHeader("UI Transform", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::Text("Position");
 
@@ -1724,6 +2208,7 @@ namespace Coffee
                     transformComponent.Position.x = newPosition.x;
                     transformComponent.Position.y = newPosition.y;
 
+                    std::stack<Entity> entitiesToProcess;
                     if (entity.HasComponent<HierarchyComponent>())
                     {
                         auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
@@ -1731,22 +2216,76 @@ namespace Coffee
 
                         while ((entt::entity)childEntity != entt::null)
                         {
-                            auto& childTransform = childEntity.GetComponent<TransformComponent>();
-                            childTransform.Position.x += delta.x;
-                            childTransform.Position.y += delta.y;
+                            entitiesToProcess.push(childEntity);
 
                             auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
                             childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
                         }
                     }
+
+                    while (!entitiesToProcess.empty())
+                    {
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
+
+                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
+                        currentTransformComponent.Position.x += delta.x;
+                        currentTransformComponent.Position.y += delta.y;
+
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
+                        }
+                    }
+                }
+                ImGui::Text("Rotation");
+                float rotation = transformComponent.Rotation.z; // Assuming rotation around Z-axis for 2D UI
+                if (ImGui::DragFloat("##Rotation", &rotation, 0.1f))
+                {
+                    transformComponent.Rotation.z = rotation;
+
+                    // Recursively set rotation for all child UI components
+                    std::stack<Entity> entitiesToProcess;
+                    entitiesToProcess.push(entity);
+
+                    while (!entitiesToProcess.empty())
+                    {
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
+
+                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
+                        currentTransformComponent.Rotation.z = rotation;
+
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
+                        }
+                    }
                 }
 
                 ImGui::Text("Bar Size");
-                ImGui::DragFloat2("##UISliderBarSize", glm::value_ptr(uiSliderComponent.Size), 0.1f, 0.0f, 1000.0f);
+                ImGui::DragFloat2("##Bar Size", glm::value_ptr(uiSliderComponent.Size), 0.1f);
 
                 ImGui::Text("Handle Size");
-                ImGui::DragFloat2("##UISliderHandleSize", glm::value_ptr(uiSliderComponent.HandleSize), 0.1f, 0.0f, 1000.0f);
-
+                ImGui::DragFloat2("##Handle Size", glm::value_ptr(uiSliderComponent.HandleSize), 0.1f);
 
                 const char* eyeIcon = uiSliderComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
 
@@ -1754,41 +2293,52 @@ namespace Coffee
                 {
                     uiSliderComponent.Visible = !uiSliderComponent.Visible;
 
-                    if (entity.HasComponent<HierarchyComponent>())
+                    // Recursively set visibility for all child UI components
+                    std::stack<Entity> entitiesToProcess;
+                    entitiesToProcess.push(entity);
+
+                    while (!entitiesToProcess.empty())
                     {
-                        auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
-                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
 
-                        while ((entt::entity)childEntity != entt::null)
+                        if (currentEntity.HasComponent<UIImageComponent>())
                         {
-                            if (childEntity.HasComponent<UIImageComponent>())
-                            {
-                                auto& childUIImageComponent = childEntity.GetComponent<UIImageComponent>();
-                                childUIImageComponent.Visible = uiSliderComponent.Visible;
-                            }
-                            if (childEntity.HasComponent<UITextComponent>())
-                            {
-                                auto& childUITextComponent = childEntity.GetComponent<UITextComponent>();
-                                childUITextComponent.Visible = uiSliderComponent.Visible;
-                            }
-                            if (childEntity.HasComponent<UIButtonComponent>())
-                            {
-                                auto& childUIButtonComponent = childEntity.GetComponent<UIButtonComponent>();
-                                childUIButtonComponent.Visible = uiSliderComponent.Visible;
-                            }
-                            if (childEntity.HasComponent<UISliderComponent>())
-                            {
-                                auto& childUISliderComponent = childEntity.GetComponent<UISliderComponent>();
-                                childUISliderComponent.Visible = uiSliderComponent.Visible;
-                            }
-                            if (childEntity.HasComponent<UIToggleComponent>())
-                            {
-                                auto& childUIToggleComponent = childEntity.GetComponent<UIToggleComponent>();
-                                childUIToggleComponent.Visible = uiSliderComponent.Visible;
-                            }
+                            auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Visible = uiSliderComponent.Visible;
+                        }
+                        if (currentEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Visible = uiSliderComponent.Visible;
+                        }
+                        if (currentEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Visible = uiSliderComponent.Visible;
+                        }
+                        if (currentEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Visible = uiSliderComponent.Visible;
+                        }
+                        if (currentEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Visible = uiSliderComponent.Visible;
+                        }
 
-                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
                         }
                     }
                 }
@@ -1800,58 +2350,122 @@ namespace Coffee
 
                 DrawAnchorPointCombo(uiSliderComponent.Anchor);
 
+                if (ImGui::Button("Apply Anchor to Children"))
+                {
+                    UIAnchorPosition anchorToApply = uiSliderComponent.Anchor;
+
+                    std::stack<Entity> entitiesToProcess;
+                    entitiesToProcess.push(entity);
+
+                    while (!entitiesToProcess.empty())
+                    {
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
+
+                        if (currentEntity.HasComponent<UIImageComponent>())
+                        {
+                            auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Anchor = anchorToApply;
+                        }
+                        if (currentEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Anchor = anchorToApply;
+                        }
+                        if (currentEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Anchor = anchorToApply;
+                        }
+                        if (currentEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Anchor = anchorToApply;
+                        }
+                        if (currentEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Anchor = anchorToApply;
+                        }
+
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
+                        }
+                    }
+                }
+
                 ImGui::Text("Layer");
                 ImGui::DragInt("##Layer", &uiSliderComponent.Layer, 1, 0);
 
                 ImGui::SameLine();
                 if (ImGui::Button("Apply Children"))
                 {
-                    if (entity.HasComponent<HierarchyComponent>())
+                    int layerToApply = uiSliderComponent.Layer;
+
+                    std::stack<Entity> entitiesToProcess;
+                    entitiesToProcess.push(entity);
+
+                    while (!entitiesToProcess.empty())
                     {
-                        auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
-                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
 
-                        while ((entt::entity)childEntity != entt::null)
+                        if (currentEntity.HasComponent<UIImageComponent>())
                         {
-                            if (childEntity.HasComponent<UIImageComponent>())
-                            {
-                                auto& childUIImageComponent = childEntity.GetComponent<UIImageComponent>();
-                                childUIImageComponent.Layer = uiSliderComponent.Layer;
-                            }
-                            if (childEntity.HasComponent<UITextComponent>())
-                            {
-                                auto& childUITextComponent = childEntity.GetComponent<UITextComponent>();
-                                childUITextComponent.Layer = uiSliderComponent.Layer;
-                            }
-                            if (childEntity.HasComponent<UIButtonComponent>())
-                            {
-                                auto& childUIButtonComponent = childEntity.GetComponent<UIButtonComponent>();
-                                childUIButtonComponent.Layer = uiSliderComponent.Layer;
-                            }
-                            if (childEntity.HasComponent<UISliderComponent>())
-                            {
-                                auto& childUISliderComponent = childEntity.GetComponent<UISliderComponent>();
-                                childUISliderComponent.Layer = uiSliderComponent.Layer;
-                            }
-                            if (childEntity.HasComponent<UIToggleComponent>())
-                            {
-                                auto& childUIToggleComponent = childEntity.GetComponent<UIToggleComponent>();
-                                childUIToggleComponent.Layer = uiSliderComponent.Layer;
-                            }
+                            auto& uiImageComponent = currentEntity.GetComponent<UIImageComponent>();
+                            uiImageComponent.Layer = layerToApply;
+                        }
+                        if (currentEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& uiTextComponent = currentEntity.GetComponent<UITextComponent>();
+                            uiTextComponent.Layer = layerToApply;
+                        }
+                        if (currentEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& uiButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
+                            uiButtonComponent.Layer = layerToApply;
+                        }
+                        if (currentEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& uiSliderComponent = currentEntity.GetComponent<UISliderComponent>();
+                            uiSliderComponent.Layer = layerToApply;
+                        }
+                        if (currentEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& uiToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
+                            uiToggleComponent.Layer = layerToApply;
+                        }
 
-                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
                         }
                     }
-                }
-                if (ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Apply this layer to all children.");
                 }
             }
 
             if (ImGui::CollapsingHeader("UI Slider", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
+                // Slider-specific properties
                 ImGui::Text("Bar Texture");
                 DrawTextureWidget("##UISliderBarTexture", uiSliderComponent.barTexture);
 
@@ -1862,11 +2476,6 @@ namespace Coffee
                 ImGui::SliderFloat("##SliderValue", &uiSliderComponent.Value, 0.0f, 1.0f);
 
                 ImGui::Checkbox("Visible", &uiSliderComponent.Visible);
-
-                if (!isCollapsingHeaderOpen)
-                {
-                    entity.RemoveComponent<UISliderComponent>();
-                }
             }
         }
 
@@ -1875,7 +2484,7 @@ namespace Coffee
             auto& uiToggleComponent = entity.GetComponent<UIToggleComponent>();
             bool isCollapsingHeaderOpen = true;
 
-            if (ImGui::CollapsingHeader("UI", ImGuiTreeNodeFlags_DefaultOpen))
+            if (ImGui::CollapsingHeader("UI Transform", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::Text("Position");
 
@@ -1891,6 +2500,7 @@ namespace Coffee
                     transformComponent.Position.x = newPosition.x;
                     transformComponent.Position.y = newPosition.y;
 
+                    std::stack<Entity> entitiesToProcess;
                     if (entity.HasComponent<HierarchyComponent>())
                     {
                         auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
@@ -1898,87 +2508,253 @@ namespace Coffee
 
                         while ((entt::entity)childEntity != entt::null)
                         {
-                            auto& childTransform = childEntity.GetComponent<TransformComponent>();
-                            childTransform.Position.x += delta.x;
-                            childTransform.Position.y += delta.y;
+                            entitiesToProcess.push(childEntity);
 
                             auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
                             childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                        }
+                    }
+
+                    while (!entitiesToProcess.empty())
+                    {
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
+
+                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
+                        currentTransformComponent.Position.x += delta.x;
+                        currentTransformComponent.Position.y += delta.y;
+
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
+                        }
+                    }
+                }
+                ImGui::Text("Rotation");
+                float rotation = transformComponent.Rotation.z; // Assuming rotation around Z-axis for 2D UI
+                if (ImGui::DragFloat("##Rotation", &rotation, 0.1f))
+                {
+                    transformComponent.Rotation.z = rotation;
+
+                    // Recursively set rotation for all child UI components
+                    std::stack<Entity> entitiesToProcess;
+                    entitiesToProcess.push(entity);
+
+                    while (!entitiesToProcess.empty())
+                    {
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
+
+                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
+                        currentTransformComponent.Rotation.z = rotation;
+
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
                         }
                     }
                 }
 
                 ImGui::Text("Size");
-                ImGui::DragFloat2("##UIToggleSize", glm::value_ptr(uiToggleComponent.Size), 0.1f, 0.0f, 1000.0f);
+                ImGui::DragFloat2("##Size", glm::value_ptr(uiToggleComponent.Size), 0.1f);
 
                 const char* eyeIcon = uiToggleComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
+
                 if (ImGui::Button(eyeIcon, {24, 24}))
                 {
                     uiToggleComponent.Visible = !uiToggleComponent.Visible;
 
-                    if (entity.HasComponent<HierarchyComponent>())
+                    // Recursively set visibility for all child UI components
+                    std::stack<Entity> entitiesToProcess;
+                    entitiesToProcess.push(entity);
+
+                    while (!entitiesToProcess.empty())
                     {
-                        auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
-                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
 
-                        while ((entt::entity)childEntity != entt::null)
+                        if (currentEntity.HasComponent<UIImageComponent>())
                         {
-                            if (childEntity.HasComponent<UIImageComponent>())
-                                childEntity.GetComponent<UIImageComponent>().Visible = uiToggleComponent.Visible;
-                            if (childEntity.HasComponent<UITextComponent>())
-                                childEntity.GetComponent<UITextComponent>().Visible = uiToggleComponent.Visible;
-                            if (childEntity.HasComponent<UIButtonComponent>())
-                                childEntity.GetComponent<UIButtonComponent>().Visible = uiToggleComponent.Visible;
-                            if (childEntity.HasComponent<UISliderComponent>())
-                                childEntity.GetComponent<UISliderComponent>().Visible = uiToggleComponent.Visible;
-                            if (childEntity.HasComponent<UIToggleComponent>())
-                                childEntity.GetComponent<UIToggleComponent>().Visible = uiToggleComponent.Visible;
+                            auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Visible = uiToggleComponent.Visible;
+                        }
+                        if (currentEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Visible = uiToggleComponent.Visible;
+                        }
+                        if (currentEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Visible = uiToggleComponent.Visible;
+                        }
+                        if (currentEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Visible = uiToggleComponent.Visible;
+                        }
+                        if (currentEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Visible = uiToggleComponent.Visible;
+                        }
 
-                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
                         }
                     }
                 }
                 if (ImGui::IsItemHovered())
+                {
                     ImGui::SetTooltip("Toggle visibility of this UI component and its children.");
+                }
                 ImGui::SameLine();
 
                 DrawAnchorPointCombo(uiToggleComponent.Anchor);
 
-                ImGui::Text("Layer");
-                ImGui::DragInt("##Layer", &uiToggleComponent.Layer, 1, 0);
-                ImGui::SameLine();
-                if (ImGui::Button("Apply Children"))
+                if (ImGui::Button("Apply Anchor to Children"))
                 {
-                    if (entity.HasComponent<HierarchyComponent>())
+                    UIAnchorPosition anchorToApply = uiToggleComponent.Anchor;
+
+                    std::stack<Entity> entitiesToProcess;
+                    entitiesToProcess.push(entity);
+
+                    while (!entitiesToProcess.empty())
                     {
-                        auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
-                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
 
-                        while ((entt::entity)childEntity != entt::null)
+                        if (currentEntity.HasComponent<UIImageComponent>())
                         {
-                            if (childEntity.HasComponent<UIImageComponent>())
-                                childEntity.GetComponent<UIImageComponent>().Layer = uiToggleComponent.Layer;
-                            if (childEntity.HasComponent<UITextComponent>())
-                                childEntity.GetComponent<UITextComponent>().Layer = uiToggleComponent.Layer;
-                            if (childEntity.HasComponent<UIButtonComponent>())
-                                childEntity.GetComponent<UIButtonComponent>().Layer = uiToggleComponent.Layer;
-                            if (childEntity.HasComponent<UISliderComponent>())
-                                childEntity.GetComponent<UISliderComponent>().Layer = uiToggleComponent.Layer;
-                            if (childEntity.HasComponent<UIToggleComponent>())
-                                childEntity.GetComponent<UIToggleComponent>().Layer = uiToggleComponent.Layer;
+                            auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
+                            childUIImageComponent.Anchor = anchorToApply;
+                        }
+                        if (currentEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
+                            childUITextComponent.Anchor = anchorToApply;
+                        }
+                        if (currentEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
+                            childUIButtonComponent.Anchor = anchorToApply;
+                        }
+                        if (currentEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
+                            childUISliderComponent.Anchor = anchorToApply;
+                        }
+                        if (currentEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
+                            childUIToggleComponent.Anchor = anchorToApply;
+                        }
 
-                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
                         }
                     }
                 }
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Apply this layer to all children.");
+
+                ImGui::Text("Layer");
+                ImGui::DragInt("##Layer", &uiToggleComponent.Layer, 1, 0);
+
+                ImGui::SameLine();
+                if (ImGui::Button("Apply Children"))
+                {
+                    int layerToApply = uiToggleComponent.Layer;
+
+                    std::stack<Entity> entitiesToProcess;
+                    entitiesToProcess.push(entity);
+
+                    while (!entitiesToProcess.empty())
+                    {
+                        Entity currentEntity = entitiesToProcess.top();
+                        entitiesToProcess.pop();
+
+                        if (currentEntity.HasComponent<UIImageComponent>())
+                        {
+                            auto& uiImageComponent = currentEntity.GetComponent<UIImageComponent>();
+                            uiImageComponent.Layer = layerToApply;
+                        }
+                        if (currentEntity.HasComponent<UITextComponent>())
+                        {
+                            auto& uiTextComponent = currentEntity.GetComponent<UITextComponent>();
+                            uiTextComponent.Layer = layerToApply;
+                        }
+                        if (currentEntity.HasComponent<UIButtonComponent>())
+                        {
+                            auto& uiButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
+                            uiButtonComponent.Layer = layerToApply;
+                        }
+                        if (currentEntity.HasComponent<UISliderComponent>())
+                        {
+                            auto& uiSliderComponent = currentEntity.GetComponent<UISliderComponent>();
+                            uiSliderComponent.Layer = layerToApply;
+                        }
+                        if (currentEntity.HasComponent<UIToggleComponent>())
+                        {
+                            auto& uiToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
+                            uiToggleComponent.Layer = layerToApply;
+                        }
+
+                        if (currentEntity.HasComponent<HierarchyComponent>())
+                        {
+                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
+                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
+
+                            while ((entt::entity)childEntity != entt::null)
+                            {
+                                entitiesToProcess.push(childEntity);
+
+                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
+                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
+                            }
+                        }
+                    }
+                }
             }
 
             if (ImGui::CollapsingHeader("UI Toggle", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
+                // Toggle-specific properties
                 ImGui::Text("Active Texture");
                 DrawTextureWidget("##UIToggleActiveTexture", uiToggleComponent.ActiveTexture);
 
@@ -1987,1087 +2763,7 @@ namespace Coffee
 
                 ImGui::Checkbox("Is Active", &uiToggleComponent.IsActive);
                 ImGui::Checkbox("Visible", &uiToggleComponent.Visible);
-
-                if (!isCollapsingHeaderOpen)
-                    entity.RemoveComponent<UIToggleComponent>();
             }
-        }
-
-
-        if (entity.HasComponent<AnimatorComponent>())
-        {
-            auto& animatorComponent = entity.GetComponent<AnimatorComponent>();
-
-            bool isCollapsingHeaderOpen = true;
-            if (ImGui::CollapsingHeader("Animator", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
-            {
-                const char* animationName = animatorComponent.GetAnimationController()->GetAnimation(animatorComponent.CurrentAnimation)->GetAnimationName().c_str();
-
-                if (ImGui::BeginCombo("Animation", animationName))
-                {
-                    for (auto& [name, animation] : animatorComponent.GetAnimationController()->GetAnimationMap())
-                    {
-                        if (ImGui::Selectable(name.c_str()) && name != animationName)
-                        {
-                            AnimationSystem::SetCurrentAnimation(name, &animatorComponent);
-                        }
-                    }
-                    ImGui::EndCombo();
-                }
-
-                ImGui::DragFloat("Blend Duration", &animatorComponent.BlendDuration, 0.01f, 0.01f, 2.0f, "%.2f");
-
-                ImGui::DragFloat("Blend Threshold", &animatorComponent.BlendThreshold, 0.01f, 0.01f, 1.0f, "%.2f");
-
-                ImGui::DragFloat("Animation Speed", &animatorComponent.AnimationSpeed, 0.01f, 0.1f, 5.0f, "%.2f");
-
-                ImGui::Checkbox("Loop", &animatorComponent.Loop);
-            }
-
-            if (!isCollapsingHeaderOpen)
-            {
-                // entity.RemoveComponent<AnimatorComponent>();
-                // TODO remove animator component from entity and all the animation data
-            }
-        }
-        
-        if(entity.HasComponent<ScriptComponent>())
-        {
-            auto& scriptComponent = entity.GetComponent<ScriptComponent>();
-            bool isCollapsingHeaderOpen = true;
-            if (ImGui::CollapsingHeader("Script", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
-            {
-                // ImGui::Text("Script Path: ");
-                // ImGui::Text(scriptComponent.script->GetPath().c_str());
-
-                // Get the exposed variables
-                auto& exposedVariables = scriptComponent.script->GetExportedVariables();
-
-                // print the exposed variables
-                for (auto& [name, variable] : exposedVariables)
-                {
-                    switch (variable.type)
-                    {
-                    case ExportedVariableType::Bool: {
-                        bool value = variable.value.has_value() ? std::any_cast<bool>(variable.value) : false;
-                        if (ImGui::Checkbox(name.c_str(), &value))
-                        {
-                            std::dynamic_pointer_cast<LuaScript>(scriptComponent.script)->SetVariable(name, value);
-                            variable.value = value;
-                        }
-                        break;
-                    }
-                    case ExportedVariableType::Int: {
-                        int value = variable.value.has_value() ? std::any_cast<int>(variable.value) : 0;
-                        if (ImGui::InputInt(name.c_str(), &value))
-                        {
-                            std::dynamic_pointer_cast<LuaScript>(scriptComponent.script)->SetVariable(name, value);
-                            variable.value = value;
-                        }
-                        break;
-                    }
-                    case ExportedVariableType::Float: {
-                        float value = variable.value.has_value() ? std::any_cast<float>(variable.value) : 0.0f;
-                        if (ImGui::InputFloat(name.c_str(), &value))
-                        {
-                            std::dynamic_pointer_cast<LuaScript>(scriptComponent.script)->SetVariable(name, value);
-                            variable.value = value;
-                        }
-                        break;
-                    }
-                    case ExportedVariableType::String: {
-                        std::string value =
-                            variable.value.has_value() ? std::any_cast<std::string>(variable.value) : "";
-                        char buffer[256];
-                        memset(buffer, 0, sizeof(buffer));
-                        strcpy(buffer, value.c_str());
-                        if (ImGui::InputText(name.c_str(), buffer, sizeof(buffer)))
-                        {
-                            std::dynamic_pointer_cast<LuaScript>(scriptComponent.script)
-                                ->SetVariable(name, std::string(buffer));
-                            variable.value = std::string(buffer);
-                        }
-                        break;
-                    }
-                    case ExportedVariableType::Entity: {
-                        Entity value = variable.value.has_value() ? std::any_cast<Entity>(variable.value) : Entity{};
-                        if (ImGui::Button(name.c_str()))
-                        {
-                            ImGui::OpenPopup("EntityPopup");
-                        }
-                        if (ImGui::BeginPopup("EntityPopup"))
-                        {
-                            auto view = m_Context->m_Registry.view<TagComponent>();
-                            for (auto entityID : view)
-                            {
-                                Entity e{entityID, m_Context.get()};
-                                auto& tag = e.GetComponent<TagComponent>().Tag;
-                                if (ImGui::Selectable(tag.c_str()))
-                                {
-                                    value = e;
-                                    std::dynamic_pointer_cast<LuaScript>(scriptComponent.script)
-                                        ->SetVariable(name, value);
-                                    variable.value = value;
-                                }
-                            }
-                            ImGui::EndPopup();
-                        }
-                        break;
-                    }
-                    case ExportedVariableType::Vector2: {
-                        glm::vec2 value =
-                            variable.value.has_value() ? std::any_cast<glm::vec2>(variable.value) : glm::vec2{};
-                        if (ImGui::DragFloat2(name.c_str(), glm::value_ptr(value)))
-                        {
-                            std::dynamic_pointer_cast<LuaScript>(scriptComponent.script)->SetVariable(name, value);
-                            variable.value = value;
-                        }
-                        break;
-                    }
-                    case ExportedVariableType::Vector3: {
-                        glm::vec3 value =
-                            variable.value.has_value() ? std::any_cast<glm::vec3>(variable.value) : glm::vec3{};
-                        if (ImGui::DragFloat3(name.c_str(), glm::value_ptr(value)))
-                        {
-                            std::dynamic_pointer_cast<LuaScript>(scriptComponent.script)->SetVariable(name, value);
-                            variable.value = value;
-                        }
-                        break;
-                    }
-                    case ExportedVariableType::Vector4: {
-                        glm::vec4 value =
-                            variable.value.has_value() ? std::any_cast<glm::vec4>(variable.value) : glm::vec4{};
-                        if (ImGui::DragFloat4(name.c_str(), glm::value_ptr(value)))
-                        {
-                            std::dynamic_pointer_cast<LuaScript>(scriptComponent.script)->SetVariable(name, value);
-                            variable.value = value;
-                        }
-                        break;
-                    }
-                    }
-                }
-            }
-
-            if (!isCollapsingHeaderOpen)
-            {
-                entity.RemoveComponent<ScriptComponent>();
-            }
-        }
-
-        if (entity.HasComponent<NavMeshComponent>())
-        {
-            auto& navMeshComponent = entity.GetComponent<NavMeshComponent>();
-            bool isCollapsingHeaderOpen = true;
-            if (ImGui::CollapsingHeader("NavMesh", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
-            {
-                ImGui::Checkbox("Show NavMesh", &navMeshComponent.ShowDebug);
-                ImGui::DragFloat("Walkable Slope Angle", &navMeshComponent.GetNavMesh()->WalkableSlopeAngle, 0.1f, 0.1f, 60.0f);
-
-                if (ImGui::SmallButton("Generate NavMesh"))
-                {
-                    navMeshComponent.GetNavMesh()->CalculateWalkableAreas(entity.GetComponent<MeshComponent>().GetMesh(), entity.GetComponent<TransformComponent>().GetWorldTransform());
-                }
-            }
-            if (!isCollapsingHeaderOpen)
-            {
-                entity.RemoveComponent<NavMeshComponent>();
-            }
-        }
-
-        if (entity.HasComponent<NavigationAgentComponent>())
-        {
-            auto& navigationAgentComponent = entity.GetComponent<NavigationAgentComponent>();
-            bool isCollapsingHeaderOpen = true;
-            if (ImGui::CollapsingHeader("Navigation Agent", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
-            {
-                auto view = m_Context->m_Registry.view<NavMeshComponent>();
-
-                ImGui::Checkbox("Show Path", &navigationAgentComponent.ShowDebug);
-
-                if (ImGui::BeginCombo("NavMesh", navigationAgentComponent.GetNavMeshComponent() ? std::to_string(navigationAgentComponent.GetNavMeshComponent()->GetNavMeshUUID()).c_str() : "Select NavMesh"))
-                {
-                    for (auto entityID : view)
-                    {
-                        Entity e{entityID, m_Context.get()};
-                        auto& navMeshComponent = e.GetComponent<NavMeshComponent>();
-                        bool isSelected = (navigationAgentComponent.GetNavMeshComponent() && navigationAgentComponent.GetNavMeshComponent()->GetNavMeshUUID() == navMeshComponent.GetNavMeshUUID());
-                        if (ImGui::Selectable(std::to_string(navMeshComponent.GetNavMeshUUID()).c_str(), isSelected))
-                        {
-                            navigationAgentComponent.SetNavMeshComponent(CreateRef<NavMeshComponent>(navMeshComponent));
-                            navigationAgentComponent.GetPathFinder()->SetNavMesh(navMeshComponent.GetNavMesh());
-                        }
-                        if (isSelected)
-                        {
-                            ImGui::SetItemDefaultFocus();
-                        }
-                    }
-                    ImGui::EndCombo();
-                }
-            }
-        }
-
-        if (entity.HasComponent<ParticlesSystemComponent>())
-        {
-            auto& particles = entity.GetComponent<ParticlesSystemComponent>();
-            Ref<ParticleEmitter> emitter = particles.GetParticleEmitter();
-            bool isCollapsingHeaderOpen = true;
-
-            ImGui::PushID("ParticlesSystem");
-            if (ImGui::CollapsingHeader("Particle System", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
-            {
-                // Position
-                // ImGui::Text("Position");
-                // ImGui::DragFloat3("##ParticlePosition", glm::value_ptr(particles.Position), 0.1f);
-
-                // Rate over time
-
-                // Direction
-                ImGui::Checkbox("##ParticleDirectionUseRandom", &emitter->useDirectionRandom);
-                if (ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Check this button to use the random system.\nThe value above is the min, and "
-                                      "the value below is the max.");
-                }
-                ImGui::SameLine();
-                ImGui::Text("Direction");
-                ImGui::DragFloat3("##ParticleDirectionNormal", glm::value_ptr(emitter->direction), 0.1f, -1.0f, 1.0f);
-                if (emitter->useDirectionRandom)
-                {
-                    ImGui::DragFloat3("##ParticleDirectionRandom", glm::value_ptr(emitter->directionRandom), 0.1f,
-                                      -1.0f, 1.0f);
-                }
-
-                // Colour
-                ImGui::Checkbox("##ParticleColorUseRandom", &emitter->useColorRandom);
-                if (ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Check this button to use the random system.\nThe value above is the min, and "
-                                      "the value below is the max.");
-                }
-                ImGui::SameLine();
-                ImGui::Text("Colour");
-                ImGui::ColorEdit4("##ParticleColourNormal", glm::value_ptr(emitter->colorNormal));
-                if (emitter->useColorRandom)
-                {
-                    ImGui::ColorEdit4("##ParticleColorRandom", glm::value_ptr(emitter->colorRandom));
-                }
-
-                //// Life Time
-                // ImGui::Text("Life Time");
-                // ImGui::DragFloat("##ParticleLife", &emitter->lifeTime, 0.1f, 0.0f, 100.0f);
-
-                //// Size
-                // ImGui::Text("Size");
-                // ImGui::DragFloat("##ParticleSize", &emitter->size, 0.1f, 0.0f, 10.0f);
-
-                // Looping
-                ImGui::Checkbox("##ParticleLooping", &emitter->looping);
-                ImGui::SameLine();
-                ImGui::Text("Looping");
-
-                // Start Life Time
-                // Use Random Start Life Time
-                ImGui::Checkbox("##UseRandomStartLifeTime", &emitter->useRandomLifeTime);
-                if (ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Check this button to use the random system.\nThe value above is the min, and "
-                                      "the value below is the max.");
-                }
-                ImGui::SameLine();
-                ImGui::Text("Start Life Time");
-                if (emitter->useRandomLifeTime)
-                {
-                    ImGui::Text("Min");
-                    ImGui::SameLine();
-                    ImGui::DragFloat("##ParticleStartLifeTimeMin", &emitter->startLifeTimeMin, 0.1f, 0.0f, 100.0f);
-                    ImGui::Text("Max");
-                    ImGui::SameLine();
-                    ImGui::DragFloat("##ParticleStartLifeTimeMax", &emitter->startLifeTimeMax, 0.1f, 0.0f, 100.0f);
-                }
-                else
-                {
-                    ImGui::DragFloat("##ParticleStartLifeTime", &emitter->startLifeTime, 0.1f, 0.0f, 100.0f);
-                }
-                ImGui::Separator();
-
-                // Start speed
-                // Use Random Start sppeed
-                ImGui::Checkbox("##UseRandomStartSpeed", &emitter->useRandomSpeed);
-                if (ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Check this button to use the random system.\nThe value above is the min, and "
-                                      "the value below is the max.");
-                }
-                ImGui::SameLine();
-                ImGui::Text("Start Speed");
-
-                if (emitter->useRandomSpeed)
-                {
-                    ImGui::Text("Min");
-                    ImGui::SameLine();
-                    ImGui::DragFloat("##ParticleStartSpeedMin", &emitter->startSpeedMin, 0.1f, 0.0f, 100.0f);
-                    ImGui::Text("Max");
-                    ImGui::SameLine();
-                    ImGui::DragFloat("##ParticleStartSpeedMax", &emitter->startSpeedMax, 0.1f, 0.0f, 100.0f);
-                }
-                else
-                {
-                    ImGui::DragFloat("##ParticleStartSpeed", &emitter->startSpeed, 0.1f, 0.0f, 100.0f);
-                }
-
-                // Start Size
-                // Use Random Start Size
-                ImGui::Checkbox("##UseRandomStartSize", &emitter->useRandomSize);
-                if (ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Check this button to use the random system.\nThe value above is the min, and "
-                                      "the value below is the max.");
-                }
-                ImGui::SameLine();
-                ImGui::Text("Start Size");
-                ImGui::SameLine();
-                ImGui::Checkbox("##UseSplitAxesStartSize", &emitter->useSplitAxesSize);
-                if (ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Check this button to split the startSize value in to three axes");
-                }
-
-                if (emitter->useSplitAxesSize)
-                {
-
-                    if (emitter->useRandomSize)
-                    {
-
-                        ImGui::Text("Min");
-                        ImGui::SameLine();
-                        ImGui::DragFloat3("##UseAxesParticleStartSizeMin", glm::value_ptr(emitter->startSizeMin), 0.1f);
-                        ImGui::Text("Max");
-                        ImGui::SameLine();
-                        ImGui::DragFloat3("##UseAxesParticleStartSizeMax", glm::value_ptr(emitter->startSizeMax), 0.1f);
-                    }
-                    else
-                    {
-                        ImGui::DragFloat3("##UseAxesParticleStartSize", glm::value_ptr(emitter->startSize), 0.1f);
-                    }
-                }
-                else
-                {
-
-                    if (emitter->useRandomSize)
-                    {
-                        float unirformValueSizeMin = emitter->startSizeMin.x;
-                        float unirformValueSizeMax = emitter->startSizeMax.x;
-
-                        ImGui::Text("Min");
-                        ImGui::SameLine();
-                        if (ImGui::DragFloat("##NoAxesParticleStartSizeMin", &unirformValueSizeMin, 0.1f))
-                        {
-                            emitter->startSizeMin = glm::vec3(unirformValueSizeMin);
-                        }
-                        ImGui::Text("Max");
-                        ImGui::SameLine();
-                        if (ImGui::DragFloat("##NoAxesParticleStartSizeMax", &unirformValueSizeMax, 0.1f))
-                        {
-                            emitter->startSizeMax = glm::vec3(unirformValueSizeMax);
-                        }
-                    }
-                    else
-                    {
-                        float unirformValueSize = emitter->startSize.x;
-                        if (ImGui::DragFloat("##NoAxesParticleStartSize", &unirformValueSize, 0.1f))
-                        {
-                             emitter->startSize = glm::vec3(unirformValueSize);
-                         }
-                    }
-                }
-
-                // Start Rotation
-                // Use Random Start Rotation
-                ImGui::Checkbox("##UseRandomStartRotation", &emitter->useRandomRotation);
-                if (ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Check this button to use the random system.\nThe value above is the min, and "
-                                      "the value below is the max.");
-                }
-                ImGui::SameLine();
-                ImGui::Text("Start Rotation");
-
-                if (emitter->useRandomRotation)
-                {
-                    ImGui::Text("Min");
-                    ImGui::SameLine();
-                    ImGui::DragFloat3("##ParticleStartRotationMin", glm::value_ptr(emitter->startRotationMin), 0.1f);
-                    ImGui::Text("Max");
-                    ImGui::SameLine();
-                    ImGui::DragFloat3("##ParticleStartRotationMax", glm::value_ptr(emitter->startRotationMax), 0.1f);
-                }
-                else
-                {
-                    ImGui::DragFloat3("##ParticleStartRotation", glm::value_ptr(emitter->startRotation), 0.1f);
-                }
-
-                // Simulation Space
-                // ImGui::Text("Simulation Space");
-                // ImGui::SameLine();
-
-                //// Show Combo Menu
-                // const char* simulationSpaceOptions[] = {"Local", "World", "Custom"};
-                // int currentSimulationSpace = static_cast<int>(emitter->simulationSpace);
-
-                // if (ImGui::Combo("##SimulationSpace", &currentSimulationSpace, simulationSpaceOptions,
-                //                  IM_ARRAYSIZE(simulationSpaceOptions)))
-                //{
-                //     emitter->simulationSpace = static_cast<ParticleEmitter::SimulationSpace>(currentSimulationSpace);
-                // }
-
-                ImGui::Checkbox("##UseEmission", &emitter->useEmission);
-                ImGui::SameLine();
-                ImGui::PushID("Emission");
-
-                if (ImGui::TreeNodeEx("Emission Settings", ImGuiTreeNodeFlags_None))
-                {
-                    // If not enabled, set the text to gray and disable the controls
-                    if (!emitter->useEmission)
-                    {
-                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f)); // Gray
-                        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);                   // Disable controls
-                    }
-
-                    // Select emitter shape
-                    ImGui::Text("Rate over Time");
-                    ImGui::SameLine();
-                    ImGui::DragFloat("##ParticleRateOverTime", &emitter->rateOverTime, 0.1, 0);
-
-                    ImGui::TreePop();
-                }
-                ImGui::PopID();
-
-                // Shape section: Select shape and control other properties (Angle, Radius, Radius Thickness)
-                ImGui::Checkbox("##UseShape", &emitter->useShape); // Shape toggle checkbox
-                ImGui::SameLine();
-                ImGui::PushID("Shape");
-
-                if (ImGui::TreeNodeEx("Shape Settings", ImGuiTreeNodeFlags_None))
-                {
-                    // If not enabled, set the text to gray and disable the controls
-                    if (!emitter->useShape)
-                    {
-                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f)); // Gray
-                        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);                   // Disable controls
-                    }
-
-                    // Select emitter shape
-                    const char* shapeNames[] = {"Sphere", "Cone", "Box"};
-                    ImGui::Text("Shape");
-                    ImGui::SameLine();
-                    ImGui::Combo("##ShapeType", reinterpret_cast<int*>(&emitter->shape), shapeNames,
-                                 IM_ARRAYSIZE(shapeNames));
-
-                    // Spread
-                    ImGui::Text("Spread");
-                    /*ImGui::SameLine();*/
-                    ImGui::DragFloat3("##ParticleSpreadMin", glm::value_ptr(emitter->minSpread), 0.1f);
-                    ImGui::DragFloat3("##ParticleSpreadMax", glm::value_ptr(emitter->maxSpread), 0.1f);
-
-                    // Control the angle (only applies to Cone)
-                    if (emitter->shape == ParticleEmitter::ShapeType::Cone)
-                    {
-                        ImGui::Text("Angle");
-                        ImGui::SameLine();
-                        ImGui::DragFloat("##Angle", &emitter->shapeAngle, 1.0f, 0.0f,
-                                         180.0f); // Control angle, range: 0 to 180
-                    }
-
-                    if (emitter->shape != ParticleEmitter::ShapeType::Box)
-                    {
-
-                        // Control the radius
-                        ImGui::Text("Radius");
-                        ImGui::SameLine();
-                        ImGui::DragFloat("##Radius", &emitter->shapeRadius, 0.1f, 0.0f,
-                                         100.0f); // Control radius, range: 0 to 100
-
-                        // Control radius thickness (for ring-shaped emitter)
-                        ImGui::Text("Radius Thickness");
-                        ImGui::SameLine();
-                        ImGui::DragFloat("##RadiusThickness", &emitter->shapeRadiusThickness, 0.01f, 0.0f,
-                                         10.0f); // Range: 0 to 10
-                    }
-
-                    // Restore the default state
-                    if (!emitter->useShape)
-                    {
-                        ImGui::PopItemFlag();
-                        ImGui::PopStyleColor();
-                    }
-
-                    ImGui::TreePop();
-                }
-                ImGui::PopID();
-
-                // Velocity Over Lifetime - Checkbox and Collapsing Header
-                ImGui::Checkbox("##UseVelocityOverLifetime", &emitter->useVelocityOverLifetime);
-
-                // SameLine to make checkbox and header appear on the same line
-                ImGui::SameLine();
-                ImGui::PushID("VelocityOverLifetime");
-
-                // Use TreeNodeEx to create a collapsible panel without a close button
-                if (ImGui::TreeNodeEx("Velocity Over Lifetime Settings", ImGuiTreeNodeFlags_None))
-                {
-                    // If the checkbox is not selected, set controls to gray and disable them
-                    if (!emitter->useVelocityOverLifetime)
-                    {
-                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f)); // Gray out text
-                        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);                   // Disable controls
-                    }
-
-                    ImGui::Checkbox("Separate Axes", &emitter->velocityOverLifeTimeSeparateAxes);
-
-                    if (emitter->velocityOverLifeTimeSeparateAxes)
-                    {
-
-                        ImGui::Text("Velocity X");
-                        CurveEditor::DrawCurve("Velocity X", emitter->speedOverLifeTimeX);
-
-                        ImGui::Text("Velocity Y ");
-                        CurveEditor::DrawCurve("Velocity Y", emitter->speedOverLifeTimeY);
-
-                        ImGui::Text("Velocity Z");
-                        CurveEditor::DrawCurve("Velocity Z", emitter->speedOverLifeTimeZ);
-                    }
-                    else
-                    {
-
-                        ImGui::Text("Velocity");
-                        CurveEditor::DrawCurve("Velocity", emitter->speedOverLifeTimeGeneral);
-                    }
-
-                    // Restore default state
-                    if (!emitter->useVelocityOverLifetime)
-                    {
-                        ImGui::PopItemFlag();   // Restore control state
-                        ImGui::PopStyleColor(); // Restore color
-                    }
-
-                    // Close tree node
-                    ImGui::TreePop();
-                }
-
-                ImGui::PopID();
-
-                // Color Over Lifetime - Checkbox and Collapsing Header
-                ImGui::Checkbox("##UseColorOverLifetime", &emitter->useColorOverLifetime);
-
-                // SameLine to make checkbox and header appear on the same line
-                ImGui::SameLine();
-                ImGui::PushID("ColorOverLifetime");
-
-                // Use TreeNodeEx to create a collapsible panel without a close button
-                if (ImGui::TreeNodeEx("Color Over Lifetime Settings", ImGuiTreeNodeFlags_None))
-                {
-                    // If the checkbox is not selected, set controls to gray and disable them
-                    if (!emitter->useColorOverLifetime)
-                    {
-                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f)); // Gray out text
-                        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);                   // Disable controls
-                    }
-
-                    // Gradient option (Placeholder: Need to implement gradient system)
-                    ImGui::Text("Gradient");
-                    ImGui::SameLine();
-                    // if (ImGui::Button("Edit Gradient"))
-                    //{
-                    //     // Open a gradient editor (Needs implementation)
-                    // }
-
-                    GradientEditor::ShowGradientEditor(emitter->colorOverLifetime_gradientPoints);
-
-                    // Restore default state
-                    if (!emitter->useColorOverLifetime)
-                    {
-                        ImGui::PopItemFlag();   // Restore control state
-                        ImGui::PopStyleColor(); // Restore color
-                    }
-
-                    // Close tree node
-                    ImGui::TreePop();
-                }
-
-                ImGui::PopID();
-
-                // Size Over Lifetime - Checkbox and Collapsing Header
-                ImGui::Checkbox("##UseSizeOverLifetime", &emitter->useSizeOverLifetime);
-
-                ImGui::SameLine();
-                ImGui::PushID("SizeOverLifetime");
-
-                if (ImGui::TreeNodeEx("Size Over Lifetime Settings", ImGuiTreeNodeFlags_None))
-                {
-                    // If not enabled, set text to gray and disable controls
-                    if (!emitter->useSizeOverLifetime)
-                    {
-                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f)); // Gray out
-                        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-                    }
-
-                    // Enable or disable separate XYZ axes
-                    ImGui::Checkbox("Separate Axes", &emitter->sizeOverLifeTimeSeparateAxes);
-
-                    if (emitter->sizeOverLifeTimeSeparateAxes)
-                    {
-                        ImGui::Text("Size X");
-                        CurveEditor::DrawCurve("Size X", emitter->sizeOverLifetimeX);
-
-                        ImGui::Text("Size Y");
-                        CurveEditor::DrawCurve("Size Y", emitter->sizeOverLifetimeY);
-
-                        ImGui::Text("Size Z");
-                        CurveEditor::DrawCurve("Size Z", emitter->sizeOverLifetimeZ);
-                    }
-                    else
-                    {
-                        ImGui::Text("Size");
-                        CurveEditor::DrawCurve("Size", emitter->sizeOverLifetimeGeneral);
-                    }
-
-                    // Restore default state
-                    if (!emitter->useSizeOverLifetime)
-                    {
-                        ImGui::PopItemFlag();
-                        ImGui::PopStyleColor();
-                    }
-
-                    ImGui::TreePop();
-                }
-                ImGui::PopID();
-
-                // Rotation Over Lifetime - Checkbox and Collapsing Header
-                ImGui::Checkbox("##UseRotationOverLifetime", &emitter->useRotationOverLifetime);
-
-                ImGui::SameLine();
-                ImGui::PushID("RotationOverLifetime");
-
-                if (ImGui::TreeNodeEx("Rotation Over Lifetime Settings", ImGuiTreeNodeFlags_None))
-                {
-                    // If not enabled, set text to gray and disable controls
-                    if (!emitter->useRotationOverLifetime)
-                    {
-                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f)); // Gray out
-                        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-                    }
-
-                    // Rotation on X axis
-                    ImGui::Text("Rotation X");
-                    CurveEditor::DrawCurve("##RotationX", emitter->rotationOverLifetimeX);
-
-                    // Rotation on Y axis
-                    ImGui::Text("Rotation Y");
-                    CurveEditor::DrawCurve("##RotationY", emitter->rotationOverLifetimeZ);
-
-                    // Rotation on Z axis
-                    ImGui::Text("Rotation Z");
-                    CurveEditor::DrawCurve("##RotationZ", emitter->rotationOverLifetimeY);
-
-                    // Restore default state
-                    if (!emitter->useRotationOverLifetime)
-                    {
-                        ImGui::PopItemFlag();
-                        ImGui::PopStyleColor();
-                    }
-
-                    ImGui::TreePop();
-                }
-                ImGui::PopID();
-
-                // Renderer - Checkbox and Collapsing Header
-                ImGui::Checkbox("##UseRenderer", &emitter->useRenderer);
-
-                ImGui::SameLine();
-                ImGui::PushID("Renderer");
-
-                if (ImGui::TreeNodeEx("Renderer Settings", ImGuiTreeNodeFlags_None))
-                {
-                    // If not enabled, set text to gray and disable controls
-                    if (!emitter->useRenderer)
-                    {
-                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f)); // Gray out
-                        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-                    }
-
-                    // Particle Amount
-                    ImGui::Text("Max Particles");
-                    ImGui::SameLine();
-                    ImGui::DragInt("##ParticleAmount", &emitter->amount, 1, 1, 10000);
-
-                    // Render Mode selection
-                    const char* renderModes[] = {"Billboard", "Custom"};
-                    ImGui::Text("Render Alignment");
-                    ImGui::SameLine();
-                    ImGui::Combo("##RenderAlignment", reinterpret_cast<int*>(&emitter->renderAlignment), renderModes,
-                                 IM_ARRAYSIZE(renderModes));
-
-                    //ImGui::SameLine();
-                    //if (ImGui::Button("Select Material"))
-                    //{
-                    //    // Open Material selection logic here
-                    //}
-
-                    //// Texture Selector
-                    // ImGui::Text("Texture");
-                    // ImGui::SameLine();
-                    // if (ImGui::Button("Select Texture"))
-                    //{
-                    //     // Open texture selection logic here
-                    // }
-
-                    // Render Alignment selection
-                    /*const char* renderAlignments[] = {"View", "Local", "World"};
-                    ImGui::Text("Render Alignment");
-                    ImGui::SameLine();
-                    ImGui::Combo("##RenderAlignment", reinterpret_cast<int*>(&emitter->renderAlignment),
-                                 renderAlignments, IM_ARRAYSIZE(renderAlignments));*/
-
-                    // Restore default state
-                    if (!emitter->useRenderer)
-                    {
-                        ImGui::PopItemFlag();
-                        ImGui::PopStyleColor();
-                    }
-
-                    ImGui::TreePop();
-                }
-                ImGui::PopID();
-            }
-
-            if (!isCollapsingHeaderOpen)
-            {
-                entity.RemoveComponent<ParticlesSystemComponent>();
-            }
-            ImGui::PopID();
-        }
-
-        ImGui::Separator();
-
-        ImGui::Dummy(ImVec2(0.0f, 10.0f));
-
-        float buttonWidth = 200.0f;
-        float buttonHeight = 32.0f;
-        float availableWidth = ImGui::GetContentRegionAvail().x;
-        float cursorPosX = (availableWidth - buttonWidth) * 0.5f;
-        ImGui::SetCursorPosX(cursorPosX);
-
-        if (ImGui::Button("Add Component", {buttonWidth, buttonHeight}))
-        {
-            ImGui::OpenPopup("Add Component...");
-        }
-
-        if (ImGui::BeginPopupModal("Add Component..."))
-        {
-            static char buffer[256] = "";
-            ImGui::InputTextWithHint("##Search Component", "Search Component:", buffer, 256);
-
-            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "Particles System Component", "NavMesh Component", "Navigation Agent Component" , "Image Component", "Text Component", "Slider Component", "Button Component", "Toggle Component"};
-
-            static int item_current = 1;
-
-            if (ImGui::BeginListBox("##listbox 2", ImVec2(-FLT_MIN, ImGui::GetContentRegionAvail().y - 200)))
-            {
-                for (int n = 0; n < IM_ARRAYSIZE(items); n++)
-                {
-                    const bool is_selected = (item_current == n);
-                    if (ImGui::Selectable(items[n].c_str(), is_selected))
-                        item_current = n;
-
-                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                    if (is_selected)
-                        ImGui::SetItemDefaultFocus();
-                }
-                ImGui::EndListBox();
-            }
-
-            ImGui::Text("Description");
-            ImGui::TextWrapped("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras vel odio lectus. Integer "
-                               "scelerisque lacus a elit consequat, at imperdiet felis feugiat. Nunc rhoncus nisi "
-                               "lacinia elit ornare, eu semper risus consectetur.");
-
-            if (ImGui::Button("Cancel"))
-            {
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Add Component"))
-            {
-                if (items[item_current] == "Tag Component")
-                {
-                    if (!entity.HasComponent<TagComponent>())
-                        entity.AddComponent<TagComponent>();
-                    ImGui::CloseCurrentPopup();
-                }
-                else if (items[item_current] == "Transform Component")
-                {
-                    if (!entity.HasComponent<TransformComponent>())
-                        entity.AddComponent<TransformComponent>();
-                    ImGui::CloseCurrentPopup();
-                }
-                else if (items[item_current] == "Mesh Component")
-                {
-                    if (!entity.HasComponent<MeshComponent>())
-                        entity.AddComponent<MeshComponent>();
-                    ImGui::CloseCurrentPopup();
-                }
-                else if (items[item_current] == "Material Component")
-                {
-                    if(!entity.HasComponent<MaterialComponent>())
-                    {
-                        entity.AddComponent<MaterialComponent>(Material::Create("Default Material"));
-                    }
-                    ImGui::CloseCurrentPopup();
-                }
-                else if (items[item_current] == "Light Component")
-                {
-                    if (!entity.HasComponent<LightComponent>())
-                        entity.AddComponent<LightComponent>();
-                    ImGui::CloseCurrentPopup();
-                }
-                else if (items[item_current] == "Camera Component")
-                {
-                    if (!entity.HasComponent<CameraComponent>())
-                        entity.AddComponent<CameraComponent>();
-                    ImGui::CloseCurrentPopup();
-                }
-                else if (items[item_current] == "Audio Source Component")
-                {
-                    if (!entity.HasComponent<AudioSourceComponent>())
-                    {
-                        entity.AddComponent<AudioSourceComponent>();
-                        Audio::RegisterAudioSourceComponent(entity.GetComponent<AudioSourceComponent>());
-                        AudioZone::RegisterObject(entity.GetComponent<AudioSourceComponent>().gameObjectID,
-                                                  entity.GetComponent<AudioSourceComponent>().transform[3]);
-                    }
-
-                    ImGui::CloseCurrentPopup();
-                }
-                else if (items[item_current] == "Audio Listener Component")
-                {
-                    if (!entity.HasComponent<AudioListenerComponent>())
-                    {
-                        entity.AddComponent<AudioListenerComponent>();
-                        Audio::RegisterAudioListenerComponent(entity.GetComponent<AudioListenerComponent>());
-                    }
-
-                    ImGui::CloseCurrentPopup();
-                }
-                else if (items[item_current] == "Audio Zone Component")
-                {
-                    if (!entity.HasComponent<AudioZoneComponent>())
-                    {
-                        entity.AddComponent<AudioZoneComponent>();
-                        AudioZone::CreateZone(entity.GetComponent<AudioZoneComponent>());
-                    }
-
-                    ImGui::CloseCurrentPopup();
-                }
-                else if (items[item_current] == "Lua Script Component")
-                {
-                    if (!entity.HasComponent<ScriptComponent>())
-                    {
-                        m_ShowLuaScriptOptions = true;
-                        ImGui::CloseCurrentPopup();
-                    }
-                    else
-                    {
-                        ImGui::CloseCurrentPopup();
-                    }
-                }
-                else if (items[item_current] == "Particles System Component")
-                {
-                    if (!entity.HasComponent<ParticlesSystemComponent>())
-                    {
-
-                        entity.AddComponent<ParticlesSystemComponent>();
-                        /*if (!entity.HasComponent<MaterialComponent>())
-                         {
-                             entity.AddComponent<MaterialComponent>(Material::Create("Default Particle Material"));
-                             
-                         }*/
-                        ImGui::CloseCurrentPopup();
-                    }
-                }  
-                else if(items[item_current] == "Rigidbody Component")
-                {
-                    if(!entity.HasComponent<RigidbodyComponent>())
-                    {
-                        try {
-                            Ref<BoxCollider> collider = CreateRef<BoxCollider>(glm::vec3(1.0f, 1.0f, 1.0f));
-                            
-                            RigidBody::Properties props;
-                            props.type = RigidBody::Type::Dynamic;
-                            props.mass = 1.0f;
-                            props.useGravity = true;
-                            
-                            auto& rbComponent = entity.AddComponent<RigidbodyComponent>(props, collider);
-                            
-                            if (entity.HasComponent<TransformComponent>()) {
-                                auto& transform = entity.GetComponent<TransformComponent>();
-                                rbComponent.rb->SetPosition(transform.Position);
-                                rbComponent.rb->SetRotation(transform.Rotation);
-                            }
-                            
-                            m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
-                            
-                            // Set user pointer for collision detection
-                            rbComponent.rb->GetNativeBody()->setUserPointer(reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
-                            
-                            // Try to automatically size the collider to the mesh AABB
-                            ResizeColliderToFitMeshAABB(entity, rbComponent);
-                        }
-                        catch (const std::exception& e) {
-                            COFFEE_CORE_ERROR("Exception creating rigidbody: {0}", e.what());
-                            if (entity.HasComponent<RigidbodyComponent>()) {
-                                entity.RemoveComponent<RigidbodyComponent>();
-                            }
-                        }
-                    }
-                
-                    ImGui::CloseCurrentPopup();
-                }
-                else if(items[item_current] == "NavMesh Component")
-                {
-                    if(!entity.HasComponent<NavMeshComponent>() && entity.HasComponent<MeshComponent>() && entity.HasComponent<TransformComponent>())
-                    {
-                        auto& navMeshComponent = entity.AddComponent<NavMeshComponent>();
-                        navMeshComponent.SetNavMesh(CreateRef<NavMesh>());
-                        navMeshComponent.SetNavMeshUUID(UUID());
-                    }
-
-                    ImGui::CloseCurrentPopup();
-                }
-                else if(items[item_current] == "Navigation Agent Component")
-                {
-                    if(!entity.HasComponent<NavigationAgentComponent>())
-                    {
-                        auto& navigationAgentComponent = entity.AddComponent<NavigationAgentComponent>();
-                        navigationAgentComponent.SetPathFinder(CreateRef<NavMeshPathfinding>(nullptr));
-                    }
-
-                    ImGui::CloseCurrentPopup();
-                }
-                else if (items[item_current] == "Image Component")
-                {
-                    if (!entity.HasComponent<UIImageComponent>())
-                        entity.AddComponent<UIImageComponent>();
-                    ImGui::CloseCurrentPopup();
-                }
-                else if (items[item_current] == "Text Component")
-                {
-                    if (!entity.HasComponent<UITextComponent>())
-                        entity.AddComponent<UITextComponent>();
-                    ImGui::CloseCurrentPopup();
-                }
-                else if (items[item_current] == "Slider Component")
-                {
-                    if (!entity.HasComponent<UISliderComponent>())
-                        entity.AddComponent<UISliderComponent>();
-                    ImGui::CloseCurrentPopup();
-                }
-                if (items[item_current] == "Button Component")
-                {
-                    if (!entity.HasComponent<UIButtonComponent>())
-                    {
-                        entity.AddComponent<UIButtonComponent>();
-                    }
-                    ImGui::CloseCurrentPopup();
-                }
-                if (items[item_current] == "Toggle Component")
-                {
-                    if (!entity.HasComponent<UIToggleComponent>())
-                    {
-                        entity.AddComponent<UIToggleComponent>();
-                    }
-                    ImGui::CloseCurrentPopup();
-                }
-                else
-                {
-                    ImGui::CloseCurrentPopup();
-                }
-            }
-
-            ImGui::EndPopup();
-        }
-
-        // Add Lua script component options
-        if (m_ShowLuaScriptOptions)
-        {
-            ImGui::OpenPopup("Lua Script Source");
-            m_ShowLuaScriptOptions = false;
-        }
-
-        // Make sure your Lua Script Source popup is handled outside any other popup context
-        if (ImGui::BeginPopupModal("Lua Script Source", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-        {
-            ImGui::Text("Select script source:");
-            ImGui::Separator();
-
-            if (ImGui::Button("Create New Script", ImVec2(200, 0)))
-            {
-                // Pop up a file dialog to select the save location for the new script
-                FileDialogArgs args;
-                args.Filters = {{"Lua Script", "lua"}};
-                args.DefaultName = "NewScript.lua";
-                const std::filesystem::path& path = FileDialog::SaveFile(args);
-
-                if (!path.empty())
-                {
-                    std::ofstream scriptFile(path);
-                    if (scriptFile.is_open())
-                    {
-                        scriptFile << "function on_ready()\n";
-                        scriptFile << "    -- Add initialization code here\n";
-                        scriptFile << "end\n\n";
-                        scriptFile << "function on_update(dt)\n";
-                        scriptFile << "    -- Add update code here\n";
-                        scriptFile << "end\n\n";
-                        scriptFile << "function on_exit()\n";
-                        scriptFile << "    -- Add cleanup code here\n";
-                        scriptFile << "end\n";
-                        scriptFile.close();
-
-                        // Add the script component to the entity
-                        entity.AddComponent<ScriptComponent>(path.string(), ScriptingLanguage::Lua);
-                    }
-                    else
-                    {
-                        COFFEE_CORE_ERROR("Failed to create Lua script file at: {0}", path.string());
-                    }
-                }
-
-                ImGui::CloseCurrentPopup();
-            }
-
-            if (ImGui::Button("Open Existing Script", ImVec2(200, 0)))
-            {
-                FileDialogArgs args;
-                args.Filters = {{"Lua Script", "lua"}};
-                const std::filesystem::path& path = FileDialog::OpenFile(args);
-
-                if (!path.empty())
-                {
-                    // Add the script component to the entity with the selected script
-                    entity.AddComponent<ScriptComponent>(path.string(), ScriptingLanguage::Lua);
-                }
-
-                ImGui::CloseCurrentPopup();
-            }
-
-            ImGui::Separator();
-
-            if (ImGui::Button("Cancel", ImVec2(200, 0)))
-            {
-                ImGui::CloseCurrentPopup();
-            }
-
-            ImGui::EndPopup();
         }
     }
 

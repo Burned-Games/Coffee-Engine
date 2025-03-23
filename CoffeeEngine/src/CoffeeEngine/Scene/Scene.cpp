@@ -329,7 +329,7 @@ namespace Coffee {
 
         m_PhysicsWorld.drawCollisionShapes();
 
-        OnEditorUpdateUI(dt, m_Registry);
+        OnUpdateUI(dt, m_Registry);
     }
 
     void Scene::OnUpdateRuntime(float dt)
@@ -490,7 +490,7 @@ namespace Coffee {
             particlesSystemComponent.GetParticleEmitter()->Update(dt);
 
         }
-        OnRuntimeUpdateUI(dt, m_Registry);
+        OnUpdateUI(dt, m_Registry);
     }
 
     void Scene::OnEvent(Event& e)
@@ -687,7 +687,7 @@ namespace Coffee {
         }
     }
 
-    void Scene::OnEditorUpdateUI(float dt, entt::registry& registry) {
+    void Scene::OnUpdateUI(float dt, entt::registry& registry) {
         auto windowSize = Renderer::GetCurrentRenderTarget()->GetSize();
 
         auto CalculateAnchorOffset = [](UIAnchorPosition anchor, const glm::vec2& windowSize) -> glm::vec2 {
@@ -911,11 +911,6 @@ namespace Coffee {
                 }
             }
         }
-    }
-
-    void Scene::OnRuntimeUpdateUI(float dt, entt::registry& registry)
-    {
-        OnEditorUpdateUI(dt, registry);
     }
 
     glm::vec2 Scene::CalculateAnchorOffset(UIAnchorPosition anchor, const glm::vec2& windowSize)
