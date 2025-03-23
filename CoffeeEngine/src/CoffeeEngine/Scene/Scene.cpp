@@ -328,6 +328,8 @@ namespace Coffee {
         }
 
         m_PhysicsWorld.drawCollisionShapes();
+
+        OnEditorUpdateUI(dt, m_Registry);
     }
 
     void Scene::OnUpdateRuntime(float dt)
@@ -488,6 +490,7 @@ namespace Coffee {
             particlesSystemComponent.GetParticleEmitter()->Update(dt);
 
         }
+        OnRuntimeUpdateUI(dt, m_Registry);
     }
 
     void Scene::OnEvent(Event& e)

@@ -783,7 +783,7 @@ namespace Coffee {
         }
     }
 
-    void Renderer2D::DrawText(const std::string &text, Ref<Font> font, const glm::mat4 &transform, const TextParams &textParams, RenderMode mode, uint32_t entityID)
+    void Renderer2D::DrawString(const std::string &text, Ref<Font> font, const glm::mat4 &transform, const TextParams &textParams, RenderMode mode, uint32_t entityID)
     {
 
         Batch& batch = GetBatch(mode);

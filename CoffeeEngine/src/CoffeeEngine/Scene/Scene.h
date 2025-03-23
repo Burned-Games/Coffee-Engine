@@ -102,6 +102,9 @@ namespace Coffee {
         void OnExitEditor();
         void OnExitRuntime();
 
+        void OnEditorUpdateUI(float dt, entt::registry& registry);
+        void OnRuntimeUpdateUI(float dt, entt::registry& registry);
+
         const PhysicsWorld& GetPhysicsWorld() const { return m_PhysicsWorld; }
         PhysicsWorld& GetPhysicsWorld() { return m_PhysicsWorld; }
 

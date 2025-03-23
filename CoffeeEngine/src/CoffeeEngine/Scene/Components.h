@@ -14,6 +14,8 @@
  #include "CoffeeEngine/Renderer/Material.h"
  #include "CoffeeEngine/Renderer/Mesh.h"
  #include "CoffeeEngine/Scene/SceneCamera.h"
+ #include "CoffeeEngine/Renderer/Font.h"
+ #include "CoffeeEngine/Renderer/Texture.h"
  #include "CoffeeEngine/Scripting/Script.h"
  #include "CoffeeEngine/Scripting/ScriptManager.h"
  #include "CoffeeEngine/ParticleManager/ParticleManager.h"
