@@ -946,27 +946,33 @@
                  cereal::make_nvp("FontSize", FontSize),
                  cereal::make_nvp("LineSpacing", LineSpacing),
                  cereal::make_nvp("Color", Color),
-                 cereal::make_nvp("Alignment", static_cast<int>(Alignment))
+                 cereal::make_nvp("Alignment", static_cast<int>(Alignment)),
+                 cereal::make_nvp("Visible", Visible),
+                 cereal::make_nvp("Layer", Layer),
+                 cereal::make_nvp("Anchor", static_cast<int>(Anchor))
              );
-             UIComponent::save(archive);
          }
 
          template<class Archive>
          void load(Archive& archive) {
-             int alignment;
+             int alignment, anchor;
              archive(
                  cereal::make_nvp("Text", Text),
                  cereal::make_nvp("FontPath", FontPath),
                  cereal::make_nvp("FontSize", FontSize),
                  cereal::make_nvp("LineSpacing", LineSpacing),
                  cereal::make_nvp("Color", Color),
-                 cereal::make_nvp("Alignment", alignment)
+                 cereal::make_nvp("Alignment", alignment),
+                 cereal::make_nvp("Visible", Visible),
+                 cereal::make_nvp("Layer", Layer),
+                 cereal::make_nvp("Anchor", anchor)
              );
              Alignment = static_cast<Font::UITextAlignment>(alignment);
+             Anchor = static_cast<UIAnchorPosition>(anchor);
+
              if (!FontPath.empty()) {
                  font = Font::GetDefault();
              }
-             UIComponent::load(archive);
          }
      };
 
@@ -1049,33 +1055,33 @@
                 cereal::make_nvp("HandleTextureUUID", handleTexture ? handleTexture->GetUUID() : UUID(0)),
                 cereal::make_nvp("Size", Size),
                 cereal::make_nvp("HandleSize", HandleSize),
-                cereal::make_nvp("Value", Value)
+                cereal::make_nvp("Value", Value),
+                cereal::make_nvp("Visible", Visible),
+                cereal::make_nvp("Layer", Layer),
+                cereal::make_nvp("Anchor", static_cast<int>(Anchor))
             );
-            UIComponent::save(archive);
         }
 
-        /**
-         * @brief Deserializes the UISliderComponent.
-         * @tparam Archive The type of the archive.
-         * @param archive The archive to deserialize from.
-         */
         template<class Archive>
         void load(Archive& archive) {
             UUID barTextureUUID, handleTextureUUID;
+            int anchor;
+
             archive(
                 cereal::make_nvp("BarTextureUUID", barTextureUUID),
                 cereal::make_nvp("HandleTextureUUID", handleTextureUUID),
                 cereal::make_nvp("Size", Size),
                 cereal::make_nvp("HandleSize", HandleSize),
-                cereal::make_nvp("Value", Value)
+                cereal::make_nvp("Value", Value),
+                cereal::make_nvp("Visible", Visible),
+                cereal::make_nvp("Layer", Layer),
+                cereal::make_nvp("Anchor", anchor)
             );
-            if (barTextureUUID != 0) {
-                barTexture = ResourceLoader::GetResource<Texture2D>(barTextureUUID);
-            }
-            if (handleTextureUUID != 0) {
-                handleTexture = ResourceLoader::GetResource<Texture2D>(handleTextureUUID);
-            }
-            UIComponent::load(archive);
+
+            Anchor = static_cast<UIAnchorPosition>(anchor);
+
+            if (barTextureUUID != 0) barTexture = ResourceLoader::GetResource<Texture2D>(barTextureUUID);
+            if (handleTextureUUID != 0) handleTexture = ResourceLoader::GetResource<Texture2D>(handleTextureUUID);
         }
     };
 
@@ -1119,7 +1125,6 @@
      float transitionDuration = 0.2f;
 
      UIButtonComponent() {
-         // Cargar la textura por defecto
          baseTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
          selectedTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
          pressedTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
@@ -1151,7 +1156,7 @@
         if (targetState != newState)
         {
             targetState = newState;
-            transitionTime = 0.0f; // Reiniciar transición
+            transitionTime = 0.0f;
         }
     }
 
@@ -1193,8 +1198,7 @@
     }
 
     template<class Archive>
-    void save(Archive& archive) const
-    {
+    void save(Archive& archive) const {
         archive(
             cereal::make_nvp("BaseTextureUUID", baseTexture ? baseTexture->GetUUID() : UUID(0)),
             cereal::make_nvp("SelectedTextureUUID", selectedTexture ? selectedTexture->GetUUID() : UUID(0)),
@@ -1206,15 +1210,16 @@
             cereal::make_nvp("SelectedColor", selectedColor),
             cereal::make_nvp("PressedColor", pressedColor),
             cereal::make_nvp("Visible", Visible),
-            cereal::make_nvp("CurrentState", static_cast<int>(currentState))
+            cereal::make_nvp("CurrentState", static_cast<int>(currentState)),
+            cereal::make_nvp("Layer", Layer),
+            cereal::make_nvp("Anchor", static_cast<int>(Anchor))
         );
     }
 
     template<class Archive>
-    void load(Archive& archive)
-    {
+    void load(Archive& archive) {
         UUID baseTextureUUID, selectedTextureUUID, pressedTextureUUID;
-        int loadedState;
+        int loadedState, anchor;
 
         archive(
             cereal::make_nvp("BaseTextureUUID", baseTextureUUID),
@@ -1227,10 +1232,13 @@
             cereal::make_nvp("SelectedColor", selectedColor),
             cereal::make_nvp("PressedColor", pressedColor),
             cereal::make_nvp("Visible", Visible),
-            cereal::make_nvp("CurrentState", loadedState)
+            cereal::make_nvp("CurrentState", loadedState),
+            cereal::make_nvp("Layer", Layer),
+            cereal::make_nvp("Anchor", anchor)
         );
 
         currentState = static_cast<ButtonState>(loadedState);
+        Anchor = static_cast<UIAnchorPosition>(anchor);
 
         if (baseTextureUUID != 0) baseTexture = ResourceLoader::GetResource<Texture2D>(baseTextureUUID);
         if (selectedTextureUUID != 0) selectedTexture = ResourceLoader::GetResource<Texture2D>(selectedTextureUUID);
@@ -1317,34 +1325,32 @@
                 cereal::make_nvp("ActiveTextureUUID", ActiveTexture ? ActiveTexture->GetUUID() : UUID(0)),
                 cereal::make_nvp("InactiveTextureUUID", InactiveTexture ? InactiveTexture->GetUUID() : UUID(0)),
                 cereal::make_nvp("Size", Size),
-                cereal::make_nvp("IsActive", IsActive)
+                cereal::make_nvp("IsActive", IsActive),
+                cereal::make_nvp("Visible", Visible),
+                cereal::make_nvp("Layer", Layer),
+                cereal::make_nvp("Anchor", static_cast<int>(Anchor))
             );
-            UIComponent::save(archive);
         }
 
-        /**
-         * @brief Deserializes the UIToggleComponent.
-         * @tparam Archive The type of the archive.
-         * @param archive The archive to deserialize from.
-         */
         template<class Archive>
         void load(Archive& archive) {
             UUID activeTextureUUID, inactiveTextureUUID;
+            int anchor;
 
             archive(
                 cereal::make_nvp("ActiveTextureUUID", activeTextureUUID),
                 cereal::make_nvp("InactiveTextureUUID", inactiveTextureUUID),
                 cereal::make_nvp("Size", Size),
-                cereal::make_nvp("IsActive", IsActive)
+                cereal::make_nvp("IsActive", IsActive),
+                cereal::make_nvp("Visible", Visible),
+                cereal::make_nvp("Layer", Layer),
+                cereal::make_nvp("Anchor", anchor)
             );
 
-            if (activeTextureUUID != 0) {
-                ActiveTexture = ResourceLoader::GetResource<Texture2D>(activeTextureUUID);
-            }
-            if (inactiveTextureUUID != 0) {
-                InactiveTexture = ResourceLoader::GetResource<Texture2D>(inactiveTextureUUID);
-            }
-            UIComponent::load(archive); // Llama a la deserialización de la clase base
+            Anchor = static_cast<UIAnchorPosition>(anchor);
+
+            if (activeTextureUUID != 0) ActiveTexture = ResourceLoader::GetResource<Texture2D>(activeTextureUUID);
+            if (inactiveTextureUUID != 0) InactiveTexture = ResourceLoader::GetResource<Texture2D>(inactiveTextureUUID);
         }
     };
 

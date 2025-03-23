@@ -1365,8 +1365,8 @@ namespace Coffee
 
             ImGui::Text("Size");
             ImGui::DragFloat2("##Size", glm::value_ptr(uiImageComponent.Size), 0.1f);
-
-
+            
+            ImGui::Text("Anchor Points");
 
             const char* eyeIcon = uiImageComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
 
@@ -1650,6 +1650,8 @@ namespace Coffee
                         }
                     }
                 }
+
+                ImGui::Text("Anchor Points");
 
                 const char* eyeIcon = uiTextComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
 
@@ -1977,6 +1979,7 @@ namespace Coffee
                 ImGui::Text("Size");
                 ImGui::DragFloat2("##Size", glm::value_ptr(uiButtonComponent.baseSize), 0.1f);
 
+                ImGui::Text("Anchor Points");
                 const char* eyeIcon = uiButtonComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
 
                 if (ImGui::Button(eyeIcon, {24, 24}))
@@ -2287,6 +2290,7 @@ namespace Coffee
                 ImGui::Text("Handle Size");
                 ImGui::DragFloat2("##Handle Size", glm::value_ptr(uiSliderComponent.HandleSize), 0.1f);
 
+                ImGui::Text("Anchor Points");
                 const char* eyeIcon = uiSliderComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
 
                 if (ImGui::Button(eyeIcon, {24, 24}))
@@ -2576,6 +2580,7 @@ namespace Coffee
                 ImGui::Text("Size");
                 ImGui::DragFloat2("##Size", glm::value_ptr(uiToggleComponent.Size), 0.1f);
 
+                ImGui::Text("Anchor Points");
                 const char* eyeIcon = uiToggleComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
 
                 if (ImGui::Button(eyeIcon, {24, 24}))
