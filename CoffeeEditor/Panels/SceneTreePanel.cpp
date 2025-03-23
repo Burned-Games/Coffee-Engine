@@ -234,16 +234,28 @@ namespace Coffee
         {
             auto& transformComponent = entity.GetComponent<TransformComponent>();
 
+            bool hasUIComponent = entity.HasComponent<UIImageComponent>() ||
+                                  entity.HasComponent<UITextComponent>() ||
+                                  entity.HasComponent<UIButtonComponent>() ||
+                                  entity.HasComponent<UISliderComponent>() ||
+                                  entity.HasComponent<UIToggleComponent>();
+
             if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
             {
-                ImGui::Text("Position");
-                ImGui::DragFloat3("##Position", glm::value_ptr(transformComponent.Position), 0.1f);
+                if (!hasUIComponent)
+                {
+                    ImGui::Text("Position");
+                    ImGui::DragFloat3("##Position", glm::value_ptr(transformComponent.Position), 0.1f);
+                }
 
                 ImGui::Text("Rotation");
                 ImGui::DragFloat3("##Rotation", glm::value_ptr(transformComponent.Rotation), 0.1f);
 
-                ImGui::Text("Scale");
-                ImGui::DragFloat3("##Scale", glm::value_ptr(transformComponent.Scale), 0.1f);
+                if (!hasUIComponent)
+                {
+                    ImGui::Text("Scale");
+                    ImGui::DragFloat3("##Scale", glm::value_ptr(transformComponent.Scale), 0.1f);
+                }
             }
         }
 
@@ -1730,7 +1742,7 @@ namespace Coffee
                         }
                     }
                 }
-                
+
                 const char* eyeIcon = uiSliderComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
 
                 if (ImGui::Button(eyeIcon, {24, 24}))
