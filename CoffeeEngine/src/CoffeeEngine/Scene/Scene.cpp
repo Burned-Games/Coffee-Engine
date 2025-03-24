@@ -200,12 +200,7 @@ namespace Coffee {
 
         CollisionSystem::Initialize(this);
 
-        if (!ValidateUIHierarchy(true)) {
-            COFFEE_CORE_ERROR("UI components don't have a Canvas as parent. You can fix this by adding an empty Image as parent to your UI elements.");
-            OnExitRuntime();
-            return;
-        }
-/*         auto view = m_Registry.view<MeshComponent>();
+/*      auto view = m_Registry.view<MeshComponent>();
 
         for (auto& entity : view)
         {
@@ -745,6 +740,21 @@ namespace Coffee {
             return {depth, siblingIndex};
         };
 
+        // Consistent function to calculate world transform for all UI components
+        auto CalculateWorldTransform = [&](entt::entity entity, const glm::vec2& anchorOffset,
+                                           const TransformComponent& transform, const glm::vec2& size,
+                                           float zOffset) -> glm::mat4 {
+            glm::vec2 finalPosition = anchorOffset + glm::vec2(transform.Position);
+
+            glm::mat4 worldTransform = glm::mat4(1.0f);
+            worldTransform = glm::translate(worldTransform, glm::vec3(finalPosition, zOffset));
+            worldTransform = glm::rotate(worldTransform, glm::radians(transform.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+            worldTransform = glm::scale(worldTransform, glm::vec3(size.x, size.y, 1.0f));
+
+            return worldTransform;
+        };
+
+        // Collect all UI entities with their respective layer, depth, and sibling index
         for (auto entity : uiImageView) {
             auto& uiImageComponent = uiImageView.get<UIImageComponent>(entity);
             auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
@@ -775,6 +785,7 @@ namespace Coffee {
             uiEntities.push_back({entity, uiToggleComponent.Layer, depth, siblingIndex});
         }
 
+        // Sort UI entities based on layer, depth, and sibling index
         std::sort(uiEntities.begin(), uiEntities.end(), [](const std::tuple<entt::entity, int, int, int>& a, const std::tuple<entt::entity, int, int, int>& b) {
             if (std::get<1>(a) == std::get<1>(b)) {
                 if (std::get<2>(a) == std::get<2>(b)) {
@@ -785,6 +796,7 @@ namespace Coffee {
             return std::get<1>(a) < std::get<1>(b);
         });
 
+        // Process all UI entities in the sorted order
         for (auto& [entity, layer, depth, siblingIndex] : uiEntities) {
             float zOffset = depth * 0.1f + siblingIndex * 0.01f;
 
@@ -795,15 +807,17 @@ namespace Coffee {
                 if (!uiImageComponent.Visible || !uiImageComponent.texture) continue;
 
                 glm::vec2 anchorOffset = CalculateAnchorOffset(uiImageComponent.Anchor, windowSize);
-                glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
-
-                glm::mat4 transform = glm::mat4(1.0f);
-                transform = glm::translate(transform, glm::vec3(finalPosition, zOffset));
-                transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-                transform = glm::scale(transform, glm::vec3(uiImageComponent.Size.x, uiImageComponent.Size.y, 1.0f));
+                glm::mat4 transform = CalculateWorldTransform(
+                    entity,
+                    anchorOffset,
+                    transformComponent,
+                    uiImageComponent.Size,
+                    zOffset
+                );
 
                 Renderer2D::DrawQuad(transform, uiImageComponent.texture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
-            } else if (uiTextView.contains(entity)) {
+            }
+            else if (uiTextView.contains(entity)) {
                 auto& uiTextComponent = uiTextView.get<UITextComponent>(entity);
                 auto& transformComponent = uiTextView.get<TransformComponent>(entity);
 
@@ -812,10 +826,8 @@ namespace Coffee {
                 if (!uiTextComponent.font) uiTextComponent.font = Font::GetDefault();
 
                 std::vector<std::string> lines = SplitTextIntoLines(uiTextComponent.Text);
-
                 glm::vec2 anchorOffset = CalculateAnchorOffset(uiTextComponent.Anchor, windowSize);
                 glm::vec2 basePosition = anchorOffset + glm::vec2(transformComponent.Position);
-
                 float lineHeight = uiTextComponent.FontSize * uiTextComponent.LineSpacing;
 
                 for (size_t i = 0; i < lines.size(); i++) {
@@ -831,22 +843,24 @@ namespace Coffee {
                                            {uiTextComponent.Color, 0.0f, 0.0f, uiTextComponent.Alignment},
                                            Renderer2D::RenderMode::Screen, (uint32_t)entity);
                 }
-            } else if (uiSliderView.contains(entity)) {
+            }
+            else if (uiSliderView.contains(entity)) {
                 auto& uiSliderComponent = uiSliderView.get<UISliderComponent>(entity);
                 auto& transformComponent = uiSliderView.get<TransformComponent>(entity);
 
                 if (!uiSliderComponent.Visible) continue;
 
                 glm::vec2 anchorOffset = CalculateAnchorOffset(uiSliderComponent.Anchor, windowSize);
-                glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
+                glm::mat4 transform = CalculateWorldTransform(
+                    entity,
+                    anchorOffset,
+                    transformComponent,
+                    uiSliderComponent.Size,
+                    zOffset
+                );
 
-                glm::mat4 transform = glm::mat4(1.0f);
-                transform = glm::translate(transform, glm::vec3(finalPosition, zOffset));
-                transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
-                glm::mat4 barTransform = glm::scale(transform, glm::vec3(uiSliderComponent.Size.x, uiSliderComponent.Size.y, 1.0f));
                 if (uiSliderComponent.barTexture) {
-                    Renderer2D::DrawQuad(barTransform, uiSliderComponent.barTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
+                    Renderer2D::DrawQuad(transform, uiSliderComponent.barTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
                 }
 
                 if (uiSliderComponent.handleTexture) {
@@ -854,12 +868,17 @@ namespace Coffee {
                     float handleOffset = normalizedValue * (uiSliderComponent.Size.x - uiSliderComponent.HandleSize.x);
                     handleOffset -= (uiSliderComponent.Size.x / 2.0f) - (uiSliderComponent.HandleSize.x / 2.0f);
 
-                    glm::mat4 handleTransform = glm::translate(transform, glm::vec3(handleOffset, 0.0f, 0.0f));
+                    glm::mat4 baseTransform = glm::mat4(1.0f);
+                    baseTransform = glm::translate(baseTransform, glm::vec3(anchorOffset + glm::vec2(transformComponent.Position), zOffset));
+                    baseTransform = glm::rotate(baseTransform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+
+                    glm::mat4 handleTransform = glm::translate(baseTransform, glm::vec3(handleOffset, 0.0f, 0.001f));
                     handleTransform = glm::scale(handleTransform, glm::vec3(uiSliderComponent.HandleSize.x, uiSliderComponent.HandleSize.y, 1.0f));
 
                     Renderer2D::DrawQuad(handleTransform, uiSliderComponent.handleTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
                 }
-            } else if (uiButtonView.contains(entity)) {
+            }
+            else if (uiButtonView.contains(entity)) {
                 auto& uiButtonComponent = uiButtonView.get<UIButtonComponent>(entity);
                 auto& transformComponent = uiButtonView.get<TransformComponent>(entity);
 
@@ -871,44 +890,48 @@ namespace Coffee {
                 if (!currentTexture) continue;
 
                 glm::vec2 anchorOffset = CalculateAnchorOffset(uiButtonComponent.Anchor, windowSize);
-                glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
+                glm::vec2 currentSize = glm::vec2(
+                    glm::max(uiButtonComponent.GetCurrentSize().x, 0.1f),
+                    glm::max(uiButtonComponent.GetCurrentSize().y, 0.1f)
+                );
 
-                glm::mat4 transform = glm::mat4(1.0f);
                 try {
-                    transform = glm::translate(transform, glm::vec3(finalPosition, zOffset));
-                    transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-                    transform = glm::scale(transform, glm::vec3(
-                                                          glm::max(uiButtonComponent.GetCurrentSize().x, 0.1f),
-                                                          glm::max(uiButtonComponent.GetCurrentSize().y, 0.1f),
-                                                          1.0f
-                                                          ));
+                    glm::mat4 transform = CalculateWorldTransform(
+                        entity,
+                        anchorOffset,
+                        transformComponent,
+                        currentSize,
+                        zOffset
+                    );
+
+                    Renderer2D::DrawQuad(
+                        transform,
+                        currentTexture,
+                        1.0f,
+                        uiButtonComponent.GetCurrentColor(),
+                        Renderer2D::RenderMode::Screen,
+                        (uint32_t)entity
+                    );
                 }
                 catch (...) {
                     COFFEE_CORE_ERROR("Invalid transform for button entity {}", (uint32_t)entity);
                     continue;
                 }
-
-                Renderer2D::DrawQuad(
-                    transform,
-                    currentTexture,
-                    1.0f,
-                    uiButtonComponent.GetCurrentColor(),
-                    Renderer2D::RenderMode::Screen,
-                    (uint32_t)entity
-                );
-            } else if (uiToggleView.contains(entity)) {
+            }
+            else if (uiToggleView.contains(entity)) {
                 auto& uiToggleComponent = uiToggleView.get<UIToggleComponent>(entity);
                 auto& transformComponent = uiToggleView.get<TransformComponent>(entity);
 
                 if (!uiToggleComponent.Visible) continue;
 
                 glm::vec2 anchorOffset = CalculateAnchorOffset(uiToggleComponent.Anchor, windowSize);
-                glm::vec2 finalPosition = anchorOffset + glm::vec2(transformComponent.Position);
-
-                glm::mat4 transform = glm::mat4(1.0f);
-                transform = glm::translate(transform, glm::vec3(finalPosition, zOffset)); // Usar zOffset
-                transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-                transform = glm::scale(transform, glm::vec3(uiToggleComponent.Size.x, uiToggleComponent.Size.y, 1.0f));
+                glm::mat4 transform = CalculateWorldTransform(
+                    entity,
+                    anchorOffset,
+                    transformComponent,
+                    uiToggleComponent.Size,
+                    zOffset
+                );
 
                 Ref<Texture2D> currentTexture = uiToggleComponent.IsActive ? uiToggleComponent.ActiveTexture : uiToggleComponent.InactiveTexture;
                 if (currentTexture) {
@@ -953,70 +976,5 @@ namespace Coffee {
             lines.push_back(line);
         }
         return lines;
-    }
-
-    bool Scene::ValidateUIHierarchy(bool checkRootStructure) {
-        auto uiTextView = m_Registry.view<UITextComponent>();
-        auto uiButtonView = m_Registry.view<UIButtonComponent>();
-        auto uiSliderView = m_Registry.view<UISliderComponent>();
-        auto uiToggleView = m_Registry.view<UIToggleComponent>();
-
-        bool allValid = true;
-
-        // Check root structure if requested (for runtime validation)
-        if (checkRootStructure) {
-            auto hierarchyView = m_Registry.view<HierarchyComponent>();
-            for (auto entity : hierarchyView) {
-                auto& hierarchy = hierarchyView.get<HierarchyComponent>(entity);
-
-                // If it's a root entity (no parent)
-                if (hierarchy.m_Parent == entt::null) {
-                    bool isUIImage = m_Registry.all_of<UIImageComponent>(entity);
-                    bool hasUIChild = m_Registry.any_of<UITextComponent, UIButtonComponent,
-                                                        UISliderComponent, UIToggleComponent>(entity);
-
-                    // If it's not an image but has UI components
-                    if (!isUIImage && hasUIChild) {
-                        COFFEE_CORE_ERROR("Root entity {} has UI components but is not an UIImage", (uint32_t)entity);
-                        allValid = false;
-                    }
-                }
-            }
-        }
-
-        // Check parent hierarchy for all UI components
-        auto checkParent = [this](entt::entity entity) {
-            auto* hierarchy = m_Registry.try_get<HierarchyComponent>(entity);
-            if (!hierarchy || hierarchy->m_Parent == entt::null) {
-                // Root entity must be an UIImage
-                return m_Registry.all_of<UIImageComponent>(entity);
-            }
-            // Non-root entities must have an UIImage ancestor
-            while (hierarchy && hierarchy->m_Parent != entt::null) {
-                if (m_Registry.all_of<UIImageComponent>(hierarchy->m_Parent)) {
-                    return true;
-                }
-                hierarchy = m_Registry.try_get<HierarchyComponent>(hierarchy->m_Parent);
-            }
-            return false;
-        };
-
-        // Validate all UI components
-        auto validateComponents = [&](auto& view, const char* componentName) {
-            for (auto entity : view) {
-                if (!checkParent(entity)) {
-                    COFFEE_CORE_ERROR("{} in entity {} must have an UIImage parent in hierarchy",
-                                      componentName, (uint32_t)entity);
-                    allValid = false;
-                }
-            }
-        };
-
-        validateComponents(uiTextView, "UITextComponent");
-        validateComponents(uiButtonView, "UIButtonComponent");
-        validateComponents(uiSliderView, "UISliderComponent");
-        validateComponents(uiToggleView, "UIToggleComponent");
-
-        return allValid;
     }
 }
