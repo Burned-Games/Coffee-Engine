@@ -107,6 +107,7 @@ namespace Coffee {
         const PhysicsWorld& GetPhysicsWorld() const { return m_PhysicsWorld; }
         PhysicsWorld& GetPhysicsWorld() { return m_PhysicsWorld; }
 
+        bool ValidateUIHierarchy(bool checkRootStructure);
         glm::vec2 CalculateAnchorOffset(UIAnchorPosition anchor, const glm::vec2& windowSize);
         std::vector<std::string> SplitTextIntoLines(const std::string& text);
 

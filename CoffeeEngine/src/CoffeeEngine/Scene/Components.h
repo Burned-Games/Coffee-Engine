@@ -817,13 +817,15 @@
           * @tparam Archive The type of the archive.
           * @param archive The archive to serialize to.
           */
+         UUID parentUUID = 0;
          template<class Archive>
          void save(Archive& archive) const {
              archive(
                  cereal::make_nvp("Anchor", Anchor),
                  cereal::make_nvp("Position", Position),
                  cereal::make_nvp("Visible", Visible),
-                 cereal::make_nvp("Layer", Layer)
+                 cereal::make_nvp("Layer", Layer),
+                 cereal::make_nvp("ParentUUID", parentUUID)
              );
          }
 
@@ -834,11 +836,13 @@
           */
          template<class Archive>
          void load(Archive& archive) {
+             UUID textureUUID;
              archive(
                  cereal::make_nvp("Anchor", Anchor),
                  cereal::make_nvp("Position", Position),
                  cereal::make_nvp("Visible", Visible),
-                 cereal::make_nvp("Layer", Layer)
+                 cereal::make_nvp("Layer", Layer),
+                 cereal::make_nvp("ParentUUID", parentUUID)
              );
          }
      };

@@ -698,6 +698,12 @@ namespace Coffee {
             return;
         }
 
+        if(!SceneManager::GetActiveScene()->ValidateUIHierarchy(true))
+        {
+            COFFEE_ERROR("Cannot enter Play mode: Invalid UI hierarchy. All UI components must have an UIImage parent.");
+            return;
+        }
+
         SceneManager::SetSceneState(SceneManager::SceneState::Play);
 
         Scene::Save(SceneManager::GetActiveScene()->GetFilePath(), SceneManager::GetActiveScene());

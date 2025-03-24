@@ -1334,32 +1334,6 @@ namespace Coffee
                 {
                     transformComponent.Rotation.z = rotation;
 
-                    // Recursively set rotation for all child UI components
-                    std::stack<Entity> entitiesToProcess;
-                    entitiesToProcess.push(entity);
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
-                        currentTransformComponent.Rotation.z = rotation;
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
                 }
             }
 
@@ -1622,33 +1596,6 @@ namespace Coffee
                 if (ImGui::DragFloat("##Rotation", &rotation, 0.1f))
                 {
                     transformComponent.Rotation.z = rotation;
-
-                    // Recursively set rotation for all child UI components
-                    std::stack<Entity> entitiesToProcess;
-                    entitiesToProcess.push(entity);
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
-                        currentTransformComponent.Rotation.z = rotation;
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
                 }
 
                 ImGui::Text("Anchor Points");
@@ -1947,33 +1894,6 @@ namespace Coffee
                 if (ImGui::DragFloat("##Rotation", &rotation, 0.1f))
                 {
                     transformComponent.Rotation.z = rotation;
-
-                    // Recursively set rotation for all child UI components
-                    std::stack<Entity> entitiesToProcess;
-                    entitiesToProcess.push(entity);
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
-                        currentTransformComponent.Rotation.z = rotation;
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
                 }
 
                 ImGui::Text("Size");
@@ -2255,33 +2175,6 @@ namespace Coffee
                 if (ImGui::DragFloat("##Rotation", &rotation, 0.1f))
                 {
                     transformComponent.Rotation.z = rotation;
-
-                    // Recursively set rotation for all child UI components
-                    std::stack<Entity> entitiesToProcess;
-                    entitiesToProcess.push(entity);
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
-                        currentTransformComponent.Rotation.z = rotation;
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
                 }
 
                 ImGui::Text("Bar Size");
@@ -2548,33 +2441,6 @@ namespace Coffee
                 if (ImGui::DragFloat("##Rotation", &rotation, 0.1f))
                 {
                     transformComponent.Rotation.z = rotation;
-
-                    // Recursively set rotation for all child UI components
-                    std::stack<Entity> entitiesToProcess;
-                    entitiesToProcess.push(entity);
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
-                        currentTransformComponent.Rotation.z = rotation;
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
                 }
 
                 ImGui::Text("Size");

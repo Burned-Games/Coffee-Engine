@@ -200,6 +200,11 @@ namespace Coffee {
 
         CollisionSystem::Initialize(this);
 
+        if (!ValidateUIHierarchy(true)) {
+            COFFEE_CORE_ERROR("UI components don't have a Canvas as parent. You can fix this by adding an empty Image as parent to your UI elements.");
+            OnExitRuntime();
+            return;
+        }
 /*         auto view = m_Registry.view<MeshComponent>();
 
         for (auto& entity : view)
@@ -948,5 +953,70 @@ namespace Coffee {
             lines.push_back(line);
         }
         return lines;
+    }
+
+    bool Scene::ValidateUIHierarchy(bool checkRootStructure) {
+        auto uiTextView = m_Registry.view<UITextComponent>();
+        auto uiButtonView = m_Registry.view<UIButtonComponent>();
+        auto uiSliderView = m_Registry.view<UISliderComponent>();
+        auto uiToggleView = m_Registry.view<UIToggleComponent>();
+
+        bool allValid = true;
+
+        // Check root structure if requested (for runtime validation)
+        if (checkRootStructure) {
+            auto hierarchyView = m_Registry.view<HierarchyComponent>();
+            for (auto entity : hierarchyView) {
+                auto& hierarchy = hierarchyView.get<HierarchyComponent>(entity);
+
+                // If it's a root entity (no parent)
+                if (hierarchy.m_Parent == entt::null) {
+                    bool isUIImage = m_Registry.all_of<UIImageComponent>(entity);
+                    bool hasUIChild = m_Registry.any_of<UITextComponent, UIButtonComponent,
+                                                        UISliderComponent, UIToggleComponent>(entity);
+
+                    // If it's not an image but has UI components
+                    if (!isUIImage && hasUIChild) {
+                        COFFEE_CORE_ERROR("Root entity {} has UI components but is not an UIImage", (uint32_t)entity);
+                        allValid = false;
+                    }
+                }
+            }
+        }
+
+        // Check parent hierarchy for all UI components
+        auto checkParent = [this](entt::entity entity) {
+            auto* hierarchy = m_Registry.try_get<HierarchyComponent>(entity);
+            if (!hierarchy || hierarchy->m_Parent == entt::null) {
+                // Root entity must be an UIImage
+                return m_Registry.all_of<UIImageComponent>(entity);
+            }
+            // Non-root entities must have an UIImage ancestor
+            while (hierarchy && hierarchy->m_Parent != entt::null) {
+                if (m_Registry.all_of<UIImageComponent>(hierarchy->m_Parent)) {
+                    return true;
+                }
+                hierarchy = m_Registry.try_get<HierarchyComponent>(hierarchy->m_Parent);
+            }
+            return false;
+        };
+
+        // Validate all UI components
+        auto validateComponents = [&](auto& view, const char* componentName) {
+            for (auto entity : view) {
+                if (!checkParent(entity)) {
+                    COFFEE_CORE_ERROR("{} in entity {} must have an UIImage parent in hierarchy",
+                                      componentName, (uint32_t)entity);
+                    allValid = false;
+                }
+            }
+        };
+
+        validateComponents(uiTextView, "UITextComponent");
+        validateComponents(uiButtonView, "UIButtonComponent");
+        validateComponents(uiSliderView, "UISliderComponent");
+        validateComponents(uiToggleView, "UIToggleComponent");
+
+        return allValid;
     }
 }
