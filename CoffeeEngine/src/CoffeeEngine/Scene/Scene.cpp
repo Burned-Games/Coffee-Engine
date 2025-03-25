@@ -823,7 +823,7 @@ namespace Coffee {
 
                 if (!uiTextComponent.Visible || uiTextComponent.Text.empty()) continue;
 
-                if (!uiTextComponent.font) uiTextComponent.font = Font::GetDefault();
+                if (!uiTextComponent.FontLoaded) uiTextComponent.FontLoaded = Font::GetDefault();
 
                 std::vector<std::string> lines = SplitTextIntoLines(uiTextComponent.Text);
                 glm::vec2 anchorOffset = CalculateAnchorOffset(uiTextComponent.Anchor, windowSize);
@@ -839,7 +839,7 @@ namespace Coffee {
                     transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
                     transform = glm::scale(transform, glm::vec3(uiTextComponent.FontSize, -uiTextComponent.FontSize, 1.0f));
 
-                    Renderer2D::DrawString(lines[i], uiTextComponent.font, transform,
+                    Renderer2D::DrawString(lines[i], uiTextComponent.FontLoaded, transform,
                                            {uiTextComponent.Color, 0.0f, 0.0f, uiTextComponent.Alignment},
                                            Renderer2D::RenderMode::Screen, (uint32_t)entity);
                 }
@@ -859,11 +859,11 @@ namespace Coffee {
                     zOffset
                 );
 
-                if (uiSliderComponent.barTexture) {
-                    Renderer2D::DrawQuad(transform, uiSliderComponent.barTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
+                if (uiSliderComponent.BarTexture) {
+                    Renderer2D::DrawQuad(transform, uiSliderComponent.BarTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
                 }
 
-                if (uiSliderComponent.handleTexture) {
+                if (uiSliderComponent.HandleTexture) {
                     float normalizedValue = glm::clamp(uiSliderComponent.Value, 0.0f, 1.0f);
                     float handleOffset = normalizedValue * (uiSliderComponent.Size.x - uiSliderComponent.HandleSize.x);
                     handleOffset -= (uiSliderComponent.Size.x / 2.0f) - (uiSliderComponent.HandleSize.x / 2.0f);
@@ -875,7 +875,7 @@ namespace Coffee {
                     glm::mat4 handleTransform = glm::translate(baseTransform, glm::vec3(handleOffset, 0.0f, 0.001f));
                     handleTransform = glm::scale(handleTransform, glm::vec3(uiSliderComponent.HandleSize.x, uiSliderComponent.HandleSize.y, 1.0f));
 
-                    Renderer2D::DrawQuad(handleTransform, uiSliderComponent.handleTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
+                    Renderer2D::DrawQuad(handleTransform, uiSliderComponent.HandleTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
                 }
             }
             else if (uiButtonView.contains(entity)) {
@@ -886,8 +886,8 @@ namespace Coffee {
 
                 if (!uiButtonComponent.Visible) continue;
 
-                Ref<Texture2D> currentTexture = uiButtonComponent.GetCurrentTexture();
-                if (!currentTexture) continue;
+                Ref<Texture2D> CurrentTexture = uiButtonComponent.GetCurrentTexture();
+                if (!CurrentTexture) continue;
 
                 glm::vec2 anchorOffset = CalculateAnchorOffset(uiButtonComponent.Anchor, windowSize);
                 glm::vec2 currentSize = glm::vec2(
@@ -906,7 +906,7 @@ namespace Coffee {
 
                     Renderer2D::DrawQuad(
                         transform,
-                        currentTexture,
+                        CurrentTexture,
                         1.0f,
                         uiButtonComponent.GetCurrentColor(),
                         Renderer2D::RenderMode::Screen,

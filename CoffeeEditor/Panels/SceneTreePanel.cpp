@@ -209,6 +209,30 @@ namespace Coffee
         }
     }
 
+    void SceneTreePanel::ProcessHierarchy(entt::registry& registry, entt::entity root, const std::function<void(entt::entity)>& callback) {
+        std::stack<entt::entity> entities;
+        entities.push(root);
+
+        while (!entities.empty()) {
+            entt::entity current = entities.top();
+            entities.pop();
+
+            callback(current);
+
+            if (registry.all_of<HierarchyComponent>(current)) {
+                auto& hierarchy = registry.get<HierarchyComponent>(current);
+                entt::entity child = hierarchy.m_First;
+
+                while (child != entt::null) {
+                    entities.push(child);
+                    auto& childHierarchy = registry.get<HierarchyComponent>(child);
+                    child = childHierarchy.m_Next;
+                }
+            }
+        }
+    }
+
+
     void SceneTreePanel::DrawComponents(Entity entity)
     {
         if (entity.HasComponent<TagComponent>())
@@ -1191,82 +1215,144 @@ namespace Coffee
             }
         }
 
+        auto UpdateUITransform = [this](entt::registry& registry, entt::entity root, const glm::vec2& posDelta, float rotDelta) {
+            if (registry.all_of<TransformComponent>(root)) {
+                auto& rootTransform = registry.get<TransformComponent>(root);
+                rootTransform.Position.x += posDelta.x;
+                rootTransform.Position.y += posDelta.y;
+                rootTransform.Rotation.z += rotDelta;
+            }
+
+            this->ProcessHierarchy(registry, root, [&](entt::entity entity) {
+                if (entity == root) return;
+
+                if (registry.all_of<TransformComponent>(entity)) {
+                    auto& transformComponent = registry.get<TransformComponent>(entity);
+                    transformComponent.Position.x += posDelta.x;
+                    transformComponent.Position.y += posDelta.y;
+                }
+            });
+        };
+
+        auto SetUIVisibility = [this](entt::registry& registry, entt::entity root, bool visible) {
+            this->ProcessHierarchy(registry, root, [&](entt::entity entity) {
+                if (auto* uiImage = registry.try_get<UIImageComponent>(entity)) uiImage->Visible = visible;
+                if (auto* uiText = registry.try_get<UITextComponent>(entity)) uiText->Visible = visible;
+                if (auto* uiButton = registry.try_get<UIButtonComponent>(entity)) uiButton->Visible = visible;
+                if (auto* uiSlider = registry.try_get<UISliderComponent>(entity)) uiSlider->Visible = visible;
+                if (auto* uiToggle = registry.try_get<UIToggleComponent>(entity)) uiToggle->Visible = visible;
+            });
+        };
+
+        auto SetUIAnchor = [this](entt::registry& registry, entt::entity root, UIAnchorPosition anchor) {
+            this->ProcessHierarchy(registry, root, [&](entt::entity entity) {
+                if (auto* uiImage = registry.try_get<UIImageComponent>(entity)) uiImage->Anchor = anchor;
+                if (auto* uiText = registry.try_get<UITextComponent>(entity)) uiText->Anchor = anchor;
+                if (auto* uiButton = registry.try_get<UIButtonComponent>(entity)) uiButton->Anchor = anchor;
+                if (auto* uiSlider = registry.try_get<UISliderComponent>(entity)) uiSlider->Anchor = anchor;
+                if (auto* uiToggle = registry.try_get<UIToggleComponent>(entity)) uiToggle->Anchor = anchor;
+            });
+        };
+
+        auto SetUILayer = [this](entt::registry& registry, entt::entity root, int layer) {
+            this->ProcessHierarchy(registry, root, [&](entt::entity entity) {
+                if (auto* uiImage = registry.try_get<UIImageComponent>(entity)) uiImage->Layer = layer;
+                if (auto* uiText = registry.try_get<UITextComponent>(entity)) uiText->Layer = layer;
+                if (auto* uiButton = registry.try_get<UIButtonComponent>(entity)) uiButton->Layer = layer;
+                if (auto* uiSlider = registry.try_get<UISliderComponent>(entity)) uiSlider->Layer = layer;
+                if (auto* uiToggle = registry.try_get<UIToggleComponent>(entity)) uiToggle->Layer = layer;
+            });
+        };
+
         const char* anchorPoints[] = {"TopLeft",     "TopCenter",  "TopRight",     "CenterLeft", "Center",
                                       "CenterRight", "BottomLeft", "BottomCenter", "BottomRight"};
 
-        auto DrawAnchorPointCombo = [&](UIAnchorPosition& anchor) {
+        auto DrawAnchorPointCombo = [this, &anchorPoints](UIAnchorPosition& anchor, entt::registry* registry = nullptr, entt::entity root = entt::null) {
             int currentAnchor = static_cast<int>(anchor);
-            if (ImGui::Combo("Anchor Point", &currentAnchor, anchorPoints, IM_ARRAYSIZE(anchorPoints)))
-            {
+            if (ImGui::Combo("Anchor Point", &currentAnchor, anchorPoints, IM_ARRAYSIZE(anchorPoints))) {
                 anchor = static_cast<UIAnchorPosition>(currentAnchor);
+
+                if (registry && root != entt::null) {
+                    this->ProcessHierarchy(*registry, root, [&](entt::entity entity) {
+                        if (auto* uiImage = registry->try_get<UIImageComponent>(entity)) {
+                            uiImage->Anchor = anchor;
+                        }
+                        if (auto* uiText = registry->try_get<UITextComponent>(entity)) {
+                            uiText->Anchor = anchor;
+                        }
+                        if (auto* uiButton = registry->try_get<UIButtonComponent>(entity)) {
+                            uiButton->Anchor = anchor;
+                        }
+                        if (auto* uiSlider = registry->try_get<UISliderComponent>(entity)) {
+                            uiSlider->Anchor = anchor;
+                        }
+                        if (auto* uiToggle = registry->try_get<UIToggleComponent>(entity)) {
+                            uiToggle->Anchor = anchor;
+                        }
+                    });
+                }
             }
         };
-        auto DrawTextureWidget = [&](const std::string& label, Ref<Texture2D>& texture) {
+
+        auto DrawTextureWidget = [this](const std::string& label, Ref<Texture2D>& texture, entt::registry* registry = nullptr, entt::entity root = entt::null) {
             uint32_t textureID = texture ? texture->GetID() : 0;
             ImGui::ImageButton(label.c_str(), (ImTextureID)textureID, {64, 64});
 
             auto textureImageFormat = [](ImageFormat format) -> std::string {
-                switch (format)
-                {
-                case ImageFormat::R8:
-                    return "R8";
-                case ImageFormat::RGB8:
-                    return "RGB8";
-                case ImageFormat::RGBA8:
-                    return "RGBA8";
-                case ImageFormat::SRGB8:
-                    return "SRGB8";
-                case ImageFormat::SRGBA8:
-                    return "SRGBA8";
-                case ImageFormat::RGBA32F:
-                    return "RGBA32F";
-                case ImageFormat::DEPTH24STENCIL8:
-                    return "DEPTH24STENCIL8";
-                default:
-                    return "Unknown";
+                switch (format) {
+                case ImageFormat::R8: return "R8";
+                case ImageFormat::RGB8: return "RGB8";
+                case ImageFormat::RGBA8: return "RGBA8";
+                case ImageFormat::SRGB8: return "SRGB8";
+                case ImageFormat::SRGBA8: return "SRGBA8";
+                case ImageFormat::RGBA32F: return "RGBA32F";
+                case ImageFormat::DEPTH24STENCIL8: return "DEPTH24STENCIL8";
+                default: return "Unknown";
                 }
             };
 
-            if (ImGui::IsItemHovered() && texture)
-            {
-                ImGui::SetTooltip("Name: %s\nSize: %d x %d\nFormat: %s\nPath: %s", texture->GetName().c_str(),
+            if (ImGui::IsItemHovered() && texture) {
+                ImGui::SetTooltip("Name: %s\nSize: %d x %d\nFormat: %s\nPath: %s",
+                                  texture->GetName().c_str(),
                                   texture->GetWidth(), texture->GetHeight(),
-                                  textureImageFormat(texture->GetImageFormat()).c_str(), texture->GetPath().c_str());
+                                  textureImageFormat(texture->GetImageFormat()).c_str(),
+                                  texture->GetPath().c_str());
             }
 
-            if (ImGui::BeginDragDropTarget())
-            {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("RESOURCE"))
-                {
+            if (ImGui::BeginDragDropTarget()) {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("RESOURCE")) {
                     const Ref<Resource>& resource = *(Ref<Resource>*)payload->Data;
-                    if (resource->GetType() == ResourceType::Texture2D)
-                    {
-                        const Ref<Texture2D>& t = std::static_pointer_cast<Texture2D>(resource);
-                        texture = t;
+                    if (resource->GetType() == ResourceType::Texture2D) {
+                        texture = std::static_pointer_cast<Texture2D>(resource);
                     }
                 }
                 ImGui::EndDragDropTarget();
             }
 
             ImGui::SameLine();
-            if (ImGui::BeginCombo((label + "texture").c_str(), "", ImGuiComboFlags_NoPreview))
-            {
-                if (ImGui::Selectable("Clear"))
-                {
+            if (ImGui::BeginCombo((label + "texture").c_str(), "", ImGuiComboFlags_NoPreview)) {
+                if (ImGui::Selectable("Clear")) {
                     texture = nullptr;
                 }
-                if (ImGui::Selectable("Open"))
-                {
+                if (ImGui::Selectable("Open")) {
                     std::string path = FileDialog::OpenFile({}).string();
-                    if (!path.empty())
-                    {
-                        Ref<Texture2D> t = Texture2D::Load(path);
-                        texture = t;
+                    if (!path.empty()) {
+                        texture = Texture2D::Load(path);
                     }
                 }
                 ImGui::EndCombo();
             }
+
+            /*if (registry && root != entt::null) {
+                this->ProcessHierarchy(*registry, root, [&](entt::entity entity) {
+                    if (auto* uiImage = registry->try_get<UIImageComponent>(entity)) {
+                        uiImage->texture = texture;
+                    }
+                    // Si hay más tipos de UI que usan texturas, agrégalos aquí
+                });
+            }*/
         };
+
 
         if (entity.HasComponent<UIImageComponent>())
         {
@@ -1285,117 +1371,32 @@ namespace Coffee
                 if (ImGui::DragFloat2("##UIPosition", glm::value_ptr(newPosition), 0.1f))
                 {
                     glm::vec2 delta = newPosition - previousPosition;
-
-                    transformComponent.Position.x = newPosition.x;
-                    transformComponent.Position.y = newPosition.y;
-
-                    std::stack<Entity> entitiesToProcess;
-                    if (entity.HasComponent<HierarchyComponent>())
-                    {
-                        auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
-                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                        while ((entt::entity)childEntity != entt::null)
-                        {
-                            entitiesToProcess.push(childEntity);
-
-                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                        }
-                    }
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
-                        currentTransformComponent.Position.x += delta.x;
-                        currentTransformComponent.Position.y += delta.y;
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
+                    UpdateUITransform(m_Context->m_Registry, entity, delta, 0.0f); // Aplica el cambio a toda la jerarquía
                 }
-                ImGui::Text("Rotation");
-                float rotation = transformComponent.Rotation.z; // Assuming rotation around Z-axis for 2D UI
-                if (ImGui::DragFloat("##Rotation", &rotation, 0.1f))
-                {
-                    transformComponent.Rotation.z = rotation;
 
+                ImGui::Text("Rotation");
+                static float previousRotation = transformComponent.Rotation.z;
+                float currentRotation = previousRotation;
+
+                if (ImGui::DragFloat("##Rotation", &currentRotation, 0.1f))
+                {
+                    float delta = currentRotation - previousRotation;
+                    UpdateUITransform(m_Context->m_Registry, entity, {0.0f, 0.0f}, delta);
+                    previousRotation = currentRotation;
                 }
             }
 
             ImGui::Text("Size");
             ImGui::DragFloat2("##Size", glm::value_ptr(uiImageComponent.Size), 0.1f);
-            
+
             ImGui::Text("Anchor Points");
 
             const char* eyeIcon = uiImageComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
 
             if (ImGui::Button(eyeIcon, {24, 24}))
             {
-                uiImageComponent.Visible = !uiImageComponent.Visible;
-
-                // Recursively set visibility for all child UI components
-                std::stack<Entity> entitiesToProcess;
-                entitiesToProcess.push(entity);
-
-                while (!entitiesToProcess.empty())
-                {
-                    Entity currentEntity = entitiesToProcess.top();
-                    entitiesToProcess.pop();
-
-                    if (currentEntity.HasComponent<UIImageComponent>())
-                    {
-                        auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
-                        childUIImageComponent.Visible = uiImageComponent.Visible;
-                    }
-                    if (currentEntity.HasComponent<UITextComponent>())
-                    {
-                        auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
-                        childUITextComponent.Visible = uiImageComponent.Visible;
-                    }
-                    if (currentEntity.HasComponent<UIButtonComponent>())
-                    {
-                        auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
-                        childUIButtonComponent.Visible = uiImageComponent.Visible;
-                    }
-                    if (currentEntity.HasComponent<UISliderComponent>())
-                    {
-                        auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
-                        childUISliderComponent.Visible = uiImageComponent.Visible;
-                    }
-                    if (currentEntity.HasComponent<UIToggleComponent>())
-                    {
-                        auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
-                        childUIToggleComponent.Visible = uiImageComponent.Visible;
-                    }
-
-                    if (currentEntity.HasComponent<HierarchyComponent>())
-                    {
-                        auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                        while ((entt::entity)childEntity != entt::null)
-                        {
-                            entitiesToProcess.push(childEntity);
-                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                        }
-                    }
-                }
+                bool newVisibility = !uiImageComponent.Visible;
+                SetUIVisibility(m_Context->m_Registry, entity, newVisibility);
             }
             if (ImGui::IsItemHovered())
             {
@@ -1407,57 +1408,9 @@ namespace Coffee
 
             if (ImGui::Button("Apply Anchor to Children"))
             {
-                UIAnchorPosition anchorToApply = uiImageComponent.Anchor;
-
-                std::stack<Entity> entitiesToProcess;
-                entitiesToProcess.push(entity);
-
-                while (!entitiesToProcess.empty())
-                {
-                    Entity currentEntity = entitiesToProcess.top();
-                    entitiesToProcess.pop();
-
-                    if (currentEntity.HasComponent<UIImageComponent>())
-                    {
-                        auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
-                        childUIImageComponent.Anchor = anchorToApply;
-                    }
-                    if (currentEntity.HasComponent<UITextComponent>())
-                    {
-                        auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
-                        childUITextComponent.Anchor = anchorToApply;
-                    }
-                    if (currentEntity.HasComponent<UIButtonComponent>())
-                    {
-                        auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
-                        childUIButtonComponent.Anchor = anchorToApply;
-                    }
-                    if (currentEntity.HasComponent<UISliderComponent>())
-                    {
-                        auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
-                        childUISliderComponent.Anchor = anchorToApply;
-                    }
-                    if (currentEntity.HasComponent<UIToggleComponent>())
-                    {
-                        auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
-                        childUIToggleComponent.Anchor = anchorToApply;
-                    }
-
-                    if (currentEntity.HasComponent<HierarchyComponent>())
-                    {
-                        auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                        while ((entt::entity)childEntity != entt::null)
-                        {
-                            entitiesToProcess.push(childEntity);
-
-                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                        }
-                    }
-                }
+                SetUIAnchor(m_Context->m_Registry, entity, uiImageComponent.Anchor);
             }
+
 
             ImGui::Text("Layer");
             ImGui::DragInt("##Layer", &uiImageComponent.Layer, 1, 0);
@@ -1465,57 +1418,9 @@ namespace Coffee
             ImGui::SameLine();
             if (ImGui::Button("Apply Children"))
             {
-                int layerToApply = uiImageComponent.Layer;
-
-                std::stack<Entity> entitiesToProcess;
-                entitiesToProcess.push(entity);
-
-                while (!entitiesToProcess.empty())
-                {
-                    Entity currentEntity = entitiesToProcess.top();
-                    entitiesToProcess.pop();
-
-                    if (currentEntity.HasComponent<UIImageComponent>())
-                    {
-                        auto& uiImageComponent = currentEntity.GetComponent<UIImageComponent>();
-                        uiImageComponent.Layer = layerToApply;
-                    }
-                    if (currentEntity.HasComponent<UITextComponent>())
-                    {
-                        auto& uiTextComponent = currentEntity.GetComponent<UITextComponent>();
-                        uiTextComponent.Layer = layerToApply;
-                    }
-                    if (currentEntity.HasComponent<UIButtonComponent>())
-                    {
-                        auto& uiButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
-                        uiButtonComponent.Layer = layerToApply;
-                    }
-                    if (currentEntity.HasComponent<UISliderComponent>())
-                    {
-                        auto& uiSliderComponent = currentEntity.GetComponent<UISliderComponent>();
-                        uiSliderComponent.Layer = layerToApply;
-                    }
-                    if (currentEntity.HasComponent<UIToggleComponent>())
-                    {
-                        auto& uiToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
-                        uiToggleComponent.Layer = layerToApply;
-                    }
-
-                    if (currentEntity.HasComponent<HierarchyComponent>())
-                    {
-                        auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                        while ((entt::entity)childEntity != entt::null)
-                        {
-                            entitiesToProcess.push(childEntity);
-
-                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                        }
-                    }
-                }
+                SetUILayer(m_Context->m_Registry, entity, uiImageComponent.Layer);
             }
+
             if (ImGui::CollapsingHeader("UI Image", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::Text("Texture");
@@ -1547,55 +1452,18 @@ namespace Coffee
                 if (ImGui::DragFloat2("##UIPosition", glm::value_ptr(newPosition), 0.1f))
                 {
                     glm::vec2 delta = newPosition - previousPosition;
-
-                    transformComponent.Position.x = newPosition.x;
-                    transformComponent.Position.y = newPosition.y;
-
-                    std::stack<Entity> entitiesToProcess;
-                    if (entity.HasComponent<HierarchyComponent>())
-                    {
-                        auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
-                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                        while ((entt::entity)childEntity != entt::null)
-                        {
-                            entitiesToProcess.push(childEntity);
-
-                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                        }
-                    }
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
-                        currentTransformComponent.Position.x += delta.x;
-                        currentTransformComponent.Position.y += delta.y;
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
+                    UpdateUITransform(m_Context->m_Registry, entity, delta, 0.0f); // Aplica el cambio a toda la jerarquía
                 }
 
                 ImGui::Text("Rotation");
-                float rotation = transformComponent.Rotation.z; // Assuming rotation around Z-axis for 2D UI
-                if (ImGui::DragFloat("##Rotation", &rotation, 0.1f))
+                static float previousRotation = transformComponent.Rotation.z;
+                float currentRotation = previousRotation;
+
+                if (ImGui::DragFloat("##Rotation", &currentRotation, 0.1f))
                 {
-                    transformComponent.Rotation.z = rotation;
+                    float delta = currentRotation - previousRotation;
+                    UpdateUITransform(m_Context->m_Registry, entity, {0.0f, 0.0f}, delta);
+                    previousRotation = currentRotation;
                 }
 
                 ImGui::Text("Anchor Points");
@@ -1604,56 +1472,8 @@ namespace Coffee
 
                 if (ImGui::Button(eyeIcon, {24, 24}))
                 {
-                    uiTextComponent.Visible = !uiTextComponent.Visible;
-
-                    // Recursively set visibility for all child UI components
-                    std::stack<Entity> entitiesToProcess;
-                    entitiesToProcess.push(entity);
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        if (currentEntity.HasComponent<UIImageComponent>())
-                        {
-                            auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
-                            childUIImageComponent.Visible = uiTextComponent.Visible;
-                        }
-                        if (currentEntity.HasComponent<UITextComponent>())
-                        {
-                            auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
-                            childUITextComponent.Visible = uiTextComponent.Visible;
-                        }
-                        if (currentEntity.HasComponent<UIButtonComponent>())
-                        {
-                            auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
-                            childUIButtonComponent.Visible = uiTextComponent.Visible;
-                        }
-                        if (currentEntity.HasComponent<UISliderComponent>())
-                        {
-                            auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
-                            childUISliderComponent.Visible = uiTextComponent.Visible;
-                        }
-                        if (currentEntity.HasComponent<UIToggleComponent>())
-                        {
-                            auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
-                            childUIToggleComponent.Visible = uiTextComponent.Visible;
-                        }
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
+                    bool newVisibility = !uiTextComponent.Visible;
+                    SetUIVisibility(m_Context->m_Registry, entity, newVisibility);
                 }
                 if (ImGui::IsItemHovered())
                 {
@@ -1665,57 +1485,9 @@ namespace Coffee
 
                 if (ImGui::Button("Apply Anchor to Children"))
                 {
-                    UIAnchorPosition anchorToApply = uiTextComponent.Anchor;
-
-                    std::stack<Entity> entitiesToProcess;
-                    entitiesToProcess.push(entity);
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        if (currentEntity.HasComponent<UIImageComponent>())
-                        {
-                            auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
-                            childUIImageComponent.Anchor = anchorToApply;
-                        }
-                        if (currentEntity.HasComponent<UITextComponent>())
-                        {
-                            auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
-                            childUITextComponent.Anchor = anchorToApply;
-                        }
-                        if (currentEntity.HasComponent<UIButtonComponent>())
-                        {
-                            auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
-                            childUIButtonComponent.Anchor = anchorToApply;
-                        }
-                        if (currentEntity.HasComponent<UISliderComponent>())
-                        {
-                            auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
-                            childUISliderComponent.Anchor = anchorToApply;
-                        }
-                        if (currentEntity.HasComponent<UIToggleComponent>())
-                        {
-                            auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
-                            childUIToggleComponent.Anchor = anchorToApply;
-                        }
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
+                    SetUIAnchor(m_Context->m_Registry, entity, uiTextComponent.Anchor);
                 }
+
 
                 ImGui::Text("Layer");
                 ImGui::DragInt("##Layer", &uiTextComponent.Layer, 1, 0);
@@ -1723,57 +1495,9 @@ namespace Coffee
                 ImGui::SameLine();
                 if (ImGui::Button("Apply Children"))
                 {
-                    int layerToApply = uiTextComponent.Layer;
-
-                    std::stack<Entity> entitiesToProcess;
-                    entitiesToProcess.push(entity);
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        if (currentEntity.HasComponent<UIImageComponent>())
-                        {
-                            auto& uiImageComponent = currentEntity.GetComponent<UIImageComponent>();
-                            uiImageComponent.Layer = layerToApply;
-                        }
-                        if (currentEntity.HasComponent<UITextComponent>())
-                        {
-                            auto& uiTextComponent = currentEntity.GetComponent<UITextComponent>();
-                            uiTextComponent.Layer = layerToApply;
-                        }
-                        if (currentEntity.HasComponent<UIButtonComponent>())
-                        {
-                            auto& uiButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
-                            uiButtonComponent.Layer = layerToApply;
-                        }
-                        if (currentEntity.HasComponent<UISliderComponent>())
-                        {
-                            auto& uiSliderComponent = currentEntity.GetComponent<UISliderComponent>();
-                            uiSliderComponent.Layer = layerToApply;
-                        }
-                        if (currentEntity.HasComponent<UIToggleComponent>())
-                        {
-                            auto& uiToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
-                            uiToggleComponent.Layer = layerToApply;
-                        }
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
+                    SetUILayer(m_Context->m_Registry, entity, uiTextComponent.Layer);
                 }
+
             }
 
             if (ImGui::CollapsingHeader("UI Text", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
@@ -1800,7 +1524,7 @@ namespace Coffee
                     if (!path.empty())
                     {
                         uiTextComponent.FontPath = path;
-                        uiTextComponent.font = std::make_shared<Font>(path);
+                        uiTextComponent.FontLoaded = std::make_shared<Font>(path);
                     }
                 }
 
@@ -1846,114 +1570,30 @@ namespace Coffee
                 if (ImGui::DragFloat2("##UIPosition", glm::value_ptr(newPosition), 0.1f))
                 {
                     glm::vec2 delta = newPosition - previousPosition;
-
-                    transformComponent.Position.x = newPosition.x;
-                    transformComponent.Position.y = newPosition.y;
-
-                    std::stack<Entity> entitiesToProcess;
-                    if (entity.HasComponent<HierarchyComponent>())
-                    {
-                        auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
-                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                        while ((entt::entity)childEntity != entt::null)
-                        {
-                            entitiesToProcess.push(childEntity);
-
-                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                        }
-                    }
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
-                        currentTransformComponent.Position.x += delta.x;
-                        currentTransformComponent.Position.y += delta.y;
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
+                    UpdateUITransform(m_Context->m_Registry, entity, delta, 0.0f);
                 }
+
                 ImGui::Text("Rotation");
-                float rotation = transformComponent.Rotation.z; // Assuming rotation around Z-axis for 2D UI
-                if (ImGui::DragFloat("##Rotation", &rotation, 0.1f))
+                static float previousRotation = transformComponent.Rotation.z;
+                float currentRotation = previousRotation;
+
+                if (ImGui::DragFloat("##Rotation", &currentRotation, 0.1f))
                 {
-                    transformComponent.Rotation.z = rotation;
+                    float delta = currentRotation - previousRotation;
+                    UpdateUITransform(m_Context->m_Registry, entity, {0.0f, 0.0f}, delta);
+                    previousRotation = currentRotation;
                 }
 
                 ImGui::Text("Size");
-                ImGui::DragFloat2("##Size", glm::value_ptr(uiButtonComponent.baseSize), 0.1f);
+                ImGui::DragFloat2("##Size", glm::value_ptr(uiButtonComponent.BaseSize), 0.1f);
 
                 ImGui::Text("Anchor Points");
                 const char* eyeIcon = uiButtonComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
 
                 if (ImGui::Button(eyeIcon, {24, 24}))
                 {
-                    uiButtonComponent.Visible = !uiButtonComponent.Visible;
-
-                    // Recursively set visibility for all child UI components
-                    std::stack<Entity> entitiesToProcess;
-                    entitiesToProcess.push(entity);
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        if (currentEntity.HasComponent<UIImageComponent>())
-                        {
-                            auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
-                            childUIImageComponent.Visible = uiButtonComponent.Visible;
-                        }
-                        if (currentEntity.HasComponent<UITextComponent>())
-                        {
-                            auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
-                            childUITextComponent.Visible = uiButtonComponent.Visible;
-                        }
-                        if (currentEntity.HasComponent<UIButtonComponent>())
-                        {
-                            auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
-                            childUIButtonComponent.Visible = uiButtonComponent.Visible;
-                        }
-                        if (currentEntity.HasComponent<UISliderComponent>())
-                        {
-                            auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
-                            childUISliderComponent.Visible = uiButtonComponent.Visible;
-                        }
-                        if (currentEntity.HasComponent<UIToggleComponent>())
-                        {
-                            auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
-                            childUIToggleComponent.Visible = uiButtonComponent.Visible;
-                        }
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
+                    bool newVisibility = !uiButtonComponent.Visible;
+                    SetUIVisibility(m_Context->m_Registry, entity, newVisibility);
                 }
 
                 if (ImGui::IsItemHovered())
@@ -1966,56 +1606,7 @@ namespace Coffee
 
                 if (ImGui::Button("Apply Anchor to Children"))
                 {
-                    UIAnchorPosition anchorToApply = uiButtonComponent.Anchor;
-
-                    std::stack<Entity> entitiesToProcess;
-                    entitiesToProcess.push(entity);
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        if (currentEntity.HasComponent<UIImageComponent>())
-                        {
-                            auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
-                            childUIImageComponent.Anchor = anchorToApply;
-                        }
-                        if (currentEntity.HasComponent<UITextComponent>())
-                        {
-                            auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
-                            childUITextComponent.Anchor = anchorToApply;
-                        }
-                        if (currentEntity.HasComponent<UIButtonComponent>())
-                        {
-                            auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
-                            childUIButtonComponent.Anchor = anchorToApply;
-                        }
-                        if (currentEntity.HasComponent<UISliderComponent>())
-                        {
-                            auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
-                            childUISliderComponent.Anchor = anchorToApply;
-                        }
-                        if (currentEntity.HasComponent<UIToggleComponent>())
-                        {
-                            auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
-                            childUIToggleComponent.Anchor = anchorToApply;
-                        }
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
+                    SetUIAnchor(m_Context->m_Registry, entity, uiButtonComponent.Anchor);
                 }
 
                 ImGui::Text("Layer");
@@ -2024,56 +1615,7 @@ namespace Coffee
                 ImGui::SameLine();
                 if (ImGui::Button("Apply Children"))
                 {
-                    int layerToApply = uiButtonComponent.Layer;
-
-                    std::stack<Entity> entitiesToProcess;
-                    entitiesToProcess.push(entity);
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        if (currentEntity.HasComponent<UIImageComponent>())
-                        {
-                            auto& uiImageComponent = currentEntity.GetComponent<UIImageComponent>();
-                            uiImageComponent.Layer = layerToApply;
-                        }
-                        if (currentEntity.HasComponent<UITextComponent>())
-                        {
-                            auto& uiTextComponent = currentEntity.GetComponent<UITextComponent>();
-                            uiTextComponent.Layer = layerToApply;
-                        }
-                        if (currentEntity.HasComponent<UIButtonComponent>())
-                        {
-                            auto& uiButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
-                            uiButtonComponent.Layer = layerToApply;
-                        }
-                        if (currentEntity.HasComponent<UISliderComponent>())
-                        {
-                            auto& uiSliderComponent = currentEntity.GetComponent<UISliderComponent>();
-                            uiSliderComponent.Layer = layerToApply;
-                        }
-                        if (currentEntity.HasComponent<UIToggleComponent>())
-                        {
-                            auto& uiToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
-                            uiToggleComponent.Layer = layerToApply;
-                        }
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
+                    SetUILayer(m_Context->m_Registry, entity, uiButtonComponent.Layer);
                 }
             }
 
@@ -2082,29 +1624,29 @@ namespace Coffee
                 // Button-specific properties
                 ImGui::Text("State");
                 const char* stateNames[] = {"Base", "Selected", "Pressed"};
-                int currentState = static_cast<int>(uiButtonComponent.currentState);
+                int currentState = static_cast<int>(uiButtonComponent.CurrentState);
                 if (ImGui::Combo("##State", &currentState, stateNames, IM_ARRAYSIZE(stateNames)))
                 {
-                    uiButtonComponent.currentState = static_cast<UIButtonComponent::ButtonState>(currentState);
+                    uiButtonComponent.CurrentState = static_cast<UIButtonComponent::ButtonState>(currentState);
                 }
 
                 ImGui::Text("Base Texture");
-                DrawTextureWidget("##UIButtonBaseTexture", uiButtonComponent.baseTexture);
+                DrawTextureWidget("##UIButtonBaseTexture", uiButtonComponent.BaseTexture);
 
                 ImGui::Text("Selected Texture");
-                DrawTextureWidget("##UIButtonSelectedTexture", uiButtonComponent.selectedTexture);
+                DrawTextureWidget("##UIButtonSelectedTexture", uiButtonComponent.SelectedTexture);
 
                 ImGui::Text("Pressed Texture");
-                DrawTextureWidget("##UIButtonPressedTexture", uiButtonComponent.pressedTexture);
+                DrawTextureWidget("##UIButtonPressedTexture", uiButtonComponent.PressedTexture);
 
                 ImGui::Text("Base Color");
-                ImGui::ColorEdit4("##BaseColor", glm::value_ptr(uiButtonComponent.baseColor));
+                ImGui::ColorEdit4("##BaseColor", glm::value_ptr(uiButtonComponent.BaseColor));
 
                 ImGui::Text("Selected Color");
-                ImGui::ColorEdit4("##SelectedColor", glm::value_ptr(uiButtonComponent.selectedColor));
+                ImGui::ColorEdit4("##SelectedColor", glm::value_ptr(uiButtonComponent.SelectedColor));
 
                 ImGui::Text("Pressed Color");
-                ImGui::ColorEdit4("##PressedColor", glm::value_ptr(uiButtonComponent.pressedColor));
+                ImGui::ColorEdit4("##PressedColor", glm::value_ptr(uiButtonComponent.PressedColor));
 
                 ImGui::Checkbox("Visible", &uiButtonComponent.Visible);
             }
@@ -2127,54 +1669,18 @@ namespace Coffee
                 if (ImGui::DragFloat2("##UIPosition", glm::value_ptr(newPosition), 0.1f))
                 {
                     glm::vec2 delta = newPosition - previousPosition;
-
-                    transformComponent.Position.x = newPosition.x;
-                    transformComponent.Position.y = newPosition.y;
-
-                    std::stack<Entity> entitiesToProcess;
-                    if (entity.HasComponent<HierarchyComponent>())
-                    {
-                        auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
-                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                        while ((entt::entity)childEntity != entt::null)
-                        {
-                            entitiesToProcess.push(childEntity);
-
-                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                        }
-                    }
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
-                        currentTransformComponent.Position.x += delta.x;
-                        currentTransformComponent.Position.y += delta.y;
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
+                    UpdateUITransform(m_Context->m_Registry, entity, delta, 0.0f);
                 }
+
                 ImGui::Text("Rotation");
-                float rotation = transformComponent.Rotation.z; // Assuming rotation around Z-axis for 2D UI
-                if (ImGui::DragFloat("##Rotation", &rotation, 0.1f))
+                static float previousRotation = transformComponent.Rotation.z;
+                float currentRotation = previousRotation;
+
+                if (ImGui::DragFloat("##Rotation", &currentRotation, 0.1f))
                 {
-                    transformComponent.Rotation.z = rotation;
+                    float delta = currentRotation - previousRotation;
+                    UpdateUITransform(m_Context->m_Registry, entity, {0.0f, 0.0f}, delta);
+                    previousRotation = currentRotation;
                 }
 
                 ImGui::Text("Bar Size");
@@ -2188,56 +1694,8 @@ namespace Coffee
 
                 if (ImGui::Button(eyeIcon, {24, 24}))
                 {
-                    uiSliderComponent.Visible = !uiSliderComponent.Visible;
-
-                    // Recursively set visibility for all child UI components
-                    std::stack<Entity> entitiesToProcess;
-                    entitiesToProcess.push(entity);
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        if (currentEntity.HasComponent<UIImageComponent>())
-                        {
-                            auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
-                            childUIImageComponent.Visible = uiSliderComponent.Visible;
-                        }
-                        if (currentEntity.HasComponent<UITextComponent>())
-                        {
-                            auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
-                            childUITextComponent.Visible = uiSliderComponent.Visible;
-                        }
-                        if (currentEntity.HasComponent<UIButtonComponent>())
-                        {
-                            auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
-                            childUIButtonComponent.Visible = uiSliderComponent.Visible;
-                        }
-                        if (currentEntity.HasComponent<UISliderComponent>())
-                        {
-                            auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
-                            childUISliderComponent.Visible = uiSliderComponent.Visible;
-                        }
-                        if (currentEntity.HasComponent<UIToggleComponent>())
-                        {
-                            auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
-                            childUIToggleComponent.Visible = uiSliderComponent.Visible;
-                        }
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
+                    bool newVisibility = !uiSliderComponent.Visible;
+                    SetUIVisibility(m_Context->m_Registry, entity, newVisibility);
                 }
                 if (ImGui::IsItemHovered())
                 {
@@ -2249,56 +1707,7 @@ namespace Coffee
 
                 if (ImGui::Button("Apply Anchor to Children"))
                 {
-                    UIAnchorPosition anchorToApply = uiSliderComponent.Anchor;
-
-                    std::stack<Entity> entitiesToProcess;
-                    entitiesToProcess.push(entity);
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        if (currentEntity.HasComponent<UIImageComponent>())
-                        {
-                            auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
-                            childUIImageComponent.Anchor = anchorToApply;
-                        }
-                        if (currentEntity.HasComponent<UITextComponent>())
-                        {
-                            auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
-                            childUITextComponent.Anchor = anchorToApply;
-                        }
-                        if (currentEntity.HasComponent<UIButtonComponent>())
-                        {
-                            auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
-                            childUIButtonComponent.Anchor = anchorToApply;
-                        }
-                        if (currentEntity.HasComponent<UISliderComponent>())
-                        {
-                            auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
-                            childUISliderComponent.Anchor = anchorToApply;
-                        }
-                        if (currentEntity.HasComponent<UIToggleComponent>())
-                        {
-                            auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
-                            childUIToggleComponent.Anchor = anchorToApply;
-                        }
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
+                    SetUIAnchor(m_Context->m_Registry, entity, uiSliderComponent.Anchor);
                 }
 
                 ImGui::Text("Layer");
@@ -2307,56 +1716,7 @@ namespace Coffee
                 ImGui::SameLine();
                 if (ImGui::Button("Apply Children"))
                 {
-                    int layerToApply = uiSliderComponent.Layer;
-
-                    std::stack<Entity> entitiesToProcess;
-                    entitiesToProcess.push(entity);
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        if (currentEntity.HasComponent<UIImageComponent>())
-                        {
-                            auto& uiImageComponent = currentEntity.GetComponent<UIImageComponent>();
-                            uiImageComponent.Layer = layerToApply;
-                        }
-                        if (currentEntity.HasComponent<UITextComponent>())
-                        {
-                            auto& uiTextComponent = currentEntity.GetComponent<UITextComponent>();
-                            uiTextComponent.Layer = layerToApply;
-                        }
-                        if (currentEntity.HasComponent<UIButtonComponent>())
-                        {
-                            auto& uiButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
-                            uiButtonComponent.Layer = layerToApply;
-                        }
-                        if (currentEntity.HasComponent<UISliderComponent>())
-                        {
-                            auto& uiSliderComponent = currentEntity.GetComponent<UISliderComponent>();
-                            uiSliderComponent.Layer = layerToApply;
-                        }
-                        if (currentEntity.HasComponent<UIToggleComponent>())
-                        {
-                            auto& uiToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
-                            uiToggleComponent.Layer = layerToApply;
-                        }
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
+                    SetUILayer(m_Context->m_Registry, entity, uiSliderComponent.Layer);
                 }
             }
 
@@ -2364,10 +1724,10 @@ namespace Coffee
             {
                 // Slider-specific properties
                 ImGui::Text("Bar Texture");
-                DrawTextureWidget("##UISliderBarTexture", uiSliderComponent.barTexture);
+                DrawTextureWidget("##UISliderBarTexture", uiSliderComponent.BarTexture);
 
                 ImGui::Text("Handle Texture");
-                DrawTextureWidget("##UISliderHandleTexture", uiSliderComponent.handleTexture);
+                DrawTextureWidget("##UISliderHandleTexture", uiSliderComponent.HandleTexture);
 
                 ImGui::Text("Value");
                 ImGui::SliderFloat("##SliderValue", &uiSliderComponent.Value, 0.0f, 1.0f);
@@ -2393,54 +1753,18 @@ namespace Coffee
                 if (ImGui::DragFloat2("##UIPosition", glm::value_ptr(newPosition), 0.1f))
                 {
                     glm::vec2 delta = newPosition - previousPosition;
-
-                    transformComponent.Position.x = newPosition.x;
-                    transformComponent.Position.y = newPosition.y;
-
-                    std::stack<Entity> entitiesToProcess;
-                    if (entity.HasComponent<HierarchyComponent>())
-                    {
-                        auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
-                        Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                        while ((entt::entity)childEntity != entt::null)
-                        {
-                            entitiesToProcess.push(childEntity);
-
-                            auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                            childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                        }
-                    }
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        auto& currentTransformComponent = currentEntity.GetComponent<TransformComponent>();
-                        currentTransformComponent.Position.x += delta.x;
-                        currentTransformComponent.Position.y += delta.y;
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
+                    UpdateUITransform(m_Context->m_Registry, entity, delta, 0.0f);
                 }
+
                 ImGui::Text("Rotation");
-                float rotation = transformComponent.Rotation.z; // Assuming rotation around Z-axis for 2D UI
-                if (ImGui::DragFloat("##Rotation", &rotation, 0.1f))
+                static float previousRotation = transformComponent.Rotation.z;
+                float currentRotation = previousRotation;
+
+                if (ImGui::DragFloat("##Rotation", &currentRotation, 0.1f))
                 {
-                    transformComponent.Rotation.z = rotation;
+                    float delta = currentRotation - previousRotation;
+                    UpdateUITransform(m_Context->m_Registry, entity, {0.0f, 0.0f}, delta);
+                    previousRotation = currentRotation;
                 }
 
                 ImGui::Text("Size");
@@ -2451,56 +1775,8 @@ namespace Coffee
 
                 if (ImGui::Button(eyeIcon, {24, 24}))
                 {
-                    uiToggleComponent.Visible = !uiToggleComponent.Visible;
-
-                    // Recursively set visibility for all child UI components
-                    std::stack<Entity> entitiesToProcess;
-                    entitiesToProcess.push(entity);
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        if (currentEntity.HasComponent<UIImageComponent>())
-                        {
-                            auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
-                            childUIImageComponent.Visible = uiToggleComponent.Visible;
-                        }
-                        if (currentEntity.HasComponent<UITextComponent>())
-                        {
-                            auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
-                            childUITextComponent.Visible = uiToggleComponent.Visible;
-                        }
-                        if (currentEntity.HasComponent<UIButtonComponent>())
-                        {
-                            auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
-                            childUIButtonComponent.Visible = uiToggleComponent.Visible;
-                        }
-                        if (currentEntity.HasComponent<UISliderComponent>())
-                        {
-                            auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
-                            childUISliderComponent.Visible = uiToggleComponent.Visible;
-                        }
-                        if (currentEntity.HasComponent<UIToggleComponent>())
-                        {
-                            auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
-                            childUIToggleComponent.Visible = uiToggleComponent.Visible;
-                        }
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
+                    bool newVisibility = !uiToggleComponent.Visible;
+                    SetUIVisibility(m_Context->m_Registry, entity, newVisibility);
                 }
                 if (ImGui::IsItemHovered())
                 {
@@ -2512,56 +1788,7 @@ namespace Coffee
 
                 if (ImGui::Button("Apply Anchor to Children"))
                 {
-                    UIAnchorPosition anchorToApply = uiToggleComponent.Anchor;
-
-                    std::stack<Entity> entitiesToProcess;
-                    entitiesToProcess.push(entity);
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        if (currentEntity.HasComponent<UIImageComponent>())
-                        {
-                            auto& childUIImageComponent = currentEntity.GetComponent<UIImageComponent>();
-                            childUIImageComponent.Anchor = anchorToApply;
-                        }
-                        if (currentEntity.HasComponent<UITextComponent>())
-                        {
-                            auto& childUITextComponent = currentEntity.GetComponent<UITextComponent>();
-                            childUITextComponent.Anchor = anchorToApply;
-                        }
-                        if (currentEntity.HasComponent<UIButtonComponent>())
-                        {
-                            auto& childUIButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
-                            childUIButtonComponent.Anchor = anchorToApply;
-                        }
-                        if (currentEntity.HasComponent<UISliderComponent>())
-                        {
-                            auto& childUISliderComponent = currentEntity.GetComponent<UISliderComponent>();
-                            childUISliderComponent.Anchor = anchorToApply;
-                        }
-                        if (currentEntity.HasComponent<UIToggleComponent>())
-                        {
-                            auto& childUIToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
-                            childUIToggleComponent.Anchor = anchorToApply;
-                        }
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
+                    SetUIAnchor(m_Context->m_Registry, entity, uiToggleComponent.Anchor);
                 }
 
                 ImGui::Text("Layer");
@@ -2570,56 +1797,7 @@ namespace Coffee
                 ImGui::SameLine();
                 if (ImGui::Button("Apply Children"))
                 {
-                    int layerToApply = uiToggleComponent.Layer;
-
-                    std::stack<Entity> entitiesToProcess;
-                    entitiesToProcess.push(entity);
-
-                    while (!entitiesToProcess.empty())
-                    {
-                        Entity currentEntity = entitiesToProcess.top();
-                        entitiesToProcess.pop();
-
-                        if (currentEntity.HasComponent<UIImageComponent>())
-                        {
-                            auto& uiImageComponent = currentEntity.GetComponent<UIImageComponent>();
-                            uiImageComponent.Layer = layerToApply;
-                        }
-                        if (currentEntity.HasComponent<UITextComponent>())
-                        {
-                            auto& uiTextComponent = currentEntity.GetComponent<UITextComponent>();
-                            uiTextComponent.Layer = layerToApply;
-                        }
-                        if (currentEntity.HasComponent<UIButtonComponent>())
-                        {
-                            auto& uiButtonComponent = currentEntity.GetComponent<UIButtonComponent>();
-                            uiButtonComponent.Layer = layerToApply;
-                        }
-                        if (currentEntity.HasComponent<UISliderComponent>())
-                        {
-                            auto& uiSliderComponent = currentEntity.GetComponent<UISliderComponent>();
-                            uiSliderComponent.Layer = layerToApply;
-                        }
-                        if (currentEntity.HasComponent<UIToggleComponent>())
-                        {
-                            auto& uiToggleComponent = currentEntity.GetComponent<UIToggleComponent>();
-                            uiToggleComponent.Layer = layerToApply;
-                        }
-
-                        if (currentEntity.HasComponent<HierarchyComponent>())
-                        {
-                            auto& hierarchyComponent = currentEntity.GetComponent<HierarchyComponent>();
-                            Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
-
-                            while ((entt::entity)childEntity != entt::null)
-                            {
-                                entitiesToProcess.push(childEntity);
-
-                                auto& childHierarchyComponent = childEntity.GetComponent<HierarchyComponent>();
-                                childEntity = Entity{childHierarchyComponent.m_Next, m_Context.get()};
-                            }
-                        }
-                    }
+                    SetUILayer(m_Context->m_Registry, entity, uiToggleComponent.Layer);
                 }
             }
 

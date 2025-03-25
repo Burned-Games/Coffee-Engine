@@ -854,8 +854,8 @@ namespace Coffee {
             "get_layer", &UIImageComponent::Layer,
             "set_layer", [](UIImageComponent& self, int layer) { self.Layer = layer; },
             "set_texture", sol::overload(
-                [](UIImageComponent& self, const Ref<Texture2D>& newTexture) { self.SetTexture(newTexture); }, // Sobrecarga para Ref<Texture2D>
-                [](UIImageComponent& self, const std::string& texturePath) { self.SetTexture(texturePath); }   // Sobrecarga para std::string
+                [](UIImageComponent& self, const Ref<Texture2D>& newTexture) { self.SetTexture(newTexture); },
+                [](UIImageComponent& self, const std::string& texturePath) { self.SetTexture(texturePath); }
             )
         );
 
@@ -907,7 +907,7 @@ namespace Coffee {
             }
         },
         "get_state", [](UIButtonComponent& self) -> std::string {
-            switch (self.currentState) {
+            switch (self.CurrentState) {
                 case UIButtonComponent::ButtonState::Base: return "Base";
                 case UIButtonComponent::ButtonState::Selected: return "Selected";
                 case UIButtonComponent::ButtonState::Pressed: return "Pressed";
@@ -921,28 +921,28 @@ namespace Coffee {
 
         "set_base_texture", [](UIButtonComponent& self, const std::string& texturePath) {
             if (!texturePath.empty()) {
-                self.baseTexture = Texture2D::Load(texturePath);
+                self.BaseTexture = Texture2D::Load(texturePath);
             }
         },
         "set_selected_texture", [](UIButtonComponent& self, const std::string& texturePath) {
             if (!texturePath.empty()) {
-                self.selectedTexture = Texture2D::Load(texturePath);
+                self.SelectedTexture = Texture2D::Load(texturePath);
             }
         },
         "set_pressed_texture", [](UIButtonComponent& self, const std::string& texturePath) {
             if (!texturePath.empty()) {
-                self.pressedTexture = Texture2D::Load(texturePath);
+                self.PressedTexture = Texture2D::Load(texturePath);
             }
         },
 
         "set_base_size", [](UIButtonComponent& self, float width, float height) {
-            self.baseSize = {width, height};
+            self.BaseSize = {width, height};
         },
         "set_selected_size", [](UIButtonComponent& self, float width, float height) {
-            self.selectedSize = {width, height};
+            self.SelectedSize = {width, height};
         },
         "set_pressed_size", [](UIButtonComponent& self, float width, float height) {
-            self.pressedSize = {width, height};
+            self.PressedSize = {width, height};
         },
 
         "get_current_size", [](UIButtonComponent& self) -> sol::table {
@@ -954,13 +954,13 @@ namespace Coffee {
         },
 
         "set_base_color", [](UIButtonComponent& self, float r, float g, float b, float a) {
-            self.baseColor = {r, g, b, a};
+            self.BaseColor = {r, g, b, a};
         },
         "set_selected_color", [](UIButtonComponent& self, float r, float g, float b, float a) {
-            self.selectedColor = {r, g, b, a};
+            self.SelectedColor = {r, g, b, a};
         },
         "set_pressed_color", [](UIButtonComponent& self, float r, float g, float b, float a) {
-            self.pressedColor = {r, g, b, a};
+            self.PressedColor = {r, g, b, a};
         },
 
         "get_current_color", [](UIButtonComponent& self) -> sol::table {
@@ -980,10 +980,10 @@ namespace Coffee {
 
         luaState.new_usertype<UISliderComponent>("UISliderComponent",
         sol::constructors<UISliderComponent()>(),
-        "get_bar_texture", [](UISliderComponent& self) { return self.barTexture; },
-        "set_bar_texture", [](UISliderComponent& self, const Ref<Texture2D>& texture) { self.barTexture = texture; },
-        "get_handle_texture", [](UISliderComponent& self) { return self.handleTexture; },
-        "set_handle_texture", [](UISliderComponent& self, const Ref<Texture2D>& texture) { self.handleTexture = texture; },
+        "get_bar_texture", [](UISliderComponent& self) { return self.BarTexture; },
+        "set_bar_texture", [](UISliderComponent& self, const Ref<Texture2D>& texture) { self.BarTexture = texture; },
+        "get_handle_texture", [](UISliderComponent& self) { return self.HandleTexture; },
+        "set_handle_texture", [](UISliderComponent& self, const Ref<Texture2D>& texture) { self.HandleTexture = texture; },
         "get_size", [](UISliderComponent& self) { return self.Size; },
         "set_size", [](UISliderComponent& self, const glm::vec2& size) { self.Size = size; },
         "get_handle_size", [](UISliderComponent& self) { return self.HandleSize; },

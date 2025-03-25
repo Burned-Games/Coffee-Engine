@@ -818,7 +818,7 @@ namespace Coffee {
          * @param archive The archive to serialize to.
         */
        template<class Archive>
-       void save(Archive& archive) const {
+       void save(Archive& archive, std::uint32_t const version) const {
            archive(
                cereal::make_nvp("Anchor", static_cast<int>(Anchor)),
                cereal::make_nvp("Position", Position),
@@ -833,7 +833,7 @@ namespace Coffee {
         * @param archive The archive to load from.
         */
        template<class Archive>
-       void load(Archive& archive) {
+       void load(Archive& archive, std::uint32_t const version){
            int anchorInt;
            archive(
                cereal::make_nvp("Anchor", anchorInt),
@@ -891,22 +891,22 @@ namespace Coffee {
         * @param archive The archive to serialize to.
         */
        template<class Archive>
-       void save(Archive& archive) const {
+       void save(Archive& archive, std::uint32_t const version) const {
            archive(
                cereal::make_nvp("TextureUUID", texture ? texture->GetUUID() : UUID(0)),
                cereal::make_nvp("Size", Size)
            );
-           UIComponent::save(archive);
+           UIComponent::save(archive, version);
        }
 
        template<class Archive>
-       void load(Archive& archive) {
+       void load(Archive& archive, std::uint32_t const version){
            UUID textureUUID;
            archive(
                cereal::make_nvp("TextureUUID", textureUUID),
                cereal::make_nvp("Size", Size)
            );
-           UIComponent::load(archive);
+           UIComponent::load(archive, version);
 
            if (textureUUID != 0) {
                texture = ResourceLoader::GetResource<Texture2D>(textureUUID);
@@ -921,7 +921,7 @@ namespace Coffee {
    struct UITextComponent : public UIComponent {
        std::string Text = "Default Text"; ///< The text to display.
        std::string FontPath; ///< The path to the font file.
-       Ref<Font> font; ///< The font used for rendering the text.
+       Ref<Font> FontLoaded; ///< The font used for rendering the text.
        float FontSize = 24.0f; ///< The size of the font.
        float LineSpacing = 1.0f; ///< The line spacing (interlineado).
        glm::vec4 Color = { 1.0f, 1.0f, 1.0f, 1.0f }; ///< The color of the text.
@@ -932,12 +932,12 @@ namespace Coffee {
        UITextComponent(const std::string& text, const std::string& fontPath, float fontSize, const glm::vec4& color)
            : Text(text), FontPath(fontPath), FontSize(fontSize), Color(color) {
            if (!fontPath.empty()) {
-               font = Font::GetDefault();
+               FontLoaded = Font::GetDefault();
            }
        }
 
        template<class Archive>
-       void save(Archive& archive) const {
+       void save(Archive& archive, std::uint32_t const version) const {
            archive(
                cereal::make_nvp("Text", Text),
                cereal::make_nvp("FontPath", FontPath),
@@ -946,11 +946,11 @@ namespace Coffee {
                cereal::make_nvp("Color", Color),
                cereal::make_nvp("Alignment", static_cast<int>(Alignment))
            );
-           UIComponent::save(archive);
+           UIComponent::save(archive, version);
        }
 
        template<class Archive>
-       void load(Archive& archive) {
+       void load(Archive& archive, std::uint32_t const version){
            int alignmentInt;
            archive(
                cereal::make_nvp("Text", Text),
@@ -960,11 +960,11 @@ namespace Coffee {
                cereal::make_nvp("Color", Color),
                cereal::make_nvp("Alignment", alignmentInt)
            );
-           UIComponent::load(archive);
+           UIComponent::load(archive, version);
 
            Alignment = static_cast<Font::UITextAlignment>(alignmentInt);
            if (!FontPath.empty()) {
-               font = Font::GetDefault();
+               FontLoaded = Font::GetDefault();
            }
        }
    };
@@ -974,29 +974,29 @@ namespace Coffee {
     * @ingroup scene
     */
    struct UISliderComponent : public UIComponent {
-       Ref<Texture2D> barTexture; ///< The texture of the slider bar.
-       Ref<Texture2D> handleTexture; ///< The texture of the slider handle.
+       Ref<Texture2D> BarTexture; ///< The texture of the slider bar.
+       Ref<Texture2D> HandleTexture; ///< The texture of the slider handle.
        glm::vec2 Size = { 300.0f, 50.0f }; ///< The size of the slider bar.
        glm::vec2 HandleSize = { 75.0f, 75.0f }; ///< The size of the slider handle.
        float Value = 0.5f; ///< The current value of the slider.
 
        UISliderComponent() {
-           barTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
-           handleTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+           BarTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+           HandleTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
        }
 
        UISliderComponent(const std::string& barTexturePath, const std::string& handleTexturePath, const glm::vec2& size, const glm::vec2& handleSize)
            : Size(size), HandleSize(handleSize) {
            if (!barTexturePath.empty()) {
-               barTexture = Texture2D::Load(barTexturePath);
+               BarTexture = Texture2D::Load(barTexturePath);
            } else {
-               barTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+               BarTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
            }
 
            if (!handleTexturePath.empty()) {
-               handleTexture = Texture2D::Load(handleTexturePath);
+               HandleTexture = Texture2D::Load(handleTexturePath);
            } else {
-               handleTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+               HandleTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
            }
        }
 
@@ -1005,7 +1005,7 @@ namespace Coffee {
         * @param newTexture The new texture to set.
         */
        void SetBarTexture(const Ref<Texture2D>& newTexture) {
-           barTexture = newTexture;
+           BarTexture = newTexture;
        }
 
        /**
@@ -1014,7 +1014,7 @@ namespace Coffee {
         */
        void SetBarTexture(const std::string& texturePath) {
            if (!texturePath.empty()) {
-               barTexture = Texture2D::Load(texturePath);
+               BarTexture = Texture2D::Load(texturePath);
            }
        }
 
@@ -1023,7 +1023,7 @@ namespace Coffee {
         * @param newTexture The new texture to set.
         */
        void SetHandleTexture(const Ref<Texture2D>& newTexture) {
-           handleTexture = newTexture;
+           HandleTexture = newTexture;
        }
 
        /**
@@ -1032,7 +1032,7 @@ namespace Coffee {
         */
        void SetHandleTexture(const std::string& texturePath) {
            if (!texturePath.empty()) {
-               handleTexture = Texture2D::Load(texturePath);
+               HandleTexture = Texture2D::Load(texturePath);
            }
        }
 
@@ -1042,19 +1042,19 @@ namespace Coffee {
         * @param archive The archive to serialize to.
         */
        template<class Archive>
-       void save(Archive& archive) const {
+       void save(Archive& archive, std::uint32_t const version) const {
            archive(
-               cereal::make_nvp("BarTextureUUID", barTexture ? barTexture->GetUUID() : UUID(0)),
-               cereal::make_nvp("HandleTextureUUID", handleTexture ? handleTexture->GetUUID() : UUID(0)),
+               cereal::make_nvp("BarTextureUUID", BarTexture ? BarTexture->GetUUID() : UUID(0)),
+               cereal::make_nvp("HandleTextureUUID", HandleTexture ? HandleTexture->GetUUID() : UUID(0)),
                cereal::make_nvp("Size", Size),
                cereal::make_nvp("HandleSize", HandleSize),
                cereal::make_nvp("Value", Value)
            );
-           UIComponent::save(archive);
+           UIComponent::save(archive, version);
        }
 
        template<class Archive>
-       void load(Archive& archive) {
+       void load(Archive& archive, std::uint32_t const version){
            UUID barTextureUUID, handleTextureUUID;
            archive(
                cereal::make_nvp("BarTextureUUID", barTextureUUID),
@@ -1063,13 +1063,14 @@ namespace Coffee {
                cereal::make_nvp("HandleSize", HandleSize),
                cereal::make_nvp("Value", Value)
            );
-           UIComponent::load(archive);
+           UIComponent::load(archive, version);
 
-           if (barTextureUUID != 0) barTexture = ResourceLoader::GetResource<Texture2D>(barTextureUUID);
-           if (handleTextureUUID != 0) handleTexture = ResourceLoader::GetResource<Texture2D>(handleTextureUUID);
+           if (barTextureUUID != 0) BarTexture = ResourceLoader::GetResource<Texture2D>(barTextureUUID);
+           if (handleTextureUUID != 0) HandleTexture = ResourceLoader::GetResource<Texture2D>(handleTextureUUID);
        }
    };
 
+   //FIX - It should go to another site like utils
    template <typename T>
    T Lerp(const T& start, const T& end, float t) {
        return start + t * (end - start);
@@ -1084,17 +1085,17 @@ namespace Coffee {
    {
        bool Visible = true;
 
-       Ref<Texture2D> baseTexture;
-       Ref<Texture2D> selectedTexture;
-       Ref<Texture2D> pressedTexture;
+       Ref<Texture2D>BaseTexture;
+       Ref<Texture2D> SelectedTexture;
+       Ref<Texture2D> PressedTexture;
 
-       glm::vec2 baseSize = {100.0f, 100.0f};
-       glm::vec2 selectedSize = {120.0f, 120.0f};
-       glm::vec2 pressedSize = {90.0f, 90.0f};
+       glm::vec2 BaseSize = {100.0f, 100.0f};
+       glm::vec2 SelectedSize = {120.0f, 120.0f};
+       glm::vec2 PressedSize = {90.0f, 90.0f};
 
-       glm::vec4 baseColor = {1.0f, 1.0f, 1.0f, 1.0f};
-       glm::vec4 selectedColor = {0.8f, 0.8f, 1.0f, 1.0f};
-       glm::vec4 pressedColor = {0.6f, 0.6f, 1.0f, 1.0f};
+       glm::vec4 BaseColor = {1.0f, 1.0f, 1.0f, 1.0f};
+       glm::vec4 SelectedColor = {0.8f, 0.8f, 1.0f, 1.0f};
+       glm::vec4 PressedColor = {0.6f, 0.6f, 1.0f, 1.0f};
 
        enum class ButtonState
        {
@@ -1103,104 +1104,104 @@ namespace Coffee {
            Pressed
        };
 
-       ButtonState currentState = ButtonState::Base;
-       ButtonState targetState = ButtonState::Base;
+       ButtonState CurrentState = ButtonState::Base;
+       ButtonState TargetState = ButtonState::Base;
 
-       float transitionTime = 0.0f;
-       float transitionDuration = 0.2f;
+       float TransitionTime = 0.0f;
+       float TransitionDuration = 0.2f;
 
        UIButtonComponent() {
-           baseTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
-           selectedTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
-           pressedTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+           BaseTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+           SelectedTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+           PressedTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
        }
 
        UIButtonComponent(const std::string& baseTexturePath, const std::string& selectedTexturePath, const std::string& pressedTexturePath)
        {
            if (!baseTexturePath.empty()) {
-               baseTexture = Texture2D::Load(baseTexturePath);
+               BaseTexture = Texture2D::Load(baseTexturePath);
            } else {
-               baseTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+               BaseTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
            }
 
            if (!selectedTexturePath.empty()) {
-               selectedTexture = Texture2D::Load(selectedTexturePath);
+               SelectedTexture = Texture2D::Load(selectedTexturePath);
            } else {
-               selectedTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+               SelectedTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
            }
 
            if (!pressedTexturePath.empty()) {
-               pressedTexture = Texture2D::Load(pressedTexturePath);
+               PressedTexture = Texture2D::Load(pressedTexturePath);
            } else {
-               pressedTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+               PressedTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
            }
        }
 
        void SetState(ButtonState newState)
        {
-           if (targetState != newState)
+           if (TargetState != newState)
            {
-               targetState = newState;
-               transitionTime = 0.0f;
+               TargetState = newState;
+               TransitionTime = 0.0f;
            }
        }
 
        void Update(float dt)
        {
-           if (currentState != targetState)
+           if (CurrentState != TargetState)
            {
-               transitionTime += dt;
-               float t = glm::clamp(transitionTime / transitionDuration, 0.0f, 1.0f);
+               TransitionTime += dt;
+               float t = glm::clamp(TransitionTime / TransitionDuration, 0.0f, 1.0f);
 
                if (t >= 1.0f)
                {
-                   currentState = targetState;
+                   CurrentState = TargetState;
                }
            }
        }
 
        Ref<Texture2D> GetCurrentTexture() const
        {
-           switch (currentState)
+           switch (CurrentState)
            {
-           case ButtonState::Selected: return selectedTexture;
-           case ButtonState::Pressed: return pressedTexture;
-           default: return baseTexture;
+           case ButtonState::Selected: return SelectedTexture;
+           case ButtonState::Pressed: return PressedTexture;
+           default: return BaseTexture;
            }
        }
 
        glm::vec2 GetCurrentSize() const
        {
-           return baseSize;
+           return BaseSize;
        }
 
        glm::vec4 GetCurrentColor() const
        {
-           glm::vec4 startColor = baseColor;
-           glm::vec4 endColor = (targetState == ButtonState::Selected) ? selectedColor : pressedColor;
-           float t = glm::clamp(transitionTime / transitionDuration, 0.0f, 1.0f);
+           glm::vec4 startColor = BaseColor;
+           glm::vec4 endColor = (TargetState == ButtonState::Selected) ? SelectedColor : PressedColor;
+           float t = glm::clamp(TransitionTime / TransitionDuration, 0.0f, 1.0f);
            return Lerp(startColor, endColor, t);
        }
 
        template<class Archive>
-       void save(Archive& archive) const {
+       void save(Archive& archive, std::uint32_t const version) const {
            archive(
-               cereal::make_nvp("BaseTextureUUID", baseTexture ? baseTexture->GetUUID() : UUID(0)),
-               cereal::make_nvp("SelectedTextureUUID", selectedTexture ? selectedTexture->GetUUID() : UUID(0)),
-               cereal::make_nvp("PressedTextureUUID", pressedTexture ? pressedTexture->GetUUID() : UUID(0)),
-               cereal::make_nvp("BaseSize", baseSize),
-               cereal::make_nvp("SelectedSize", selectedSize),
-               cereal::make_nvp("PressedSize", pressedSize),
-               cereal::make_nvp("BaseColor", baseColor),
-               cereal::make_nvp("SelectedColor", selectedColor),
-               cereal::make_nvp("PressedColor", pressedColor),
-               cereal::make_nvp("CurrentState", static_cast<int>(currentState))
+               cereal::make_nvp("BaseTextureUUID", BaseTexture ? BaseTexture->GetUUID() : UUID(0)),
+               cereal::make_nvp("SelectedTextureUUID", SelectedTexture ? SelectedTexture->GetUUID() : UUID(0)),
+               cereal::make_nvp("PressedTextureUUID", PressedTexture ? PressedTexture->GetUUID() : UUID(0)),
+               cereal::make_nvp("BaseSize", BaseSize),
+               cereal::make_nvp("SelectedSize", SelectedSize),
+               cereal::make_nvp("PressedSize", PressedSize),
+               cereal::make_nvp("BaseColor", BaseColor),
+               cereal::make_nvp("SelectedColor", SelectedColor),
+               cereal::make_nvp("PressedColor", PressedColor),
+               cereal::make_nvp("CurrentState", static_cast<int>(CurrentState))
            );
-           UIComponent::save(archive);
+           UIComponent::save(archive, version);
        }
 
        template<class Archive>
-       void load(Archive& archive) {
+       void load(Archive& archive, std::uint32_t const version){
            UUID baseTextureUUID, selectedTextureUUID, pressedTextureUUID;
            int currentStateInt;
 
@@ -1208,21 +1209,21 @@ namespace Coffee {
                cereal::make_nvp("BaseTextureUUID", baseTextureUUID),
                cereal::make_nvp("SelectedTextureUUID", selectedTextureUUID),
                cereal::make_nvp("PressedTextureUUID", pressedTextureUUID),
-               cereal::make_nvp("BaseSize", baseSize),
-               cereal::make_nvp("SelectedSize", selectedSize),
-               cereal::make_nvp("PressedSize", pressedSize),
-               cereal::make_nvp("BaseColor", baseColor),
-               cereal::make_nvp("SelectedColor", selectedColor),
-               cereal::make_nvp("PressedColor", pressedColor),
+               cereal::make_nvp("BaseSize", BaseSize),
+               cereal::make_nvp("SelectedSize", SelectedSize),
+               cereal::make_nvp("PressedSize", PressedSize),
+               cereal::make_nvp("BaseColor", BaseColor),
+               cereal::make_nvp("SelectedColor", SelectedColor),
+               cereal::make_nvp("PressedColor", PressedColor),
                cereal::make_nvp("CurrentState", currentStateInt)
            );
-           UIComponent::load(archive);
+           UIComponent::load(archive, version);
 
-           currentState = static_cast<ButtonState>(currentStateInt);
+           CurrentState = static_cast<ButtonState>(currentStateInt);
 
-           if (baseTextureUUID != 0) baseTexture = ResourceLoader::GetResource<Texture2D>(baseTextureUUID);
-           if (selectedTextureUUID != 0) selectedTexture = ResourceLoader::GetResource<Texture2D>(selectedTextureUUID);
-           if (pressedTextureUUID != 0) pressedTexture = ResourceLoader::GetResource<Texture2D>(pressedTextureUUID);
+           if (baseTextureUUID != 0) BaseTexture = ResourceLoader::GetResource<Texture2D>(baseTextureUUID);
+           if (selectedTextureUUID != 0) SelectedTexture = ResourceLoader::GetResource<Texture2D>(selectedTextureUUID);
+           if (pressedTextureUUID != 0) PressedTexture = ResourceLoader::GetResource<Texture2D>(pressedTextureUUID);
        }
    };
 
@@ -1300,18 +1301,18 @@ namespace Coffee {
         * @param archive The archive to serialize to.
         */
        template<class Archive>
-       void save(Archive& archive) const {
+       void save(Archive& archive, std::uint32_t const version) const {
            archive(
                cereal::make_nvp("ActiveTextureUUID", ActiveTexture ? ActiveTexture->GetUUID() : UUID(0)),
                cereal::make_nvp("InactiveTextureUUID", InactiveTexture ? InactiveTexture->GetUUID() : UUID(0)),
                cereal::make_nvp("Size", Size),
                cereal::make_nvp("IsActive", IsActive)
            );
-           UIComponent::save(archive);
+           UIComponent::save(archive, version);
        }
 
        template<class Archive>
-       void load(Archive& archive) {
+       void load(Archive& archive, std::uint32_t const version) {
            UUID activeTextureUUID, inactiveTextureUUID;
 
            archive(
@@ -1320,11 +1321,12 @@ namespace Coffee {
                cereal::make_nvp("Size", Size),
                cereal::make_nvp("IsActive", IsActive)
            );
-           UIComponent::load(archive);
+           UIComponent::load(archive, version);
 
            if (activeTextureUUID != 0) ActiveTexture = ResourceLoader::GetResource<Texture2D>(activeTextureUUID);
            if (inactiveTextureUUID != 0) InactiveTexture = ResourceLoader::GetResource<Texture2D>(inactiveTextureUUID);
        }
+
    };
 
    struct ParticlesSystemComponent
@@ -1462,5 +1464,11 @@ namespace Coffee {
        Ref<NavMeshComponent> m_NavMeshComponent = nullptr; ///< The navigation mesh component.
    };
 }
+CEREAL_CLASS_VERSION(Coffee::UIComponent, 1)
+CEREAL_CLASS_VERSION(Coffee::UIImageComponent, 1)
+CEREAL_CLASS_VERSION(Coffee::UITextComponent, 1)
+CEREAL_CLASS_VERSION(Coffee::UISliderComponent, 1)
+CEREAL_CLASS_VERSION(Coffee::UIButtonComponent, 1)
+CEREAL_CLASS_VERSION(Coffee::UIToggleComponent, 1)
 
 /** @} */
