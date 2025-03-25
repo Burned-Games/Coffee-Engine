@@ -11,3 +11,6 @@
 [submodule "CoffeeEngine/vendor/msdf-atlas-gen"]
 	path = CoffeeEngine/vendor/msdf-atlas-gen
 	url = https://github.com/Chlumsky/msdf-atlas-gen.git
+[submodule "CoffeeEngine/vendor/entt_snapshot"]
+	path = CoffeeEngine/vendor/entt_snapshot
+	url = https://github.com/LeonFretter/entt_snapshot.git

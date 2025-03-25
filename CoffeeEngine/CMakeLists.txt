@@ -68,6 +68,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ozz_animation_offline
     ${LUA_LIBRARIES}
     ${BULLET_LIBRARIES}
+    entt_snapshot
 )
 
 # Libraries Cofigurations
@@ -114,6 +115,7 @@ add_subdirectory(vendor/IconFontCppHeaders)
 add_subdirectory(vendor/ozz_animation)
 add_subdirectory(vendor/Wwise)
 add_subdirectory(vendor/msdf-atlas-gen)
+add_subdirectory(vendor/entt_snapshot)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(${PROJECT_NAME} PRIVATE COFFEE_DEBUG=1)

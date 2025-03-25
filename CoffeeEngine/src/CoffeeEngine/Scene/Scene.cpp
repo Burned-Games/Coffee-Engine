@@ -25,6 +25,8 @@
 #include "entt/entity/entity.hpp"
 #include "entt/entity/fwd.hpp"
 #include "entt/entity/snapshot.hpp"
+#include "vendor/entt_snapshot/include/entt_snapshot/Archive.hpp"
+#include "vendor/entt_snapshot/include/entt_snapshot/Snapshot.hpp"
 
 #include <cstdint>
 #include <cstdlib>
@@ -552,7 +554,8 @@ namespace Coffee {
         std::ofstream sceneFile(path);
         cereal::JSONOutputArchive archive(sceneFile);
 
-        archive(*scene);
+        snapshot::OutputArchive snapshotArchive{archive};
+        snapshot::Snapshot::save(snapshotArchive, scene->m_Registry, snapshot::ShouldSerialize::tautology());
 
         scene->m_FilePath = path;
     }
