@@ -13,4 +13,4 @@
 	url = https://github.com/Chlumsky/msdf-atlas-gen.git
 [submodule "CoffeeEngine/vendor/entt_snapshot"]
 	path = CoffeeEngine/vendor/entt_snapshot
-	url = https://github.com/LeonFretter/entt_snapshot.git
+	url = https://github.com/Burned-Games/entt_snapshot.git
