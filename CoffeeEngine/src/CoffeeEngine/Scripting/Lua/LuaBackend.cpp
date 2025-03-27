@@ -916,7 +916,7 @@ namespace Coffee {
         },
 
 
-        "set_visible", &UIButtonComponent::Visible,
+        "set_visible",  [](UIImageComponent& self, bool visible) { self.Visible = visible; },
         "is_visible", &UIButtonComponent::Visible,
 
         "set_base_texture", [](UIButtonComponent& self, const std::string& texturePath) {
