@@ -963,7 +963,12 @@ namespace Coffee {
            UIComponent::load(archive, version);
 
            Alignment = static_cast<Font::UITextAlignment>(alignmentInt);
-           if (!FontPath.empty()) {
+           if (!FontPath.empty())
+           {
+               FontLoaded = CreateRef<Font>(FontPath);
+           }
+           else
+           {
                FontLoaded = Font::GetDefault();
            }
        }
