@@ -310,46 +310,44 @@ namespace Coffee {
           * @tparam Archive The type of the archive.
           * @param archive The archive to deserialize from.
           */
-         template<class Archive>
-         void load(Archive& archive)
+         template<class Archive> void load(Archive& archive)
          {
              archive(cereal::make_nvp("BlendDuration", BlendDuration),
-                     cereal::make_nvp("AnimationSpeed", AnimationSpeed),
-                     cereal::make_nvp("Loop", Loop),
-                     cereal::make_nvp("ModelUUID", modelUUID),
-                     cereal::make_nvp("AnimatorUUID", animatorUUID),
+                     cereal::make_nvp("AnimationSpeed", AnimationSpeed), cereal::make_nvp("Loop", Loop),
+                     cereal::make_nvp("ModelUUID", modelUUID), cereal::make_nvp("AnimatorUUID", animatorUUID),
                      cereal::make_nvp("UpperAnimation", UpperAnimation),
                      cereal::make_nvp("LowerAnimation", LowerAnimation),
                      cereal::make_nvp("PartialBlendThreshold", PartialBlendThreshold),
                      cereal::make_nvp("UpperBodyWeight", UpperBodyWeight),
                      cereal::make_nvp("LowerBodyWeight", LowerBodyWeight),
                      cereal::make_nvp("UpperBodyRootJoint", UpperBodyRootJoint));
+         }
 
-     public:
-         bool Loop = true; ///< Indicates if the animation should loop.
-         float BlendDuration = 0.25f; ///< The duration of the blend.
-         float AnimationSpeed = 1.0f; ///< The speed of the animation.
+         public:
+             bool Loop = true; ///< Indicates if the animation should loop.
+             float BlendDuration = 0.25f; ///< The duration of the blend.
+             float AnimationSpeed = 1.0f; ///< The speed of the animation.
  
-         std::vector<glm::mat4> JointMatrices; ///< The joint matrices.
-         UUID modelUUID; ///< The UUID of the model.
-         UUID animatorUUID; ///< The UUID of the animator.
-         int UpperBodyRootJoint = 0; ///< Index of the root joint for upper body animations.
-         std::vector<ozz::math::SoaTransform> PartialBlendOutput; ///< Output transforms for partial blending.
+             std::vector<glm::mat4> JointMatrices; ///< The joint matrices.
+             UUID modelUUID; ///< The UUID of the model.
+             UUID animatorUUID; ///< The UUID of the animator.
+             int UpperBodyRootJoint = 0; ///< Index of the root joint for upper body animations.
+             std::vector<ozz::math::SoaTransform> PartialBlendOutput; ///< Output transforms for partial blending.
 
-         float UpperBodyWeight = 1.0f; ///< Weight for blending upper body animations.
-         float LowerBodyWeight = 1.0f; ///< Weight for blending lower body animations.
-         float PartialBlendThreshold = 0.01f; ///< Threshold for partial blending.
+             float UpperBodyWeight = 1.0f; ///< Weight for blending upper body animations.
+             float LowerBodyWeight = 1.0f; ///< Weight for blending lower body animations.
+             float PartialBlendThreshold = 0.01f; ///< Threshold for partial blending.
 
-         Ref<AnimationLayer> UpperAnimation; ///< Animation layer for upper body animations.
-         Ref<AnimationLayer> LowerAnimation; ///< Animation layer for lower body animations.
-     private:
-       Ref<Skeleton> m_Skeleton; ///< The skeleton reference.
-       Ref<AnimationController> m_AnimationController; ///< The animation controller reference.
+             Ref<AnimationLayer> UpperAnimation; ///< Animation layer for upper body animations.
+             Ref<AnimationLayer> LowerAnimation; ///< Animation layer for lower body animations.
+         private:
+           Ref<Skeleton> m_Skeleton; ///< The skeleton reference.
+           Ref<AnimationController> m_AnimationController; ///< The animation controller reference.
 
-       ozz::animation::SamplingJob::Context m_Context; ///< The sampling job context.
-       ozz::animation::BlendingJob::Layer m_BlendLayers[2]; ///< The blend layers.
-       ozz::animation::BlendingJob m_BlendJob; ///< The blending job.
-   };
+           ozz::animation::SamplingJob::Context m_Context; ///< The sampling job context.
+           ozz::animation::BlendingJob::Layer m_BlendLayers[2]; ///< The blend layers.
+           ozz::animation::BlendingJob m_BlendJob; ///< The blending job.
+    };
 
    /**
      * @brief Component representing a mesh.
@@ -1519,12 +1517,13 @@ namespace Coffee {
     };
 
 
-}
+} // namespace Coffee
 CEREAL_CLASS_VERSION(Coffee::UIComponent, 1)
 CEREAL_CLASS_VERSION(Coffee::UIImageComponent, 1)
 CEREAL_CLASS_VERSION(Coffee::UITextComponent, 1)
 CEREAL_CLASS_VERSION(Coffee::UISliderComponent, 1)
 CEREAL_CLASS_VERSION(Coffee::UIButtonComponent, 1)
 CEREAL_CLASS_VERSION(Coffee::UIToggleComponent, 1)
+
 
 /** @} */

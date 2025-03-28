@@ -946,15 +946,6 @@ namespace Coffee {
         "set_pressed_size", [](UIButtonComponent& self, float width, float height) {
             self.PressedSize = {width, height};
         },
-
-        "get_current_size", [](UIButtonComponent& self) -> sol::table {
-            auto size = self.GetCurrentSize();
-            sol::table sizeTable = luaState.create_table();
-            sizeTable[1] = size.x;
-            sizeTable[2] = size.y;
-            return sizeTable;
-        },
-
         "set_base_color", [](UIButtonComponent& self, float r, float g, float b, float a) {
             self.BaseColor = {r, g, b, a};
         },
@@ -963,16 +954,6 @@ namespace Coffee {
         },
         "set_pressed_color", [](UIButtonComponent& self, float r, float g, float b, float a) {
             self.PressedColor = {r, g, b, a};
-        },
-
-        "get_current_color", [](UIButtonComponent& self) -> sol::table {
-            auto color = self.GetCurrentColor();
-            sol::table colorTable = luaState.create_table();
-            colorTable[1] = color.r;
-            colorTable[2] = color.g;
-            colorTable[3] = color.b;
-            colorTable[4] = color.a;
-            return colorTable;
         },
          "get_layer", &UIImageComponent::Layer,
          "set_layer", [](UIImageComponent& self, int layer) { self.Layer = layer; },
