@@ -15,11 +15,14 @@ namespace Coffee {
             Ref<Script> CreateScript(const std::filesystem::path& path) override;
             void ExecuteScript(Script& script) override;
 
-            sol::state& GetLuaState() const { return luaState; }
+            const sol::state& GetLuaState() const { return luaState; }
+
+            void SetWorkingDirectory(const std::filesystem::path& path) override;
 
             void Shutdown() override {}
         private:
-            static sol::state luaState;
+            sol::state luaState;
+            std::string dafaultPackagePath;
     };
 
 } // namespace Coffee

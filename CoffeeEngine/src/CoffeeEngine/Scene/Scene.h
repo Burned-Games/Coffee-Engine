@@ -177,7 +177,9 @@ namespace Coffee {
             .template get<UISliderComponent>(archive)
             .template get<UIButtonComponent>(archive)
             .template get<UIToggleComponent>(archive)
-            .template get<ParticlesSystemComponent>(archive);
+            .template get<ParticlesSystemComponent>(archive)
+            .template get<ActiveComponent>(archive)
+            .template get<StaticComponent>(archive);
          }
 
         /**
@@ -211,7 +213,10 @@ namespace Coffee {
             .template get<UISliderComponent>(archive)
             .template get<UIButtonComponent>(archive)
             .template get<UIToggleComponent>(archive)
-            .template get<ParticlesSystemComponent>(archive);
+            .template get<ParticlesSystemComponent>(archive)
+            .template get<ActiveComponent>(archive)
+            .template get<StaticComponent>(archive);
+
 
             AssignAnimatorsToMeshes(AnimationSystem::GetAnimators());
         }

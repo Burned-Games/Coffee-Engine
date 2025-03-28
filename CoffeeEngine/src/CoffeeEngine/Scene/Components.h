@@ -85,238 +85,263 @@ namespace Coffee {
      private:
        glm::mat4 worldMatrix = glm::mat4(1.0f); ///< The world transformation matrix.
      public:
-       glm::vec3 Position = { 0.0f, 0.0f, 0.0f }; ///< The position vector.
-       glm::vec3 Rotation = { 0.0f, 0.0f, 0.0f }; ///< The rotation vector.
-       glm::vec3 Scale = { 1.0f, 1.0f, 1.0f }; ///< The scale vector.
+         glm::vec3 Position = { 0.0f, 0.0f, 0.0f }; ///< The position vector.
+         glm::vec3 Rotation = { 0.0f, 0.0f, 0.0f }; ///< The rotation vector.
+         glm::vec3 Scale = { 1.0f, 1.0f, 1.0f }; ///< The scale vector.
+ 
+         TransformComponent() = default;
+         TransformComponent(const TransformComponent&) = default;
+         TransformComponent(const glm::vec3& position)
+             : Position(position) {}
+ 
+         /**
+          * @brief Gets the local transformation matrix.
+          * @return The local transformation matrix.
+          */
+         glm::mat4 GetLocalTransform() const
+         {
+             glm::mat4 rotation = glm::toMat4(glm::quat(glm::radians(Rotation)));
+ 
+             return glm::translate(glm::mat4(1.0f), Position)
+                     * rotation
+                     * glm::scale(glm::mat4(1.0f), Scale);
+         }
+ 
+         /**
+          * @brief Sets the local transformation matrix.
+          * @param transform The transformation matrix to set.
+          */
+         void SetLocalTransform(const glm::mat4& transform) //TODO: Improve this function, this way is ugly and glm::decompose is from gtx (is supposed to not be very stable)
+         {
+             glm::vec3 skew;
+             glm::vec4 perspective;
+             glm::quat orientation;
+ 
+             glm::decompose(transform, Scale, orientation, Position, skew, perspective);
+             Rotation = glm::degrees(glm::eulerAngles(orientation));
+         }
+ 
+         /**
+          * @brief Gets the world transformation matrix.
+          * @return The world transformation matrix.
+          */
+         const glm::mat4& GetWorldTransform() const
+         {
+             return worldMatrix;
+         }
+ 
+         /**
+          * @brief Sets the world transformation matrix.
+          * @param transform The transformation matrix to set.
+          */
+         void SetWorldTransform(const glm::mat4& transform)
+         {
+             worldMatrix = transform * GetLocalTransform();
+         }
+ 
+         /**
+          * @brief Serializes the TransformComponent.
+          * @tparam Archive The type of the archive.
+          * @param archive The archive to serialize to.
+          */
+         template<class Archive>
+         void serialize(Archive& archive)
+         {
+             archive(cereal::make_nvp("Position", Position), cereal::make_nvp("Rotation", Rotation), cereal::make_nvp("Scale", Scale));
+         }
+     };
+ 
+     /**
+      * @brief Component representing a camera.
+      * @ingroup scene
+      */
+     struct CameraComponent
+     {
+         SceneCamera Camera; ///< The scene camera.
+ 
+         CameraComponent() = default;
+         CameraComponent(const CameraComponent&) = default;
+ 
+         /**
+          * @brief Serializes the CameraComponent.
+          * @tparam Archive The type of the archive.
+          * @param archive The archive to serialize to.
+          */
+         template<class Archive>
+         void serialize(Archive& archive)
+         {
+             archive(cereal::make_nvp("Camera", Camera));
+         }
+     };
+ 
+     /**
+      * @brief Component representing an animator.
+      * @ingroup scene
+      */
+     struct AnimatorComponent
+     {
+         AnimatorComponent() = default;
+ 
+         /**
+          * @brief Copy constructor for AnimatorComponent.
+          * @param other The other AnimatorComponent to copy from.
+          */
+         AnimatorComponent(const AnimatorComponent& other)
+         : Loop(other.Loop),
+           BlendDuration(other.BlendDuration),
+           AnimationSpeed(other.AnimationSpeed),
+           JointMatrices(other.JointMatrices),
+           modelUUID(other.modelUUID),
+           animatorUUID(other.animatorUUID),
+           m_Skeleton(other.m_Skeleton),
+           m_AnimationController(other.m_AnimationController),
+           UpperAnimation(other.UpperAnimation),
+           LowerAnimation(other.LowerAnimation),
+           PartialBlendThreshold(other.PartialBlendThreshold),
+           UpperBodyWeight(other.UpperBodyWeight),
+           LowerBodyWeight(other.LowerBodyWeight),
+           UpperBodyRootJoint(other.UpperBodyRootJoint)
+         {
+             m_BlendJob.layers = ozz::make_span(m_BlendLayers);
+             const std::string rootJointName = GetSkeleton()->GetJoints()[UpperBodyRootJoint].name;
+             AnimationSystem::SetupPartialBlending(UpperAnimation->CurrentAnimation, LowerAnimation->CurrentAnimation, rootJointName, this);
+             AnimationSystem::AddAnimator(this);
+         }
+ 
+         /**
+          * @brief Constructs an AnimatorComponent with the given skeleton, animation controller, and animation system.
+          * @param skeleton The skeleton reference.
+          * @param animationController The animation controller reference.
+          */
+         AnimatorComponent(Ref<Skeleton> skeleton, Ref<AnimationController> animationController)
+         : m_Skeleton(std::move(skeleton)), m_AnimationController(std::move(animationController)), UpperAnimation(std::make_shared<AnimationLayer>()), LowerAnimation(std::make_shared<AnimationLayer>())
+         {
+             m_BlendJob.layers = ozz::make_span(m_BlendLayers);
+             JointMatrices = m_Skeleton->GetJointMatrices();
+         }
+ 
+         /**
+          * @brief Gets the skeleton reference.
+          * @return The skeleton reference.
+          */
+         Ref<Skeleton> GetSkeleton() const { return m_Skeleton; }
 
-       TransformComponent() = default;
-       TransformComponent(const TransformComponent&) = default;
-       TransformComponent(const glm::vec3& position)
-           : Position(position) {}
+         /**
+          * @brief Sets the skeleton reference.
+          * @param skeleton The skeleton reference to set.
+          */
+         void SetSkeleton(Ref<Skeleton> skeleton) { m_Skeleton = std::move(skeleton); }
+ 
+         /**
+          * @brief Gets the animation controller reference.
+          * @return The animation controller reference.
+          */
+         Ref<AnimationController> GetAnimationController() const { return m_AnimationController; }
 
-       /**
-         * @brief Gets the local transformation matrix.
-         * @return The local transformation matrix.
-        */
-       glm::mat4 GetLocalTransform() const
-       {
-           glm::mat4 rotation = glm::toMat4(glm::quat(glm::radians(Rotation)));
+         /**
+          * @brief Sets the animation controller reference.
+          * @param animationController The animation controller reference to set.
+          */
+         void SetAnimationController(Ref<AnimationController> animationController) { m_AnimationController = std::move(animationController); }
 
-           return glm::translate(glm::mat4(1.0f), Position)
-                  * rotation
-                  * glm::scale(glm::mat4(1.0f), Scale);
-       }
+         /**
+          * @brief Gets the sampling job context.
+          * @return The sampling job context.
+          */
+         ozz::animation::SamplingJob::Context& GetContext() { return m_Context; }
+ 
+         /**
+          * @brief Gets the blend layers.
+          * @return The blend layers.
+          */
+         ozz::animation::BlendingJob::Layer* GetBlendLayers() { return m_BlendLayers; }
+ 
+         /**
+          * @brief Gets the blending job.
+          * @return The blending job.
+          */
+         ozz::animation::BlendingJob& GetBlendJob() { return m_BlendJob; }
 
-       /**
-         * @brief Sets the local transformation matrix.
-         * @param transform The transformation matrix to set.
-        */
-       void SetLocalTransform(const glm::mat4& transform) //TODO: Improve this function, this way is ugly and glm::decompose is from gtx (is supposed to not be very stable)
-       {
-           glm::vec3 skew;
-           glm::vec4 perspective;
-           glm::quat orientation;
+         /**
+          * @brief Sets the current animation for both upper and lower body layers.
+          * @param index The index of the animation to set.
+          */
+         void SetCurrentAnimation(unsigned int index)
+         {
+            AnimationSystem::SetCurrentAnimation(index, this, UpperAnimation.get());
+            AnimationSystem::SetCurrentAnimation(index, this, LowerAnimation.get());
+         }
 
-           glm::decompose(transform, Scale, orientation, Position, skew, perspective);
-           Rotation = glm::degrees(glm::eulerAngles(orientation));
-       }
+         /**
+          * @brief Sets the current animation for the upper body layer.
+          * @param index The index of the animation to set.
+          */
+         void SetUpperAnimation(unsigned int index) { AnimationSystem::SetCurrentAnimation(index, this, UpperAnimation.get()); }
 
-       /**
-         * @brief Gets the world transformation matrix.
-         * @return The world transformation matrix.
-        */
-       const glm::mat4& GetWorldTransform() const
-       {
-           return worldMatrix;
-       }
-
-       /**
-         * @brief Sets the world transformation matrix.
-         * @param transform The transformation matrix to set.
-        */
-       void SetWorldTransform(const glm::mat4& transform)
-       {
-           worldMatrix = transform * GetLocalTransform();
-       }
-
-       /**
-         * @brief Serializes the TransformComponent.
-         * @tparam Archive The type of the archive.
-         * @param archive The archive to serialize to.
-        */
-       template<class Archive>
-       void serialize(Archive& archive)
-       {
-           archive(cereal::make_nvp("Position", Position), cereal::make_nvp("Rotation", Rotation), cereal::make_nvp("Scale", Scale));
-       }
-   };
-
-   /**
-     * @brief Component representing a camera.
-     * @ingroup scene
-    */
-   struct CameraComponent
-   {
-       SceneCamera Camera; ///< The scene camera.
-
-       CameraComponent() = default;
-       CameraComponent(const CameraComponent&) = default;
-
-       /**
-         * @brief Serializes the CameraComponent.
-         * @tparam Archive The type of the archive.
-         * @param archive The archive to serialize to.
-        */
-       template<class Archive>
-       void serialize(Archive& archive)
-       {
-           archive(cereal::make_nvp("Camera", Camera));
-       }
-   };
-
-   /**
-     * @brief Component representing an animator.
-     * @ingroup scene
-    */
-   struct AnimatorComponent
-   {
-       AnimatorComponent() = default;
-
-       /**
-         * @brief Copy constructor for AnimatorComponent.
-         * @param other The other AnimatorComponent to copy from.
-        */
-       AnimatorComponent(const AnimatorComponent& other)
-           : IsBlending(other.IsBlending),
-             Loop(other.Loop),
-             CurrentAnimation(other.CurrentAnimation),
-             NextAnimation(other.NextAnimation),
-             AnimationTime(other.AnimationTime),
-             NextAnimationTime(other.NextAnimationTime),
-             BlendTime(other.BlendTime),
-             BlendDuration(other.BlendDuration),
-             BlendThreshold(other.BlendThreshold),
-             AnimationSpeed(other.AnimationSpeed),
-             JointMatrices(other.JointMatrices),
-             modelUUID(other.modelUUID),
-             animatorUUID(other.animatorUUID),
-             m_Skeleton(other.m_Skeleton),
-             m_AnimationController(other.m_AnimationController)
-       {
-           m_BlendJob.layers = ozz::make_span(m_BlendLayers);
-           AnimationSystem::SetCurrentAnimation(CurrentAnimation, this);
-           AnimationSystem::AddAnimator(this);
-       }
-
-       /**
-         * @brief Constructs an AnimatorComponent with the given skeleton, animation controller, and animation system.
-         * @param skeleton The skeleton reference.
-         * @param animationController The animation controller reference.
-        */
-       AnimatorComponent(Ref<Skeleton> skeleton, Ref<AnimationController> animationController)
-           : m_Skeleton(std::move(skeleton)), m_AnimationController(std::move(animationController))
-       {
-           m_BlendJob.layers = ozz::make_span(m_BlendLayers);
-           JointMatrices = m_Skeleton->GetJointMatrices();
-       }
-
-       /**
-         * @brief Gets the skeleton reference.
-         * @return The skeleton reference.
-        */
-       Ref<Skeleton> GetSkeleton() const { return m_Skeleton; }
-
-       /**
-         * @brief Sets the skeleton reference.
-         * @param skeleton The skeleton reference to set.
-        */
-       void SetSkeleton(Ref<Skeleton> skeleton) { m_Skeleton = skeleton; }
-
-       /**
-         * @brief Gets the animation controller reference.
-         * @return The animation controller reference.
-        */
-       Ref<AnimationController> GetAnimationController() const { return m_AnimationController; }
-
-       /**
-         * @brief Sets the animation controller reference.
-         * @param animationController The animation controller reference to set.
-        */
-       void SetAnimationController(Ref<AnimationController> animationController) { m_AnimationController = animationController; }
-
-       /**
-         * @brief Gets the sampling job context.
-         * @return The sampling job context.
-        */
-       ozz::animation::SamplingJob::Context& GetContext() { return m_Context; }
-
-       /**
-         * @brief Gets the blend layers.
-         * @return The blend layers.
-        */
-       ozz::animation::BlendingJob::Layer* GetBlendLayers() { return m_BlendLayers; }
-
-       /**
-         * @brief Gets the blending job.
-         * @return The blending job.
-        */
-       ozz::animation::BlendingJob& GetBlendJob() { return m_BlendJob; }
-
-
-       void SetCurrentAnimation(int index) { AnimationSystem::SetCurrentAnimation(index, this);}
-
-       /**
-         * @brief Serializes the AnimatorComponent.
-         * @tparam Archive The type of the archive.
-         * @param archive The archive to serialize to.
-        */
-       template<class Archive>
-       void save(Archive& archive) const
-       {
-           archive(cereal::make_nvp("CurrentAnimation", CurrentAnimation),
-                   cereal::make_nvp("BlendDuration", BlendDuration),
-                   cereal::make_nvp("BlendThreshold", BlendThreshold),
-                   cereal::make_nvp("AnimationSpeed", AnimationSpeed),
-                   cereal::make_nvp("Loop", Loop),
-                   cereal::make_nvp("ModelUUID", modelUUID),
-                   cereal::make_nvp("AnimatorUUID", animatorUUID));
-       }
-
-       /**
-         * @brief Deserializes the AnimatorComponent.
-         * @tparam Archive The type of the archive.
-         * @param archive The archive to deserialize from.
-        */
-       template<class Archive>
-       void load(Archive& archive)
-       {
-           archive(cereal::make_nvp("CurrentAnimation", CurrentAnimation),
-                   cereal::make_nvp("BlendDuration", BlendDuration),
-                   cereal::make_nvp("BlendThreshold", BlendThreshold),
-                   cereal::make_nvp("AnimationSpeed", AnimationSpeed),
-                   cereal::make_nvp("Loop", Loop),
-                   cereal::make_nvp("ModelUUID", modelUUID),
-                   cereal::make_nvp("AnimatorUUID", animatorUUID));
-
-           AnimationSystem::LoadAnimator(this);
-       }
+         /**
+          * @brief Sets the current animation for the lower body layer.
+          * @param index The index of the animation to set.
+          */
+         void SetLowerAnimation(unsigned int index) { AnimationSystem::SetCurrentAnimation(index, this, LowerAnimation.get()); }
+ 
+         /**
+          * @brief Serializes the AnimatorComponent.
+          * @tparam Archive The type of the archive.
+          * @param archive The archive to serialize to.
+          */
+         template<class Archive>
+         void save(Archive& archive) const
+         {
+             archive(cereal::make_nvp("BlendDuration", BlendDuration),
+                     cereal::make_nvp("AnimationSpeed", AnimationSpeed),
+                     cereal::make_nvp("Loop", Loop),
+                     cereal::make_nvp("ModelUUID", modelUUID),
+                     cereal::make_nvp("AnimatorUUID", animatorUUID),
+                     cereal::make_nvp("UpperAnimation", UpperAnimation),
+                     cereal::make_nvp("LowerAnimation", LowerAnimation),
+                     cereal::make_nvp("PartialBlendThreshold", PartialBlendThreshold),
+                     cereal::make_nvp("UpperBodyWeight", UpperBodyWeight),
+                     cereal::make_nvp("LowerBodyWeight", LowerBodyWeight),
+                     cereal::make_nvp("UpperBodyRootJoint", UpperBodyRootJoint));
+         }
+ 
+         /**
+          * @brief Deserializes the AnimatorComponent.
+          * @tparam Archive The type of the archive.
+          * @param archive The archive to deserialize from.
+          */
+         template<class Archive>
+         void load(Archive& archive)
+         {
+             archive(cereal::make_nvp("BlendDuration", BlendDuration),
+                     cereal::make_nvp("AnimationSpeed", AnimationSpeed),
+                     cereal::make_nvp("Loop", Loop),
+                     cereal::make_nvp("ModelUUID", modelUUID),
+                     cereal::make_nvp("AnimatorUUID", animatorUUID),
+                     cereal::make_nvp("UpperAnimation", UpperAnimation),
+                     cereal::make_nvp("LowerAnimation", LowerAnimation),
+                     cereal::make_nvp("PartialBlendThreshold", PartialBlendThreshold),
+                     cereal::make_nvp("UpperBodyWeight", UpperBodyWeight),
+                     cereal::make_nvp("LowerBodyWeight", LowerBodyWeight),
+                     cereal::make_nvp("UpperBodyRootJoint", UpperBodyRootJoint));
 
      public:
-       bool IsBlending = false; ///< Indicates if the animation is blending.
-       bool Loop = true; ///< Indicates if the animation should loop.
-       unsigned int CurrentAnimation = 0; ///< The current animation index.
-       unsigned int NextAnimation = 0; ///< The next animation index.
-       float AnimationTime = 0.f; ///< The current animation time.
-       float NextAnimationTime = 0.f; ///< The next animation time.
-       float BlendTime = 0.f; ///< The current blend time.
-       float BlendDuration = 0.25f; ///< The duration of the blend.
-       float BlendThreshold = 0.8; ///< The blend threshold.
-       float AnimationSpeed = 1.0f; ///< The speed of the animation.
+         bool Loop = true; ///< Indicates if the animation should loop.
+         float BlendDuration = 0.25f; ///< The duration of the blend.
+         float AnimationSpeed = 1.0f; ///< The speed of the animation.
+ 
+         std::vector<glm::mat4> JointMatrices; ///< The joint matrices.
+         UUID modelUUID; ///< The UUID of the model.
+         UUID animatorUUID; ///< The UUID of the animator.
+         int UpperBodyRootJoint = 0; ///< Index of the root joint for upper body animations.
+         std::vector<ozz::math::SoaTransform> PartialBlendOutput; ///< Output transforms for partial blending.
 
-       std::vector<glm::mat4> JointMatrices; ///< The joint matrices.
-       UUID modelUUID; ///< The UUID of the model.
-       UUID animatorUUID; ///< The UUID of the animator.
+         float UpperBodyWeight = 1.0f; ///< Weight for blending upper body animations.
+         float LowerBodyWeight = 1.0f; ///< Weight for blending lower body animations.
+         float PartialBlendThreshold = 0.01f; ///< Threshold for partial blending.
 
+         Ref<AnimationLayer> UpperAnimation; ///< Animation layer for upper body animations.
+         Ref<AnimationLayer> LowerAnimation; ///< Animation layer for lower body animations.
      private:
        Ref<Skeleton> m_Skeleton; ///< The skeleton reference.
        Ref<AnimationController> m_AnimationController; ///< The animation controller reference.
@@ -1468,6 +1493,32 @@ namespace Coffee {
        Ref<NavMeshPathfinding> m_PathFinder = nullptr; ///< The pathfinder.
        Ref<NavMeshComponent> m_NavMeshComponent = nullptr; ///< The navigation mesh component.
    };
+
+   struct ActiveComponent
+    {
+        ActiveComponent() = default;
+        ActiveComponent(const ActiveComponent&) = default;
+
+        template<class Archive>
+        void save (Archive& archive) const {}
+
+        template<class Archive>
+        void load (Archive& archive) {}
+    };
+
+    struct StaticComponent
+    {
+        StaticComponent() = default;
+        StaticComponent(const StaticComponent&) = default;
+
+        template<class Archive>
+        void save (Archive& archive) const {}
+
+        template<class Archive>
+        void load (Archive& archive) {}
+    };
+
+
 }
 CEREAL_CLASS_VERSION(Coffee::UIComponent, 1)
 CEREAL_CLASS_VERSION(Coffee::UIImageComponent, 1)

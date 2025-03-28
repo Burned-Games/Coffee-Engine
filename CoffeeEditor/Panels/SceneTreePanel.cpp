@@ -130,25 +130,27 @@ namespace Coffee
     void SceneTreePanel::DrawEntityNode(Entity entity)
     {
         auto& entityNameTag = entity.GetComponent<TagComponent>().Tag;
-
         auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
-
+    
         ImGuiTreeNodeFlags flags = ((m_SelectionContext == entity) ? ImGuiTreeNodeFlags_Selected : 0) |
                                    ((hierarchyComponent.m_First == entt::null) ? ImGuiTreeNodeFlags_Leaf : 0) |
-                                   ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_FramePadding |
-                                   ImGuiTreeNodeFlags_SpanAvailWidth;
-
+                                   ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_FramePadding;
+        
+        bool isActive = entity.IsActive();
+        const char* icon = isActive ? ICON_LC_EYE : ICON_LC_EYE_OFF;
+        std::string buttonId = "##Active" + std::to_string((uint32_t)entity);
+        
+        // Draw the tree node first, so ImGui sets up the proper indentation
         bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(uint32_t)entity, flags, entityNameTag.c_str());
-
+    
         if (ImGui::IsItemClicked())
         {
             m_SelectionContext = entity;
         }
-
+    
         // Code of Double clicking the item for changing the name (WIP)
-
         ImVec2 itemSize = ImGui::GetItemRectSize();
-
+    
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
         {
             ImVec2 popupPos = ImGui::GetItemRectMin();
@@ -156,9 +158,9 @@ namespace Coffee
             ImGui::SetNextWindowPos({popupPos.x + indent, popupPos.y});
             ImGui::OpenPopup("EntityPopup");
         }
-
+    
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-
+    
         if (ImGui::BeginPopup("EntityPopup" /*, ImGuiWindowFlags_NoBackground*/))
         {
             auto buff = entity.GetComponent<TagComponent>().Tag.c_str();
@@ -166,9 +168,9 @@ namespace Coffee
             ImGui::InputText("##entity-name", (char*)buff, 128);
             ImGui::EndPopup();
         }
-
+    
         ImGui::PopStyleVar();
-
+    
         if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
         {
             ImGui::SetDragDropPayload("ENTITY_NODE", &entity,
@@ -176,7 +178,7 @@ namespace Coffee
             ImGui::Text("%s", entityNameTag.c_str());
             ImGui::EndDragDropSource();
         }
-
+    
         if (ImGui::BeginDragDropTarget())
         {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_NODE"))
@@ -191,7 +193,34 @@ namespace Coffee
             }
             ImGui::EndDragDropTarget();
         }
-
+    
+        // Calculate the eye icon position based on current indentation level
+        // This fixes the issue where eye icon moves left when entity becomes a child
+        float iconPosition = ImGui::GetWindowContentRegionMax().x - 
+                             ImGui::CalcTextSize(icon).x - 
+                             ImGui::GetStyle().FramePadding.x * 2.0f;
+    
+        // Set cursor position to align icon to the right
+        float currentX = ImGui::GetCursorPosX();
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(iconPosition);
+    
+        // Style the icon button
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.4f, 0.4f, 0.8f));
+    
+        // Create button with just the icon
+        if (ImGui::Button((icon + buttonId).c_str()))
+        {
+            // Toggle active state when clicked
+            isActive = !isActive;
+            entity.SetActive(isActive);
+        }
+    
+        // Restore original style
+        ImGui::PopStyleColor(3);
+    
         if (opened)
         {
             if (hierarchyComponent.m_First != entt::null)
@@ -242,19 +271,47 @@ namespace Coffee
         if (entity.HasComponent<TagComponent>())
         {
             auto& entityNameTag = entity.GetComponent<TagComponent>().Tag;
-
+        
             ImGui::Text(ICON_LC_TAG " Tag");
             ImGui::SameLine();
-
+        
+            // Make the tag input field smaller to accommodate the "Static" checkbox
+            float availableWidth = ImGui::GetContentRegionAvail().x;
+            float tagInputWidth = availableWidth * 0.7f; // Use 70% of the width for the tag input
+        
+            // Set the width of the input field
+            ImGui::PushItemWidth(tagInputWidth);
+        
             char buffer[256];
             memset(buffer, 0, sizeof(buffer));
             strcpy(buffer, entityNameTag.c_str());
-
+        
             if (ImGui::InputText("##", buffer, sizeof(buffer)))
             {
                 entityNameTag = std::string(buffer);
             }
-
+            
+            ImGui::PopItemWidth();
+        
+            // Add a small space
+            ImGui::SameLine();
+            
+            // Add the "Static" checkbox
+            bool isStatic = entity.HasComponent<StaticComponent>();
+            if (ImGui::Checkbox("Static", &isStatic))
+            {
+                if (isStatic)
+                {
+                    if (!entity.HasComponent<StaticComponent>())
+                        entity.AddComponent<StaticComponent>();
+                }
+                else
+                {
+                    if (entity.HasComponent<StaticComponent>())
+                        entity.RemoveComponent<StaticComponent>();
+                }
+            }
+        
             ImGui::Separator();
         }
 
@@ -1866,18 +1923,61 @@ namespace Coffee
             bool isCollapsingHeaderOpen = true;
             if (ImGui::CollapsingHeader("Animator", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
-                const char* animationName = animatorComponent.GetAnimationController()
-                                                ->GetAnimation(animatorComponent.CurrentAnimation)
-                                                ->GetAnimationName()
-                                                .c_str();
+                const char* UpperAnimName = animatorComponent.GetAnimationController()->GetAnimation(animatorComponent.UpperAnimation->CurrentAnimation)->GetAnimationName().c_str();
+                const char* LowerAnimName = animatorComponent.GetAnimationController()->GetAnimation(animatorComponent.LowerAnimation->CurrentAnimation)->GetAnimationName().c_str();
+                const char* AnimName = UpperAnimName == LowerAnimName ? UpperAnimName : "Mixed";
 
-                if (ImGui::BeginCombo("Animation", animationName))
+                if (ImGui::BeginCombo("Animation", AnimName))
                 {
                     for (auto& [name, animation] : animatorComponent.GetAnimationController()->GetAnimationMap())
                     {
-                        if (ImGui::Selectable(name.c_str()) && name != animationName)
+                        if (ImGui::Selectable(name.c_str()) && name != AnimName)
                         {
-                            AnimationSystem::SetCurrentAnimation(name, &animatorComponent);
+                            UpperAnimName = name.c_str();
+                            LowerAnimName = name.c_str();
+                            animatorComponent.SetCurrentAnimation(animation);
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+
+                if (ImGui::BeginCombo("UpperAnimation", UpperAnimName))
+                {
+                    for (auto& [name, animation] : animatorComponent.GetAnimationController()->GetAnimationMap())
+                    {
+                        if (ImGui::Selectable(name.c_str()) && name != UpperAnimName)
+                        {;
+                            UpperAnimName = name.c_str();
+                            animatorComponent.SetUpperAnimation(animation);
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+
+                if (ImGui::BeginCombo("LowerAnimation", LowerAnimName))
+                {
+                    for (auto& [name, animation] : animatorComponent.GetAnimationController()->GetAnimationMap())
+                    {
+                        if (ImGui::Selectable(name.c_str()) && name != LowerAnimName)
+                        {
+                            LowerAnimName = name.c_str();
+                            animatorComponent.SetLowerAnimation(animation);
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+
+                const char* RootJointName = animatorComponent.GetSkeleton()->GetJoints()[animatorComponent.UpperBodyRootJoint].name.c_str();
+
+                if (ImGui::BeginCombo("RootJointName", RootJointName))
+                {
+                    for (auto& joint : animatorComponent.GetSkeleton()->GetJoints())
+                    {
+                        if (ImGui::Selectable(joint.name.c_str()) && joint.name != RootJointName)
+                        {
+                            RootJointName = joint.name.c_str();
+                            std::map<std::string, unsigned int> animationMap = animatorComponent.GetAnimationController()->GetAnimationMap();
+                            AnimationSystem::SetupPartialBlending(animationMap[UpperAnimName], animationMap[LowerAnimName], RootJointName, &animatorComponent);
                         }
                     }
                     ImGui::EndCombo();
@@ -1885,7 +1985,11 @@ namespace Coffee
 
                 ImGui::DragFloat("Blend Duration", &animatorComponent.BlendDuration, 0.01f, 0.01f, 2.0f, "%.2f");
 
-                ImGui::DragFloat("Blend Threshold", &animatorComponent.BlendThreshold, 0.01f, 0.01f, 1.0f, "%.2f");
+                ImGui::DragFloat("UpperBodyWeight", &animatorComponent.UpperBodyWeight, 0.01f, 0.0f, 1.0f, "%.2f");
+
+                ImGui::DragFloat("LowerBodyWeight", &animatorComponent.LowerBodyWeight, 0.01f, 0.0f, 1.0f, "%.2f");
+
+                ImGui::DragFloat("PartialBlendThreshold", &animatorComponent.PartialBlendThreshold, 0.01f, 0.0f, 1.0f, "%.2f");
 
                 ImGui::DragFloat("Animation Speed", &animatorComponent.AnimationSpeed, 0.01f, 0.1f, 5.0f, "%.2f");
 
@@ -2283,20 +2387,6 @@ namespace Coffee
                     ImGui::DragFloat3("##ParticleStartRotation", glm::value_ptr(emitter->startRotation), 0.1f);
                 }
 
-                // Simulation Space
-                // ImGui::Text("Simulation Space");
-                // ImGui::SameLine();
-
-                //// Show Combo Menu
-                // const char* simulationSpaceOptions[] = {"Local", "World", "Custom"};
-                // int currentSimulationSpace = static_cast<int>(emitter->simulationSpace);
-
-                // if (ImGui::Combo("##SimulationSpace", &currentSimulationSpace, simulationSpaceOptions,
-                //                  IM_ARRAYSIZE(simulationSpaceOptions)))
-                //{
-                //     emitter->simulationSpace = static_cast<ParticleEmitter::SimulationSpace>(currentSimulationSpace);
-                // }
-
                 ImGui::Checkbox("##UseEmission", &emitter->useEmission);
                 ImGui::SameLine();
                 ImGui::PushID("Emission");
@@ -2314,6 +2404,14 @@ namespace Coffee
                     ImGui::Text("Rate over Time");
                     ImGui::SameLine();
                     ImGui::DragFloat("##ParticleRateOverTime", &emitter->rateOverTime, 0.1, 0);
+
+                    ImGui::Text("Emit test");
+                    ImGui::SameLine();
+                    ImGui::DragFloat("##ParticlesEmitTest", &emitter->emitParticlesTest, 0.1, 0);
+                    if (ImGui::Button("Emit Particles"))
+                    {   
+                        emitter->Emit(emitter->emitParticlesTest);
+                    }
 
                     ImGui::TreePop();
                 }
@@ -2584,26 +2682,77 @@ namespace Coffee
                     ImGui::Combo("##RenderAlignment", reinterpret_cast<int*>(&emitter->renderAlignment), renderModes,
                                  IM_ARRAYSIZE(renderModes));
 
-                    // ImGui::SameLine();
-                    // if (ImGui::Button("Select Material"))
-                    //{
-                    //     // Open Material selection logic here
-                    // }
+                    // Material selection
+                    ImGui::Text("Material");
+                    auto DrawTextureWidget = [&](const std::string& label, Ref<Texture2D>& texture) {
+                        uint32_t textureID = texture ? texture->GetID() : 0;
+                        ImGui::ImageButton(label.c_str(), (ImTextureID)textureID, {64, 64});
 
-                    //// Texture Selector
-                    // ImGui::Text("Texture");
-                    // ImGui::SameLine();
-                    // if (ImGui::Button("Select Texture"))
-                    //{
-                    //     // Open texture selection logic here
-                    // }
+                        auto textureImageFormat = [](ImageFormat format) -> std::string {
+                            switch (format)
+                            {
+                            case ImageFormat::R8:
+                                return "R8";
+                            case ImageFormat::RGB8:
+                                return "RGB8";
+                            case ImageFormat::RGBA8:
+                                return "RGBA8";
+                            case ImageFormat::SRGB8:
+                                return "SRGB8";
+                            case ImageFormat::SRGBA8:
+                                return "SRGBA8";
+                            case ImageFormat::RGBA32F:
+                                return "RGBA32F";
+                            case ImageFormat::DEPTH24STENCIL8:
+                                return "DEPTH24STENCIL8";
+                            }
+                        };
 
-                    // Render Alignment selection
-                    /*const char* renderAlignments[] = {"View", "Local", "World"};
-                    ImGui::Text("Render Alignment");
-                    ImGui::SameLine();
-                    ImGui::Combo("##RenderAlignment", reinterpret_cast<int*>(&emitter->renderAlignment),
-                                 renderAlignments, IM_ARRAYSIZE(renderAlignments));*/
+                        if (ImGui::IsItemHovered() and texture)
+                        {
+                            ImGui::SetTooltip("Name: %s\nSize: %d x %d\nPath: %s", texture->GetName().c_str(),
+                                              texture->GetWidth(), texture->GetHeight(),
+                                              textureImageFormat(texture->GetImageFormat()).c_str(),
+                                              texture->GetPath().c_str());
+                        }
+
+                        if (ImGui::BeginDragDropTarget())
+                        {
+                            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("RESOURCE"))
+                            {
+                                const Ref<Resource>& resource = *(Ref<Resource>*)payload->Data;
+                                if (resource->GetType() == ResourceType::Texture2D)
+                                {
+                                    const Ref<Texture2D>& t = std::static_pointer_cast<Texture2D>(resource);
+                                    texture = t;
+                                }
+                            }
+                            ImGui::EndDragDropTarget();
+                        }
+
+                        ImGui::SameLine();
+                        if (ImGui::BeginCombo((label + "texture").c_str(), "", ImGuiComboFlags_NoPreview))
+                        {
+                            if (ImGui::Selectable("Clear"))
+                            {
+                                texture = nullptr;
+                            }
+                            if (ImGui::Selectable("Open"))
+                            {
+                                std::string path = FileDialog::OpenFile({}).string();
+                                if (!path.empty())
+                                {
+                                    Ref<Texture2D> t = Texture2D::Load(path);
+                                    texture = t;
+                                }
+                            }
+                            ImGui::EndCombo();
+                        }
+                    };
+
+                    ImGui::Text("Texture");
+                    DrawTextureWidget("##Albedo", emitter->particleMaterial->GetMaterialTextures().albedo);
+
 
                     // Restore default state
                     if (!emitter->useRenderer)
@@ -3030,7 +3179,7 @@ namespace Coffee
                 {
                     Entity e = m_Context->CreateEntity("ParticleSystem");
                     e.AddComponent<ParticlesSystemComponent>();
-                    e.AddComponent<MaterialComponent>(Material::Create("Default Particle Material"));
+                    //e.AddComponent<MaterialComponent>(Material::Create("Default Particle Material"));
                     SetSelectedEntity(e);
                     ImGui::CloseCurrentPopup();
                 }

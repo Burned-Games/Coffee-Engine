@@ -83,7 +83,13 @@ namespace Coffee
 
         particle->transformMatrix = auxMatrix;
 
-        particle->direction = useDirectionRandom ? glm::linearRand(direction, directionRandom) : direction;
+
+        //Relative to Transform Component rotation
+        glm::vec3 worldDirection = useDirectionRandom ? glm::linearRand(direction, directionRandom) : direction;
+        particle->direction = glm::vec3(transformComponentMatrix * glm::vec4(worldDirection, 0));
+
+
+
         particle->color = useColorRandom ? glm::linearRand(colorNormal, colorRandom) : colorNormal;
         if (particleMaterial)
             particleMaterial->GetMaterialProperties().color = particle->color;
@@ -149,6 +155,45 @@ namespace Coffee
             glm::mat4 viewMatrix = cameraViewMatrix; // Get the camera's view matrix
             glm::mat4 billboardTransform = CalculateBillboardTransform(particle->transformMatrix, viewMatrix);
 
+
+            if (!useRotationOverLifetime)
+            {
+                glm::mat4 localRotationX =
+                    glm::rotate(glm::mat4(1.0f), glm::radians(particle->startRotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+                billboardTransform = billboardTransform * localRotationX;
+
+                glm::mat4 localRotationY =
+                    glm::rotate(glm::mat4(1.0f), glm::radians(particle->startRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+                billboardTransform = billboardTransform * localRotationY;
+
+                glm::mat4 localRotationZ =
+                    glm::rotate(glm::mat4(1.0f), glm::radians(particle->startRotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+                billboardTransform = billboardTransform * localRotationZ;
+            
+            }
+            else
+            {
+                glm::vec3 newRotation;
+                newRotation.x = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeX), -1, 1);
+
+                newRotation.y = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeY), -1, 1);
+
+                newRotation.z = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeZ), -1, 1);
+
+
+                glm::mat4 localRotationX = glm::rotate(glm::mat4(1.0f), glm::radians(newRotation.x * particle->startRotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+                billboardTransform = billboardTransform * localRotationX;
+
+                glm::mat4 localRotationY = glm::rotate(glm::mat4(1.0f), glm::radians(newRotation.z * particle->startRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+                billboardTransform = billboardTransform * localRotationY;
+
+                glm::mat4 localRotationZ = glm::rotate(glm::mat4(1.0f), glm::radians(newRotation.y * particle->startRotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+                billboardTransform = billboardTransform * localRotationZ;
+            }
+
+            
+           
+
             //Fix for the rotation primitive plane
             glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
             billboardTransform = billboardTransform * rotationMatrix;
@@ -169,13 +214,18 @@ namespace Coffee
         {
             if (velocityOverLifeTimeSeparateAxes)
             {
-                newVelocity.x = CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeX);
-                newVelocity.y = CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeY);
-                newVelocity.z = CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeZ);
+                newVelocity.x = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeX), -1, 1);
+                
+                newVelocity.z = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeY), -1, 1);
+                
+                newVelocity.y = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeZ), -1, 1);
+                
             }
             else
             {
-                float uniformSize = CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeGeneral);
+                
+                float uniformSize = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeGeneral),
+                                                 -1, 1);
                 newVelocity = glm::vec3(uniformSize);
             }
         }
@@ -185,27 +235,31 @@ namespace Coffee
             glm::vec3 newSize;
             if (sizeOverLifeTimeSeparateAxes)
             {
-                newSize.x = CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeX);
-                newSize.y = CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeY);
-                newSize.z = CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeZ);
+
+                newSize.x = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeX), -1, 1);
+
+                newSize.z = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeY), -1, 1);
+
+                newSize.y = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeZ), -1, 1);
+
+
             }
             else
             {
-                float uniformSize = CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeGeneral);
+                float uniformSize = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeGeneral), -1, 1);
                 newSize = glm::vec3(uniformSize);
             }
             particle->SetSize(newSize * particle->startSize);
         }
 
-        if (useRotationOverLifetime)
-        {
-            glm::vec3 newRotation;
-            newRotation.x = CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeX);
-            newRotation.y = CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeY);
-            newRotation.z = CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeZ);
+        
 
-            particle->SetRotation(newRotation + particle->startRotation);
+        if (useColorOverLifetime)
+        {
+            ImVec4 newColor = GradientEditor::GetGradientValue(normalizedLife, colorOverLifetime_gradientPoints);
+            particle->color = glm::vec4(newColor.x, newColor.y, newColor.z, newColor.w);
         }
+
 
         if (simulationSpace == SimulationSpace::Local)
         {
@@ -251,19 +305,30 @@ namespace Coffee
         for (size_t i = 0; i < activeParticles.size(); i++)
         {
             Ref<Particle> p = activeParticles.at(i);
-            Renderer3D::Submit(RenderCommand{p->GetWorldTransform(), ParticleEmitter::particleMesh, particleMaterial});
+            DrawParticles(p);
         }
     }
 
     void ParticleEmitter::DrawParticles(Ref<Particle> p)
     {  
-       Renderer3D::Submit(RenderCommand{p->GetWorldTransform(), ParticleEmitter::particleMesh, particleMaterial}); 
+        RenderCommand renderCommand;
+        renderCommand.transform = p->GetWorldTransform();
+        renderCommand.mesh = ParticleEmitter::particleMesh;
+        renderCommand.material = particleMaterial;
+        renderCommand.animator = nullptr;
+
+       Renderer3D::Submit(renderCommand); 
     }
 
     void ParticleEmitter::DrawDebug()
     {
         glm::vec3 auxTransformPosition = glm::vec3(transformComponentMatrix[3]);
+        glm::vec3 direction = glm::normalize(glm::vec3(transformComponentMatrix[1]));
+
+
         Renderer2D::DrawBox(minSpread + auxTransformPosition, maxSpread + auxTransformPosition, glm::vec4(1.0f), 1.0f);
+        Renderer2D::DrawArrow(transformComponentMatrix[3], direction, 1.5f);
+
     }
 
     void ParticleEmitter::Emit(int quantity)

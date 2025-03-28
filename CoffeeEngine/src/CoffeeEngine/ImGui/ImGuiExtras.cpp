@@ -106,6 +106,40 @@ void GradientEditor::ShowGradientEditor(std::vector<GradientPoint>& points)
     }
 }
 
+ImVec4 GradientEditor::GetGradientValue(float t, const std::vector<GradientPoint>& points)
+{
+    if (points.empty())
+        return ImVec4(0, 0, 0, 1); // Default color if no points are defined
+
+    // Clamp t to the range [0, 1]
+    t = ImClamp(t, 0.0f, 1.0f);
+
+    // Find the two nearest points
+    GradientPoint lower = points[0];
+    GradientPoint upper = points.back();
+
+    for (const auto& point : points)
+    {
+        if (point.position <= t)
+            lower = point;
+        if (point.position >= t && point.position < upper.position)
+            upper = point;
+    }
+
+    // If t is exactly at a point, return its color
+    if (lower.position == t)
+        return lower.color;
+    if (upper.position == t)
+        return upper.color;
+
+    // Interpolate between the two nearest points
+    float t_interp = (t - lower.position) / (upper.position - lower.position);
+    return ImVec4(lower.color.x + t_interp * (upper.color.x - lower.color.x),
+                  lower.color.y + t_interp * (upper.color.y - lower.color.y),
+                  lower.color.z + t_interp * (upper.color.z - lower.color.z),
+                  lower.color.w + t_interp * (upper.color.w - lower.color.w));
+}
+
 
 void CurveEditor::DrawCurve(const char* label, std::vector<CurvePoint>& points, ImVec2 graph_size)
 {
@@ -186,7 +220,7 @@ void CurveEditor::DrawCurve(const char* label, std::vector<CurvePoint>& points, 
             float newTime = (mouse_pos.x - graph_pos.x) / graph_size.x;
             float newValue = 1.0f - (mouse_pos.y - graph_pos.y) / graph_size.y;
             points[i].time = std::clamp(newTime, 0.0f, 1.0f);
-            points[i].value = std::clamp(newValue, 0.0f, 1.5f); // Configurable upper limit
+            points[i].value = std::clamp(newValue, 0.0f, 1.0f); // Configurable upper limit
         }
 
         // Draw control points
@@ -234,4 +268,9 @@ float CurveEditor::GetCurveValue(float time, const std::vector<CurvePoint>& poin
     }
 
     return 0.0f; // Should not reach here
+}
+
+float CurveEditor::ScaleCurveValue(float curveValue, float min, float max)
+{
+    return curveValue * (max - min) + min;
 }

@@ -23,6 +23,8 @@ namespace Coffee {
 
             virtual void ExecuteScript(Script& script) = 0;
 
+            virtual void SetWorkingDirectory(const std::filesystem::path& path) = 0;
+
             virtual void Shutdown() = 0;
     };
 

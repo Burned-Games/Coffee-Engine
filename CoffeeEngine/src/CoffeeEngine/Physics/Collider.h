@@ -36,8 +36,8 @@ namespace Coffee {
         
         friend class cereal::access;
         
-        template<class Archive>
-        void save(Archive& archive) const {
+        template<class Archive> void save(Archive& archive) const
+        {
             btCollisionShape* shape = getShape();
             int shapeType = shape ? shape->getShapeType() : -1;
             archive(cereal::make_nvp("ShapeType", shapeType));
@@ -70,8 +70,8 @@ namespace Coffee {
             }
         }
 
-        template<class Archive>
-        void load(Archive& archive) {
+        template<class Archive> void load(Archive& archive)
+        {
             int shapeType;
             archive(cereal::make_nvp("ShapeType", shapeType));
             archive(cereal::make_nvp("Offset", m_Offset));
@@ -104,6 +104,7 @@ namespace Coffee {
             }
         }
     };
+    
 
     class BoxCollider : public Collider {
     public:

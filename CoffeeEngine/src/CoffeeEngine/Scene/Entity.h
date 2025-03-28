@@ -52,8 +52,16 @@ namespace Coffee {
         T& AddComponent(Args&&... args)
         {
             COFFEE_CORE_ASSERT(!HasComponent<T>(), "Entity already has this component!");
-            T& component = m_Scene->m_Registry.emplace<T>(m_EntityHandle, std::forward<Args>(args)...);
-            return component;
+            
+            if constexpr(std::is_empty_v<T>) { // Check if the component is empty (ActiveComponent, for example)
+                // For empty types, register the component and return a static instance
+                m_Scene->m_Registry.emplace<T>(m_EntityHandle, std::forward<Args>(args)...);
+
+                static T emptyInstance; // Since empty types have no state, a static instance is functionally equivalent
+                return emptyInstance;
+            } else {
+                return m_Scene->m_Registry.emplace<T>(m_EntityHandle, std::forward<Args>(args)...);
+            }
         }
 
         /**
@@ -188,6 +196,63 @@ namespace Coffee {
             }
 
             return children;
+        }
+
+        bool IsActive()
+        {
+            if (!HasComponent<ActiveComponent>())
+                return false;
+                
+            Entity parent = GetParent();
+            while (parent)
+            {
+                if (!parent.HasComponent<ActiveComponent>())
+                    return false;
+                parent = parent.GetParent();
+            }
+            
+            return true;
+        }
+        
+        void SetActive(bool active)
+        {
+            bool currentlyActive = HasComponent<ActiveComponent>();
+
+            if (active == currentlyActive)
+                return;
+
+            if (active) {
+                AddComponent<ActiveComponent>();
+
+                // TODO move this to a more appropriate place
+                // Re-enable physics if entity has a rigidbody
+                if (HasComponent<RigidbodyComponent>()) {
+                    auto& rbComponent = GetComponent<RigidbodyComponent>();
+                    if (rbComponent.rb && rbComponent.rb->GetNativeBody()) {
+                        m_Scene->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
+                        rbComponent.rb->GetNativeBody()->setUserPointer(reinterpret_cast<void*>(static_cast<uintptr_t>(m_EntityHandle)));
+                    }
+                }
+            }
+            else
+            {
+                // TODO move this to a more appropriate place
+                // Disable physics before removing ActiveComponent
+                if (HasComponent<RigidbodyComponent>()) {
+                    auto& rbComponent = GetComponent<RigidbodyComponent>();
+                    if (rbComponent.rb && rbComponent.rb->GetNativeBody()) {
+                        m_Scene->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
+                    }
+                }
+                
+                RemoveComponent<ActiveComponent>();
+            }
+            
+            auto children = GetChildren();
+            for (auto& child : children)
+            {
+                child.SetActive(active);
+            }
         }
 
     private:

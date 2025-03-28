@@ -51,6 +51,7 @@ namespace Coffee {
         ResourceLoader::SetWorkingDirectory(s_ActiveProject->m_ProjectDirectory);
         ResourceLoader::LoadDirectory(project->m_ProjectDirectory);
         SceneManager::SetWorkingDirectory(s_ActiveProject->m_ProjectDirectory);
+        ScriptManager::SetWorkingDirectory(s_ActiveProject->m_ProjectDirectory);
         Input::Load();
 
         return project;

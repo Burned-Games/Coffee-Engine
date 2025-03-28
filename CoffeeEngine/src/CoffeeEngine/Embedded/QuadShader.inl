@@ -68,6 +68,9 @@ void main()
     if (color.a < 0.1)
         discard;
 
+    // gamma correct
+    color.rgb = pow(color.rgb, vec3(1.0 / 2.2));
+
     FragColor = color;
     EntityID = vec4(entityID, 1.0f);
 }

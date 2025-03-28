@@ -1,13 +1,38 @@
 ﻿#pragma once
 
+#include "ozz/base/maths/soa_transform.h"
+
 #include <ozz/animation/runtime/animation.h>
 #include <ozz/base/memory/unique_ptr.h>
+
+#include <cereal/cereal.hpp>
 
 #include <string>
 #include <map>
 #include <vector>
 
 namespace Coffee {
+
+    /**
+     * @brief Struct representing a layer of animation blending.
+     */
+    struct AnimationLayer
+    {
+        bool IsBlending = false; ///< Indicates if blending is currently active.
+        unsigned int CurrentAnimation = 0; ///< Index of the current animation.
+        unsigned int NextAnimation = 0; ///< Index of the next animation to blend to.
+        float BlendTime = 0.0f; ///< Time duration for blending between animations.
+        float AnimationTime = 0.0f; ///< Current time position in the current animation.
+        float NextAnimationTime = 0.0f; ///< Current time position in the next animation.
+        std::vector<ozz::math::SoaTransform> LocalTransforms; ///< Local transforms for the animation joints.
+        std::vector<ozz::math::SimdFloat4> JointWeights; ///< Weights for blending animation joints.
+
+         template<class Archive>
+         void serialize(Archive& archive)
+         {
+             archive(cereal::make_nvp("CurrentAnimation", CurrentAnimation));
+         }
+    };
 
     /**
      * @brief Class representing an animation.

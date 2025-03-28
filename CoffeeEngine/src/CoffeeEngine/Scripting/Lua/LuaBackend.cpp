@@ -23,8 +23,6 @@
 
 namespace Coffee {
 
-    sol::state LuaBackend::luaState;
-
     void BindKeyCodesToLua(sol::state& lua, sol::table& inputTable)
     {
         std::vector<std::pair<std::string, KeyCode>> keyCodes = {
@@ -409,7 +407,9 @@ namespace Coffee {
     }
 
     void LuaBackend::Initialize() {
-        luaState.open_libraries(sol::lib::base, sol::lib::math, sol::lib::string, sol::lib::table);
+        luaState.open_libraries(sol::lib::base, sol::lib::math, sol::lib::string, sol::lib::table, sol::lib::package, sol::lib::coroutine);
+
+        dafaultPackagePath = luaState["package"]["path"];
 
         # pragma region Bind Log Functions
         luaState.set_function("log", [](const std::string& message) {
@@ -776,7 +776,9 @@ namespace Coffee {
             "get_prev_sibling", &Entity::GetPrevSibling,
             "get_child", &Entity::GetChild,
             "get_children", &Entity::GetChildren,
-            "is_valid", [](Entity* self) { return static_cast<bool>(*self); }
+            "is_valid", [](Entity* self) { return static_cast<bool>(*self); },
+            "is_active", &Entity::IsActive,
+            "set_active", &Entity::SetActive
         );
         #pragma endregion
 
@@ -1041,7 +1043,9 @@ namespace Coffee {
 
         luaState.new_usertype<AnimatorComponent>(
             "AnimatorComponent", sol::constructors<AnimatorComponent(), AnimatorComponent()>(),
-            "set_current_animation", &AnimatorComponent::SetCurrentAnimation
+            "set_current_animation", &AnimatorComponent::SetCurrentAnimation,
+            "set_upper_animation", &AnimatorComponent::SetUpperAnimation,
+            "set_lower_animation", &AnimatorComponent::SetLowerAnimation
         );
 
         luaState.new_usertype<AudioSourceComponent>("AudioSourceComponent",
@@ -1283,6 +1287,12 @@ namespace Coffee {
         } catch (const sol::error& e) {
             COFFEE_CORE_ERROR("Lua: {0}", e.what());
         }
+    }
+
+    void LuaBackend::SetWorkingDirectory(const std::filesystem::path& path) {
+        
+        luaState["package"]["path"] = dafaultPackagePath + ";" + path.string() + "/?.lua";
+
     }
 
 } // namespace Coffee
