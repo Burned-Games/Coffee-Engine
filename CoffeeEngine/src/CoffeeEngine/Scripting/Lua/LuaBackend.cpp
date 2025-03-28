@@ -358,28 +358,29 @@ namespace Coffee {
 
     void BindInputActionsToLua(sol::state& lua, sol::table& inputTable)
     {
-        // Actions
-        std::vector<std::pair<std::string, InputAction>> actionCodes = {
-            {"UiMoveHorizontal", ActionsEnum::UiMoveHorizontal},
-            {"UiMoveVertical", ActionsEnum::UiMoveVertical},
-            {"Confirm", ActionsEnum::Confirm},
-            {"Cancel",  ActionsEnum::Cancel},
-            {"MoveHorizontal", ActionsEnum::MoveHorizontal},
-            {"MoveVertical", ActionsEnum::MoveVertical},
-            {"AimHorizontal", ActionsEnum::AimHorizontal},
-            {"AimVertical", ActionsEnum::AimVertical},
-            {"Shoot", ActionsEnum::Shoot},
-            {"Melee", ActionsEnum::Melee},
-            {"Interact",  ActionsEnum::Interact},
-            {"Dash", ActionsEnum::Dash},
-            {"Cover", ActionsEnum::Cover},
-            {"Skill1", ActionsEnum::Skill1},
-            {"Skill2", ActionsEnum::Skill2},
-            {"Skill3", ActionsEnum::Skill3},
-            {"Injector",ActionsEnum::Injector},
-            {"Grenade", ActionsEnum::Grenade},
-            {"Map", ActionsEnum::Map},
-            {"Pause", ActionsEnum::Pause}
+        // DEPRECATED - Temporary conversion table for default input map
+        // Old actions - Old identifiers -> New identifiers
+        std::vector<std::pair<std::string, std::string>> actionCodes = {
+            {"UiMoveHorizontal", "UiX"},
+            {"UiMoveVertical", "UiY"},
+            {"Confirm", "Cancel"},
+            {"Cancel",  "Confirm"},
+            {"MoveHorizontal", "MoveX"},
+            {"MoveVertical", "MoveY"},
+            {"AimHorizontal", "AimX"},
+            {"AimVertical", "AimY"},
+            {"Shoot", "Shoot"},
+            {"Melee", "Melee"},
+            {"Interact",  "Interact"},
+            {"Dash", "Dash"},
+            {"Cover", "Cover"},
+            {"Skill1", "Skill1"},
+            {"Skill2", "Skill2"},
+            {"Skill3", "Skill3"},
+            {"Injector","Injector"},
+            {"Grenade", "Grenade"},
+            {"Map", "Map"},
+            {"Pause", "Pause"}
         };
 
         sol::table actionCodeTable = lua.create_table();
@@ -458,15 +459,15 @@ namespace Coffee {
             return std::make_tuple(mousePosition.x, mousePosition.y);
         });
 
-        inputTable.set_function("get_axis", [](InputAction action) {
+        inputTable.set_function("get_axis", [](const std::string& action) {
             return Input::GetBinding(action).AsAxis(false);
         });
 
-        inputTable.set_function("get_direction",[](InputAction action) {
+        inputTable.set_function("get_direction",[](const std::string& action) {
             return Input::GetBinding(action).AsAxis(true);
         });
 
-        inputTable.set_function("get_button", [](InputAction action) {
+        inputTable.set_function("get_button", [](const std::string& action) {
             return Input::GetBinding(action).AsButton();
         });
 

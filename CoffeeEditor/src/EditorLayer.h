@@ -10,6 +10,7 @@
 #include "Panels/ContentBrowserPanel.h"
 #include "Panels/MonitorPanel.h"
 #include "Panels/SceneTreePanel.h"
+#include "Panels/ProjectSettingsPanel.h"
 
 #include <Panels/ImportPanel.h>
 #include <Panels/OutputPanel.h>
@@ -74,6 +75,7 @@ namespace Coffee {
         OutputPanel m_OutputPanel;
         MonitorPanel m_MonitorPanel;
         ImportPanel m_ImportPanel;
+        ProjectSettingsPanel m_ProjectSettingsPanel;
     };
 
 }

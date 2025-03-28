@@ -45,7 +45,7 @@ namespace Coffee
         void serialize(Archive& archive, const uint32_t version)
         {
             archive(
-                CEREAL_NVP(Name),
+                //CEREAL_NVP(Name),
                 CEREAL_NVP(KeyPos),
                 CEREAL_NVP(KeyNeg),
                 CEREAL_NVP(ButtonPos),
@@ -94,4 +94,4 @@ namespace Coffee
 
 } // namespace Coffee
 
-CEREAL_CLASS_VERSION(Coffee::InputBinding, 1)
+CEREAL_CLASS_VERSION(Coffee::InputBinding, 2)

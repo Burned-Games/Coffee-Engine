@@ -30,6 +30,13 @@ namespace Coffee {
 
     const char* Gamepad::GetName() const { return SDL_GetGamepadName(m_gamepad); }
 
-    ControllerCode Gamepad::getId() const { return m_id; }
+    ControllerCode Gamepad::GetId() const
+    {
+        return m_id;
+    }
+    SDL_Gamepad* Gamepad::GetGamepad() const
+    {
+        return m_gamepad;
+    }
 
 } // Coffee

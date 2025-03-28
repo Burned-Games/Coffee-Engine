@@ -252,8 +252,8 @@ namespace Coffee {
                 if (ImGui::MenuItem(ICON_LC_FILE_PLUS_2 " New Project...", "Ctrl+N")) { NewProject(); }
                 if (ImGui::MenuItem(ICON_LC_FOLDER_OPEN " Open Project...", "Ctrl+O")) { OpenProject(); }
                 if (ImGui::MenuItem(ICON_LC_SAVE " Save Project", "Ctrl+S")) { SaveProject(); }
-                if(ImGui::MenuItem(ICON_LC_SETTINGS " Project Settings", nullptr, mainMenuWindows.ProjectSettings)) 
-                { 
+                if(ImGui::MenuItem(ICON_LC_SETTINGS " Project Settings", nullptr, mainMenuWindows.ProjectSettings))
+                {
                     mainMenuWindows.ProjectSettings = !mainMenuWindows.ProjectSettings;
                 }
                 ImGui::EndMenu();
@@ -329,10 +329,7 @@ namespace Coffee {
 
         if(mainMenuWindows.ProjectSettings)
         {
-            ImGui::Begin("Project Settings");
-            ImGui::Text("Project Settings");
-            ImGui::Separator();
-            ImGui::End();
+            m_ProjectSettingsPanel.OnImGuiRender();
         }
 
         // Editor Settings Popup

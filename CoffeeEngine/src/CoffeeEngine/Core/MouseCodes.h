@@ -22,6 +22,7 @@ namespace Coffee
          */
         enum : MouseCode
         {
+            Invalid = 0,
             ButtonLeft =    1, ///< Left mouse button
             ButtonMiddle =  2, ///< Middle mouse button
             ButtonRight =   3, ///< Right mouse button
