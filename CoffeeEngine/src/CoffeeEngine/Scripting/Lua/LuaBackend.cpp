@@ -626,6 +626,19 @@ namespace Coffee {
                     self->AddComponent<LightComponent>();
                 } else if (componentName == "ScriptComponent") {
                     self->AddComponent<ScriptComponent>();
+                } else if (componentName == "UIImageComponent") {
+                    self->AddComponent<UIImageComponent>();
+                } else if (componentName == "UITextComponent") {
+                    self->AddComponent<UITextComponent>();
+                } else if (componentName == "UISliderComponent"){
+                    self->AddComponent<UISliderComponent>();
+                }else if (componentName == "UIButtonComponent"){
+                    self->AddComponent<UIButtonComponent>();
+                }else if (componentName == "UIToggleComponent")
+                {
+                    self->AddComponent<UIToggleComponent>();
+                }else if (componentName == "UIAnchorPosition"){
+                    self->AddComponent<UIAnchorPosition>();
                 }else if (componentName == "ParticlesSystemComponent"){
                     self->AddComponent<ParticlesSystemComponent>();
                 } else if (componentName == "AudioSourceComponent") {
@@ -647,7 +660,19 @@ namespace Coffee {
                     return sol::make_object(luaState, std::ref(self->GetComponent<LightComponent>()));
                 } else if (componentName == "ScriptComponent") {
                     return sol::make_object(luaState, std::ref(self->GetComponent<ScriptComponent>()));
-                } else if (componentName == "ParticlesSystemComponent") {
+                } else if (componentName == "UIImageComponent") {
+                    return sol::make_object(luaState, std::ref(self->GetComponent<UIImageComponent>()));
+                } else if (componentName == "UITextComponent") {
+                    return sol::make_object(luaState, std::ref(self->GetComponent<UITextComponent>()));
+                }else if (componentName == "UISliderComponent"){
+                    return sol::make_object(luaState, std::ref(self->GetComponent<UISliderComponent>()));
+                }else if (componentName == "UIButtonComponent"){
+                    return sol::make_object(luaState, std::ref(self->GetComponent<UIButtonComponent>()));
+                }else if (componentName == "UIAnchorPosition"){
+                    return sol::make_object(luaState, std::ref(self->GetComponent<UIAnchorPosition>()));
+                }else if (componentName == "UIToggleComponent"){
+                    return sol::make_object(luaState, std::ref(self->GetComponent<UIToggleComponent>()));
+                }else if (componentName == "ParticlesSystemComponent") {
                     return sol::make_object(luaState, std::ref(self->GetComponent<ParticlesSystemComponent>()));
                 } else if (componentName == "NavigationAgentComponent") {
                     return sol::make_object(luaState, std::ref(self->GetComponent<NavigationAgentComponent>()));
@@ -676,7 +701,20 @@ namespace Coffee {
                     return self->HasComponent<LightComponent>();
                 } else if (componentName == "ScriptComponent") {
                     return self->HasComponent<ScriptComponent>();
-                } else if (componentName == "ParticlesSystemComponent") {
+                } else if (componentName == "UIImageComponent") {
+                    return self->HasComponent<UIImageComponent>();
+                } else if (componentName == "UITextComponent") {
+                    return self->HasComponent<UITextComponent>();
+                }
+                else if (componentName == "UISliderComponent"){
+                    return self->HasComponent<UISliderComponent>();
+                }else if (componentName == "UIButtonComponent"){
+                    return self->HasComponent<UIButtonComponent>();
+                }else if (componentName == "UIAnchorPosition"){
+                    return self->HasComponent<UIAnchorPosition>();
+                }else if (componentName == "UIToggleComponent"){
+                    return self->HasComponent<UIToggleComponent>();
+                }else if (componentName == "ParticlesSystemComponent") {
                     return self->HasComponent<ParticlesSystemComponent>();
                 } else if (componentName == "NavigationAgentComponent") {
                     return self->HasComponent<NavigationAgentComponent>();
@@ -704,8 +742,28 @@ namespace Coffee {
                     self->RemoveComponent<LightComponent>();
                 } else if (componentName == "ScriptComponent") {
                     self->RemoveComponent<ScriptComponent>();
-                } else if (componentName == "ParticlesSystemComponent") {
+
+                } else if (componentName == "UIImageComponent") {
+                    self->RemoveComponent<UIImageComponent>();
+                } else if (componentName == "UITextComponent") {
+                    self->RemoveComponent<UITextComponent>();
+                }else if (componentName == "UIAnchorPosition") {
+                    self->RemoveComponent<UIAnchorPosition>();
+                }else if (componentName == "UIButtonComponent") {
+                    self->RemoveComponent<UIButtonComponent>();
+                } else if (componentName == "UITextComponent") {
+                    self->RemoveComponent<UITextComponent>();
+                }
+                else if (componentName == "UISliderComponent") {
+                            self->RemoveComponent<UISliderComponent>();
+                }
+                else if (componentName == "UIToggleComponent") {
+                            self->RemoveComponent<UIToggleComponent>();
+                }
+                else if (componentName == "ParticlesSystemComponent") {
+                    
                     self->RemoveComponent<ParticlesSystemComponent>();
+
                 } else if (componentName == "RigidbodyComponent") {
                     self->RemoveComponent<RigidbodyComponent>();
                 } else if (componentName == "AudioSourceComponent") {
@@ -789,8 +847,155 @@ namespace Coffee {
             }
         );
 
+        luaState.new_usertype<UIImageComponent>("UIImageComponent",
+            sol::constructors<UIImageComponent(), UIImageComponent(const std::string&, const glm::vec2&, bool) >(),
+            "get_size", &UIImageComponent::Size,
+            "set_size", [](UIImageComponent& self, const glm::vec2& size) { self.Size = size; },
+            "is_visible", &UIImageComponent::Visible,
+            "set_visible", [](UIImageComponent& self, bool visible) { self.Visible = visible; },
+            "get_layer", &UIImageComponent::Layer,
+            "set_layer", [](UIImageComponent& self, int layer) { self.Layer = layer; },
+            "set_texture", sol::overload(
+                [](UIImageComponent& self, const Ref<Texture2D>& newTexture) { self.SetTexture(newTexture); },
+                [](UIImageComponent& self, const std::string& texturePath) { self.SetTexture(texturePath); }
+            )
+        );
+
+        luaState.new_usertype<UITextComponent>("UITextComponent",
+                sol::constructors<UITextComponent(), UITextComponent(const std::string&, const std::string&, float, const glm::vec4&)>(),
+                "get_text", &UITextComponent::Text,
+                "set_text", [](UITextComponent& self, const std::string& text) { self.Text = text; },
+                "get_font_path", &UITextComponent::FontPath,
+                "set_font_path", [](UITextComponent& self, const std::string& fontPath) { self.FontPath = fontPath; },
+                "get_font_size", &UITextComponent::FontSize,
+                "set_font_size", [](UITextComponent& self, float fontSize) { self.FontSize = fontSize; },
+                "get_color", &UITextComponent::Color,
+                "set_color", [](UITextComponent& self, const glm::vec4& color) { self.Color = color; },
+               "get_layer", &UIImageComponent::Layer,
+               "set_layer", [](UIImageComponent& self, int layer) { self.Layer = layer; },
+                "is_visible", &UITextComponent::Visible,
+                "set_visible", [](UITextComponent& self, bool visible) { self.Visible = visible; }
+            );
 
 
+        luaState.new_enum<UIAnchorPosition>("UIAnchorPosition",
+                                            {
+                                                {"TopLeft", UIAnchorPosition::TopLeft},
+                                                {"TopCenter", UIAnchorPosition::TopCenter},
+                                                {"TopRight", UIAnchorPosition::TopRight},
+                                                {"CenterLeft", UIAnchorPosition::CenterLeft},
+                                                {"Center", UIAnchorPosition::Center},
+                                                {"CenterRight", UIAnchorPosition::CenterRight},
+                                                {"BottomLeft", UIAnchorPosition::BottomLeft},
+                                                {"BottomCenter", UIAnchorPosition::BottomCenter},
+                                                {"BottomRight", UIAnchorPosition::BottomRight}
+                                            }
+        );
+
+
+
+            luaState.new_usertype<UIButtonComponent>("UIButtonComponent",
+        sol::constructors<UIButtonComponent(), UIButtonComponent(const std::string&, const std::string&, const std::string&)>(),
+
+        "set_state", [](UIButtonComponent& self, const std::string& state) {
+            if (state == "Base") {
+                self.SetState(UIButtonComponent::ButtonState::Base);
+            } else if (state == "Selected") {
+                self.SetState(UIButtonComponent::ButtonState::Selected);
+            } else if (state == "Pressed") {
+                self.SetState(UIButtonComponent::ButtonState::Pressed);
+            } else {
+                COFFEE_CORE_WARN("Invalid button state: {0}", state);
+            }
+        },
+        "get_state", [](UIButtonComponent& self) -> std::string {
+            switch (self.CurrentState) {
+                case UIButtonComponent::ButtonState::Base: return "Base";
+                case UIButtonComponent::ButtonState::Selected: return "Selected";
+                case UIButtonComponent::ButtonState::Pressed: return "Pressed";
+                default: return "Unknown";
+            }
+        },
+
+
+        "set_visible",  [](UIButtonComponent& self, bool visible) { self.Visible = visible; },
+        "is_visible", &UIButtonComponent::Visible,
+
+        "set_base_texture", [](UIButtonComponent& self, const std::string& texturePath) {
+            if (!texturePath.empty()) {
+                self.BaseTexture = Texture2D::Load(texturePath);
+            }
+        },
+        "set_selected_texture", [](UIButtonComponent& self, const std::string& texturePath) {
+            if (!texturePath.empty()) {
+                self.SelectedTexture = Texture2D::Load(texturePath);
+            }
+        },
+        "set_pressed_texture", [](UIButtonComponent& self, const std::string& texturePath) {
+            if (!texturePath.empty()) {
+                self.PressedTexture = Texture2D::Load(texturePath);
+            }
+        },
+
+        "set_base_size", [](UIButtonComponent& self, float width, float height) {
+            self.BaseSize = {width, height};
+        },
+        "set_selected_size", [](UIButtonComponent& self, float width, float height) {
+            self.SelectedSize = {width, height};
+        },
+        "set_pressed_size", [](UIButtonComponent& self, float width, float height) {
+            self.PressedSize = {width, height};
+        },
+        "set_base_color", [](UIButtonComponent& self, float r, float g, float b, float a) {
+            self.BaseColor = {r, g, b, a};
+        },
+        "set_selected_color", [](UIButtonComponent& self, float r, float g, float b, float a) {
+            self.SelectedColor = {r, g, b, a};
+        },
+        "set_pressed_color", [](UIButtonComponent& self, float r, float g, float b, float a) {
+            self.PressedColor = {r, g, b, a};
+        },
+         "get_layer", &UIImageComponent::Layer,
+         "set_layer", [](UIImageComponent& self, int layer) { self.Layer = layer; },
+
+        "update", &UIButtonComponent::Update
+    );
+
+        luaState.new_usertype<UISliderComponent>("UISliderComponent",
+        sol::constructors<UISliderComponent()>(),
+        "get_bar_texture", [](UISliderComponent& self) { return self.BarTexture; },
+        "set_bar_texture", [](UISliderComponent& self, const Ref<Texture2D>& texture) { self.BarTexture = texture; },
+        "get_handle_texture", [](UISliderComponent& self) { return self.HandleTexture; },
+        "set_handle_texture", [](UISliderComponent& self, const Ref<Texture2D>& texture) { self.HandleTexture = texture; },
+        "get_size", [](UISliderComponent& self) { return self.Size; },
+        "set_size", [](UISliderComponent& self, const glm::vec2& size) { self.Size = size; },
+        "get_handle_size", [](UISliderComponent& self) { return self.HandleSize; },
+        "set_handle_size", [](UISliderComponent& self, const glm::vec2& size) { self.HandleSize = size; },
+        "get_value", [](UISliderComponent& self) { return self.Value; },
+        "set_value", [](UISliderComponent& self, float value) { self.Value = glm::clamp(value, 0.0f, 1.0f); },
+        "is_visible", [](UISliderComponent& self) { return self.Visible; },
+        "set_visible", [](UISliderComponent& self, bool visible) { self.Visible = visible; },
+         "get_layer", &UIImageComponent::Layer,
+         "set_layer", [](UIImageComponent& self, int layer) { self.Layer = layer; },
+        "on_value_changed", [](UISliderComponent& self, sol::function callback){}
+        );
+
+        luaState.new_usertype<UIToggleComponent>("UIToggleComponent",
+            sol::constructors<UIToggleComponent(), UIToggleComponent(const std::string&, const std::string&, const glm::vec2&, bool)>(),
+            "is_active", &UIToggleComponent::IsActive,
+            "set_active", [](UIToggleComponent& self, bool active) { self.IsActive = active; },
+            "toggle", &UIToggleComponent::Toggle,
+            "is_visible", &UIToggleComponent::Visible,
+            "set_visible", [](UIToggleComponent& self, bool visible) { self.Visible = visible; },
+            "get_size", &UIToggleComponent::Size,
+            "set_size", [](UIToggleComponent& self, const glm::vec2& size) { self.Size = size; },
+             "get_layer", &UIImageComponent::Layer,
+             "set_layer", [](UIImageComponent& self, int layer) { self.Layer = layer; },
+            "get_active_texture", &UIToggleComponent::ActiveTexture,
+            "set_active_texture", [](UIToggleComponent& self, const Ref<Texture2D>& texture) { self.ActiveTexture = texture; },
+            "get_inactive_texture", &UIToggleComponent::InactiveTexture,
+            "set_inactive_texture", [](UIToggleComponent& self, const Ref<Texture2D>& texture) { self.InactiveTexture = texture; }
+        );
 
         luaState.new_usertype<ParticlesSystemComponent>("ParticlesSystemComponent", sol::constructors<ParticlesSystemComponent()>(), 
             "emit",&ParticlesSystemComponent::Emit, 

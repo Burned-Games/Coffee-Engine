@@ -385,7 +385,14 @@ namespace Coffee {
         //Guizmo
         Entity selectedEntity = m_SceneTreePanel.GetSelectedEntity();
 
-        if(selectedEntity and m_GizmoType != -1 and SceneManager::GetSceneState() == SceneManager::SceneState::Edit)
+        bool usingUIComponent = (selectedEntity && (selectedEntity.HasComponent<UIToggleComponent>() ||
+                                    selectedEntity.HasComponent<UIImageComponent>()||
+                                    selectedEntity.HasComponent<UITextComponent>()||
+                                    selectedEntity.HasComponent<UISliderComponent>()||
+                                    selectedEntity.HasComponent<UIButtonComponent>()));
+
+        if (selectedEntity and m_GizmoType != -1 and SceneManager::GetSceneState() == SceneManager::SceneState::Edit &&
+            !usingUIComponent)
         {
             ImGuizmo::SetGizmoSizeClipSpace(0.2);
 

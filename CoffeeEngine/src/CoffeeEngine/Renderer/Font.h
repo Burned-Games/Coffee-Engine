@@ -16,7 +16,21 @@ namespace Coffee {
         const MSDFData* GetMSDFData() const { return m_Data; }
         Ref<Texture2D> GetAtlasTexture() const { return m_AtlasTexture; }
 
+        double CalculateTextWidth(const std::string& text, double fsScale, float kerning);
+
         static Ref<Font> GetDefault();
+
+
+
+        
+        enum class UITextAlignment
+        {
+            Left,
+            Center,
+            Right
+        };
+
+
     private:
         MSDFData* m_Data;
         Ref<Texture2D> m_AtlasTexture;

@@ -63,8 +63,8 @@ namespace Coffee
             m_Context->Duplicate(m_SelectionContext);
         }
 
-        //Button for adding entities to the scene tree
-        if(ImGui::Button(ICON_LC_PLUS, {24,24}))
+        // Button for adding entities to the scene tree
+        if (ImGui::Button(ICON_LC_PLUS, {24, 24}))
         {
             ImGui::OpenPopup("Add Entity...");
         }
@@ -238,6 +238,34 @@ namespace Coffee
         }
     }
 
+    void SceneTreePanel::ProcessHierarchy(entt::registry& registry, entt::entity root,
+                                          const std::function<void(entt::entity)>& callback)
+    {
+        std::stack<entt::entity> entities;
+        entities.push(root);
+
+        while (!entities.empty())
+        {
+            entt::entity current = entities.top();
+            entities.pop();
+
+            callback(current);
+
+            if (registry.all_of<HierarchyComponent>(current))
+            {
+                auto& hierarchy = registry.get<HierarchyComponent>(current);
+                entt::entity child = hierarchy.m_First;
+
+                while (child != entt::null)
+                {
+                    entities.push(child);
+                    auto& childHierarchy = registry.get<HierarchyComponent>(child);
+                    child = childHierarchy.m_Next;
+                }
+            }
+        }
+    }
+
     void SceneTreePanel::DrawComponents(Entity entity)
     {
         if (entity.HasComponent<TagComponent>())
@@ -291,16 +319,23 @@ namespace Coffee
         {
             auto& transformComponent = entity.GetComponent<TransformComponent>();
 
-            if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
+            bool hasUIComponent = entity.HasComponent<UIImageComponent>() || entity.HasComponent<UITextComponent>() ||
+                                  entity.HasComponent<UIButtonComponent>() ||
+                                  entity.HasComponent<UISliderComponent>() || entity.HasComponent<UIToggleComponent>();
+
+            if (!hasUIComponent)
             {
-                ImGui::Text("Position");
-                ImGui::DragFloat3("##Position", glm::value_ptr(transformComponent.Position), 0.1f);
+                if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
+                {
+                    ImGui::Text("Position");
+                    ImGui::DragFloat3("##Position", glm::value_ptr(transformComponent.Position), 0.1f);
 
-                ImGui::Text("Rotation");
-                ImGui::DragFloat3("##Rotation", glm::value_ptr(transformComponent.Rotation), 0.1f);
+                    ImGui::Text("Rotation");
+                    ImGui::DragFloat3("##Rotation", glm::value_ptr(transformComponent.Rotation), 0.1f);
 
-                ImGui::Text("Scale");
-                ImGui::DragFloat3("##Scale", glm::value_ptr(transformComponent.Scale), 0.1f);
+                    ImGui::Text("Scale");
+                    ImGui::DragFloat3("##Scale", glm::value_ptr(transformComponent.Scale), 0.1f);
+                }
             }
         }
 
@@ -847,15 +882,15 @@ namespace Coffee
                 if (rbComponent.rb)
                 {
                     // Rigidbody type
-                    static const char* typeStrings[] = { "Static", "Dynamic", "Kinematic" };
+                    static const char* typeStrings[] = {"Static", "Dynamic", "Kinematic"};
                     int currentType = static_cast<int>(rbComponent.rb->GetBodyType());
-                    
+
                     ImGui::Text("Type");
                     if (ImGui::Combo("##Type", &currentType, typeStrings, IM_ARRAYSIZE(typeStrings)))
                     {
                         rbComponent.rb->SetBodyType(static_cast<RigidBody::Type>(currentType));
                     }
-                    
+
                     // Mass (only for dynamic bodies)
                     if (rbComponent.rb->GetBodyType() != RigidBody::Type::Static)
                     {
@@ -865,7 +900,7 @@ namespace Coffee
                         {
                             rbComponent.rb->SetMass(mass);
                         }
-                        
+
                         // Use gravity
                         ImGui::Text("Use Gravity");
                         bool useGravity = rbComponent.rb->GetUseGravity();
@@ -874,11 +909,11 @@ namespace Coffee
                             rbComponent.rb->SetUseGravity(useGravity);
                         }
                     }
-                    
+
                     // Freeze axes
                     ImGui::Text("Freeze Position");
                     ImGui::Columns(3, "FreezePositionColumns", false);
-                    
+
                     // X Axis
                     bool freezeX = rbComponent.rb->GetFreezeX();
                     if (ImGui::Checkbox("X##FreezeX", &freezeX))
@@ -886,7 +921,7 @@ namespace Coffee
                         rbComponent.rb->SetFreezeX(freezeX);
                     }
                     ImGui::NextColumn();
-                    
+
                     // Y Axis
                     bool freezeY = rbComponent.rb->GetFreezeY();
                     if (ImGui::Checkbox("Y##FreezeY", &freezeY))
@@ -894,20 +929,20 @@ namespace Coffee
                         rbComponent.rb->SetFreezeY(freezeY);
                     }
                     ImGui::NextColumn();
-                    
+
                     // Z Axis
                     bool freezeZ = rbComponent.rb->GetFreezeZ();
                     if (ImGui::Checkbox("Z##FreezeZ", &freezeZ))
                     {
                         rbComponent.rb->SetFreezeZ(freezeZ);
                     }
-                    
+
                     ImGui::Columns(1);
-                    
+
                     // Freeze rotation axes
                     ImGui::Text("Freeze Rotation");
                     ImGui::Columns(3, "FreezeRotationColumns", false);
-                    
+
                     // X Rotation Axis
                     bool freezeRotX = rbComponent.rb->GetFreezeRotX();
                     if (ImGui::Checkbox("X##FreezeRotX", &freezeRotX))
@@ -915,7 +950,7 @@ namespace Coffee
                         rbComponent.rb->SetFreezeRotX(freezeRotX);
                     }
                     ImGui::NextColumn();
-                    
+
                     // Y Rotation Axis
                     bool freezeRotY = rbComponent.rb->GetFreezeRotY();
                     if (ImGui::Checkbox("Y##FreezeRotY", &freezeRotY))
@@ -923,209 +958,231 @@ namespace Coffee
                         rbComponent.rb->SetFreezeRotY(freezeRotY);
                     }
                     ImGui::NextColumn();
-                    
+
                     // Z Rotation Axis
                     bool freezeRotZ = rbComponent.rb->GetFreezeRotZ();
                     if (ImGui::Checkbox("Z##FreezeRotZ", &freezeRotZ))
                     {
                         rbComponent.rb->SetFreezeRotZ(freezeRotZ);
                     }
-                    
+
                     ImGui::Columns(1);
-                    
+
                     // Add collider type selection and configuration
                     ImGui::Separator();
                     ImGui::Text("Collider");
-                    
+
                     Ref<Collider> currentCollider = rbComponent.rb->GetCollider();
                     int colliderType = -1; // -1: Unknown, 0: Box, 1: Sphere, 2: Capsule
-                    
-                    if (currentCollider) {
-                        if (std::dynamic_pointer_cast<BoxCollider>(currentCollider)) {
+
+                    if (currentCollider)
+                    {
+                        if (std::dynamic_pointer_cast<BoxCollider>(currentCollider))
+                        {
                             colliderType = 0;
-                        } else if (std::dynamic_pointer_cast<SphereCollider>(currentCollider)) {
+                        }
+                        else if (std::dynamic_pointer_cast<SphereCollider>(currentCollider))
+                        {
                             colliderType = 1;
-                        } else if (std::dynamic_pointer_cast<CapsuleCollider>(currentCollider)) {
+                        }
+                        else if (std::dynamic_pointer_cast<CapsuleCollider>(currentCollider))
+                        {
                             colliderType = 2;
                         }
                     }
-                    
-                    static const char* colliderTypeNames[] = { "Box", "Sphere", "Capsule" };
+
+                    static const char* colliderTypeNames[] = {"Box", "Sphere", "Capsule"};
                     int newColliderType = colliderType;
-                    
-                    if (ImGui::Combo("Type##ColliderType", &newColliderType, colliderTypeNames, 3)) {
+
+                    if (ImGui::Combo("Type##ColliderType", &newColliderType, colliderTypeNames, 3))
+                    {
                         // User selected a new collider type
                         Ref<Collider> newCollider;
-                        
+
                         // Create new collider based on selection
-                        switch (newColliderType) {
-                            case 0: { // Box
-                                glm::vec3 size(1.0f, 1.0f, 1.0f);
-                                if (auto boxCollider = std::dynamic_pointer_cast<BoxCollider>(currentCollider)) {
-                                    size = boxCollider->GetSize();
-                                }
-                                newCollider = CreateRef<BoxCollider>(size);
-                                break;
+                        switch (newColliderType)
+                        {
+                        case 0: { // Box
+                            glm::vec3 size(1.0f, 1.0f, 1.0f);
+                            if (auto boxCollider = std::dynamic_pointer_cast<BoxCollider>(currentCollider))
+                            {
+                                size = boxCollider->GetSize();
                             }
-                            case 1: { // Sphere
-                                float radius = 0.5f;
-                                if (auto sphereCollider = std::dynamic_pointer_cast<SphereCollider>(currentCollider)) {
-                                    radius = sphereCollider->GetRadius();
-                                }
-                                newCollider = CreateRef<SphereCollider>(radius);
-                                break;
-                            }
-                            case 2: { // Capsule
-                                float radius = 0.5f;
-                                float height = 2.0f;
-                                if (auto capsuleCollider = std::dynamic_pointer_cast<CapsuleCollider>(currentCollider)) {
-                                    radius = capsuleCollider->GetRadius();
-                                    height = capsuleCollider->GetHeight();
-                                }
-                                newCollider = CreateRef<CapsuleCollider>(radius, height);
-                                break;
-                            }
+                            newCollider = CreateRef<BoxCollider>(size);
+                            break;
                         }
-                        
-                        if (newCollider) {
+                        case 1: { // Sphere
+                            float radius = 0.5f;
+                            if (auto sphereCollider = std::dynamic_pointer_cast<SphereCollider>(currentCollider))
+                            {
+                                radius = sphereCollider->GetRadius();
+                            }
+                            newCollider = CreateRef<SphereCollider>(radius);
+                            break;
+                        }
+                        case 2: { // Capsule
+                            float radius = 0.5f;
+                            float height = 2.0f;
+                            if (auto capsuleCollider = std::dynamic_pointer_cast<CapsuleCollider>(currentCollider))
+                            {
+                                radius = capsuleCollider->GetRadius();
+                                height = capsuleCollider->GetHeight();
+                            }
+                            newCollider = CreateRef<CapsuleCollider>(radius, height);
+                            break;
+                        }
+                        }
+
+                        if (newCollider)
+                        {
                             // Store current rigidbody properties
                             RigidBody::Properties props = rbComponent.rb->GetProperties();
                             glm::vec3 position = rbComponent.rb->GetPosition();
                             glm::vec3 rotation = rbComponent.rb->GetRotation();
-                            
+
                             // Remove from physics world
                             m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-                            
+
                             // Create new rigidbody with new collider
                             rbComponent.rb = RigidBody::Create(props, newCollider);
                             rbComponent.rb->SetPosition(position);
                             rbComponent.rb->SetRotation(rotation);
-                            
+
                             // Add back to physics world
                             m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
-                            
+
                             // Set user pointer for collision detection
                             rbComponent.rb->GetNativeBody()->setUserPointer(
                                 reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
                         }
                     }
-                    
+
                     // Show collider-specific properties
-                    if (currentCollider) {
-                        switch (colliderType) {
-                            case 0: { // Box collider properties
-                                auto boxCollider = std::dynamic_pointer_cast<BoxCollider>(currentCollider);
-                                if (boxCollider) {
-                                    glm::vec3 size = boxCollider->GetSize();
-                                    
-                                    ImGui::Text("Size");
-                                    if (ImGui::DragFloat3("##BoxSize", glm::value_ptr(size), 0.1f, 0.01f, 100.0f)) {
-                                        // Create new box collider with updated size
-                                        Ref<BoxCollider> newCollider = CreateRef<BoxCollider>(size);
-                                        
-                                        // Store current rigidbody properties
-                                        RigidBody::Properties props = rbComponent.rb->GetProperties();
-                                        glm::vec3 position = rbComponent.rb->GetPosition();
-                                        glm::vec3 rotation = rbComponent.rb->GetRotation();
-                                        glm::vec3 velocity = rbComponent.rb->GetVelocity();
-                                        
-                                        // Remove from physics world
-                                        m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-                                        
-                                        // Create new rigidbody with new collider
-                                        rbComponent.rb = RigidBody::Create(props, newCollider);
-                                        rbComponent.rb->SetPosition(position);
-                                        rbComponent.rb->SetRotation(rotation);
-                                        rbComponent.rb->SetVelocity(velocity);
-                                        
-                                        // Add back to physics world
-                                        m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
-                                        rbComponent.rb->GetNativeBody()->setUserPointer(
-                                            reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
-                                    }
+                    if (currentCollider)
+                    {
+                        switch (colliderType)
+                        {
+                        case 0: { // Box collider properties
+                            auto boxCollider = std::dynamic_pointer_cast<BoxCollider>(currentCollider);
+                            if (boxCollider)
+                            {
+                                glm::vec3 size = boxCollider->GetSize();
+
+                                ImGui::Text("Size");
+                                if (ImGui::DragFloat3("##BoxSize", glm::value_ptr(size), 0.1f, 0.01f, 100.0f))
+                                {
+                                    // Create new box collider with updated size
+                                    Ref<BoxCollider> newCollider = CreateRef<BoxCollider>(size);
+
+                                    // Store current rigidbody properties
+                                    RigidBody::Properties props = rbComponent.rb->GetProperties();
+                                    glm::vec3 position = rbComponent.rb->GetPosition();
+                                    glm::vec3 rotation = rbComponent.rb->GetRotation();
+                                    glm::vec3 velocity = rbComponent.rb->GetVelocity();
+
+                                    // Remove from physics world
+                                    m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
+
+                                    // Create new rigidbody with new collider
+                                    rbComponent.rb = RigidBody::Create(props, newCollider);
+                                    rbComponent.rb->SetPosition(position);
+                                    rbComponent.rb->SetRotation(rotation);
+                                    rbComponent.rb->SetVelocity(velocity);
+
+                                    // Add back to physics world
+                                    m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
+                                    rbComponent.rb->GetNativeBody()->setUserPointer(
+                                        reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
                                 }
-                                break;
                             }
-                            case 1: { // Sphere collider properties
-                                auto sphereCollider = std::dynamic_pointer_cast<SphereCollider>(currentCollider);
-                                if (sphereCollider) {
-                                    float radius = sphereCollider->GetRadius();
-                                    
-                                    ImGui::Text("Radius");
-                                    if (ImGui::DragFloat("##SphereRadius", &radius, 0.1f, 0.01f, 100.0f)) {
-                                        // Create new sphere collider with updated radius
-                                        Ref<Collider> newCollider = CreateRef<SphereCollider>(radius);
-                                        
-                                        // Store current rigidbody properties
-                                        RigidBody::Properties props = rbComponent.rb->GetProperties();
-                                        glm::vec3 position = rbComponent.rb->GetPosition();
-                                        glm::vec3 rotation = rbComponent.rb->GetRotation();
-                                        glm::vec3 velocity = rbComponent.rb->GetVelocity();
-                                        
-                                        // Remove from physics world
-                                        m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-                                        
-                                        // Create new rigidbody with new collider
-                                        rbComponent.rb = RigidBody::Create(props, newCollider);
-                                        rbComponent.rb->SetPosition(position);
-                                        rbComponent.rb->SetRotation(rotation);
-                                        rbComponent.rb->SetVelocity(velocity);
-                                        
-                                        // Add back to physics world
-                                        m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
-                                        rbComponent.rb->GetNativeBody()->setUserPointer(
-                                            reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
-                                    }
+                            break;
+                        }
+                        case 1: { // Sphere collider properties
+                            auto sphereCollider = std::dynamic_pointer_cast<SphereCollider>(currentCollider);
+                            if (sphereCollider)
+                            {
+                                float radius = sphereCollider->GetRadius();
+
+                                ImGui::Text("Radius");
+                                if (ImGui::DragFloat("##SphereRadius", &radius, 0.1f, 0.01f, 100.0f))
+                                {
+                                    // Create new sphere collider with updated radius
+                                    Ref<Collider> newCollider = CreateRef<SphereCollider>(radius);
+
+                                    // Store current rigidbody properties
+                                    RigidBody::Properties props = rbComponent.rb->GetProperties();
+                                    glm::vec3 position = rbComponent.rb->GetPosition();
+                                    glm::vec3 rotation = rbComponent.rb->GetRotation();
+                                    glm::vec3 velocity = rbComponent.rb->GetVelocity();
+
+                                    // Remove from physics world
+                                    m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
+
+                                    // Create new rigidbody with new collider
+                                    rbComponent.rb = RigidBody::Create(props, newCollider);
+                                    rbComponent.rb->SetPosition(position);
+                                    rbComponent.rb->SetRotation(rotation);
+                                    rbComponent.rb->SetVelocity(velocity);
+
+                                    // Add back to physics world
+                                    m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
+                                    rbComponent.rb->GetNativeBody()->setUserPointer(
+                                        reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
                                 }
-                                break;
                             }
-                            case 2: { // Capsule collider properties
-                                auto capsuleCollider = std::dynamic_pointer_cast<CapsuleCollider>(currentCollider);
-                                if (capsuleCollider) {
-                                    float radius = capsuleCollider->GetRadius();
-                                    float height = capsuleCollider->GetHeight();
-                                    
-                                    float totalHeight = height + 2.0f * radius; // Total height including spherical caps
-                                    
-                                    ImGui::Text("Radius");
-                                    bool radiusChanged = ImGui::DragFloat("##CapsuleRadius", &radius, 0.1f, 0.01f, 100.0f);
-                                    
-                                    ImGui::Text("Total Height");
-                                    bool heightChanged = ImGui::DragFloat("##CapsuleHeight", &totalHeight, 0.1f, 0.01f, 100.0f);
-                                    
-                                    if (radiusChanged || heightChanged) {
-                                        if (totalHeight < radius * 2.0f) {
-                                            totalHeight = radius * 2.0f;
-                                        }
-                                        
-                                        float cylinderHeight = totalHeight - 2.0f * radius;
-                                        
-                                        // Create new capsule collider with updated parameters
-                                        Ref<Collider> newCollider = CreateRef<CapsuleCollider>(radius, cylinderHeight);
-                                        
-                                        // Store current rigidbody properties
-                                        RigidBody::Properties props = rbComponent.rb->GetProperties();
-                                        glm::vec3 position = rbComponent.rb->GetPosition();
-                                        glm::vec3 rotation = rbComponent.rb->GetRotation();
-                                        glm::vec3 velocity = rbComponent.rb->GetVelocity();
-                                        
-                                        // Remove from physics world
-                                        m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-                                        
-                                        // Create new rigidbody with new collider
-                                        rbComponent.rb = RigidBody::Create(props, newCollider);
-                                        rbComponent.rb->SetPosition(position);
-                                        rbComponent.rb->SetRotation(rotation);
-                                        rbComponent.rb->SetVelocity(velocity);
-                                        
-                                        // Add back to physics world
-                                        m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
-                                        rbComponent.rb->GetNativeBody()->setUserPointer(
-                                            reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
+                            break;
+                        }
+                        case 2: { // Capsule collider properties
+                            auto capsuleCollider = std::dynamic_pointer_cast<CapsuleCollider>(currentCollider);
+                            if (capsuleCollider)
+                            {
+                                float radius = capsuleCollider->GetRadius();
+                                float height = capsuleCollider->GetHeight();
+
+                                float totalHeight = height + 2.0f * radius; // Total height including spherical caps
+
+                                ImGui::Text("Radius");
+                                bool radiusChanged = ImGui::DragFloat("##CapsuleRadius", &radius, 0.1f, 0.01f, 100.0f);
+
+                                ImGui::Text("Total Height");
+                                bool heightChanged =
+                                    ImGui::DragFloat("##CapsuleHeight", &totalHeight, 0.1f, 0.01f, 100.0f);
+
+                                if (radiusChanged || heightChanged)
+                                {
+                                    if (totalHeight < radius * 2.0f)
+                                    {
+                                        totalHeight = radius * 2.0f;
                                     }
+
+                                    float cylinderHeight = totalHeight - 2.0f * radius;
+
+                                    // Create new capsule collider with updated parameters
+                                    Ref<Collider> newCollider = CreateRef<CapsuleCollider>(radius, cylinderHeight);
+
+                                    // Store current rigidbody properties
+                                    RigidBody::Properties props = rbComponent.rb->GetProperties();
+                                    glm::vec3 position = rbComponent.rb->GetPosition();
+                                    glm::vec3 rotation = rbComponent.rb->GetRotation();
+                                    glm::vec3 velocity = rbComponent.rb->GetVelocity();
+
+                                    // Remove from physics world
+                                    m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
+
+                                    // Create new rigidbody with new collider
+                                    rbComponent.rb = RigidBody::Create(props, newCollider);
+                                    rbComponent.rb->SetPosition(position);
+                                    rbComponent.rb->SetRotation(rotation);
+                                    rbComponent.rb->SetVelocity(velocity);
+
+                                    // Add back to physics world
+                                    m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
+                                    rbComponent.rb->GetNativeBody()->setUserPointer(
+                                        reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
                                 }
-                                break;
                             }
+                            break;
+                        }
                         }
                     }
 
@@ -1138,52 +1195,58 @@ namespace Coffee
                         glm::vec3 position = rbComponent.rb->GetPosition();
                         glm::vec3 rotation = rbComponent.rb->GetRotation();
                         glm::vec3 velocity = rbComponent.rb->GetVelocity();
-                        
+
                         // Remove from physics world
                         m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-                        
+
                         // Update the collider offset
                         currentCollider->setOffset(offset);
-                        
+
                         // Create new rigidbody with the updated collider
                         rbComponent.rb = RigidBody::Create(props, currentCollider);
                         rbComponent.rb->SetPosition(position);
                         rbComponent.rb->SetRotation(rotation);
                         rbComponent.rb->SetVelocity(velocity);
-                        
+
                         // Add back to physics world
                         m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
-                        rbComponent.rb->GetNativeBody()->setUserPointer(reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
+                        rbComponent.rb->GetNativeBody()->setUserPointer(
+                            reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
                     }
 
-                    if (ImGui::Button("Resize Collider to Fit Mesh AABB", ImVec2(-FLT_MIN, 0))) {
-                        if (!ResizeColliderToFitMeshAABB(entity, rbComponent)) {
+                    if (ImGui::Button("Resize Collider to Fit Mesh AABB", ImVec2(-FLT_MIN, 0)))
+                    {
+                        if (!ResizeColliderToFitMeshAABB(entity, rbComponent))
+                        {
                             // Display error messages only if resize failed
-                            if (!entity.HasComponent<MeshComponent>()) {
+                            if (!entity.HasComponent<MeshComponent>())
+                            {
                                 ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Entity has no mesh component!");
-                            } else if (!entity.GetComponent<MeshComponent>().GetMesh()) {
+                            }
+                            else if (!entity.GetComponent<MeshComponent>().GetMesh())
+                            {
                                 ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "No valid mesh found!");
                             }
                         }
                     }
-                    
+
                     // Add friction and drag controls
                     ImGui::Separator();
-                    
+
                     ImGui::Text("Friction");
                     float friction = rbComponent.rb->GetFriction();
                     if (ImGui::SliderFloat("##Friction", &friction, 0.0f, 1.0f))
                     {
                         rbComponent.rb->SetFriction(friction);
                     }
-                    
+
                     ImGui::Text("Linear Drag");
                     float linearDrag = rbComponent.rb->GetLinearDrag();
                     if (ImGui::SliderFloat("##LinearDrag", &linearDrag, 0.0f, 1.0f))
                     {
                         rbComponent.rb->SetLinearDrag(linearDrag);
                     }
-                    
+
                     ImGui::Text("Angular Drag");
                     float angularDrag = rbComponent.rb->GetAngularDrag();
                     if (ImGui::SliderFloat("##AngularDrag", &angularDrag, 0.0f, 1.0f))
@@ -1203,10 +1266,653 @@ namespace Coffee
                 if (rbComponent.rb && rbComponent.rb->GetNativeBody())
                 {
                     m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-                    rbComponent.rb->GetNativeBody()->setUserPointer(nullptr); // Set user pointer to null to avoid dangling references
+                    rbComponent.rb->GetNativeBody()->setUserPointer(
+                        nullptr); // Set user pointer to null to avoid dangling references
                     rbComponent.rb.reset();
                 }
                 entity.RemoveComponent<RigidbodyComponent>();
+            }
+        }
+
+         auto UpdateUITransform = [this](entt::registry& registry, entt::entity root, const glm::vec2& posDelta,
+                                        float rotDelta) {
+            if (registry.all_of<TransformComponent>(root))
+            {
+                auto& rootTransform = registry.get<TransformComponent>(root);
+                rootTransform.Position.x += posDelta.x;
+                rootTransform.Position.y += posDelta.y;
+                rootTransform.Rotation.z += rotDelta;
+            }
+
+            this->ProcessHierarchy(registry, root, [&](entt::entity entity) {
+                if (entity == root)
+                    return;
+
+                if (registry.all_of<TransformComponent>(entity))
+                {
+                    auto& transformComponent = registry.get<TransformComponent>(entity);
+                    transformComponent.Position.x += posDelta.x;
+                    transformComponent.Position.y += posDelta.y;
+                }
+            });
+        };
+
+        auto SetUIVisibility = [this](entt::registry& registry, entt::entity root, bool visible) {
+            this->ProcessHierarchy(registry, root, [&](entt::entity entity) {
+                if (auto* uiImage = registry.try_get<UIImageComponent>(entity))
+                    uiImage->Visible = visible;
+                if (auto* uiText = registry.try_get<UITextComponent>(entity))
+                    uiText->Visible = visible;
+                if (auto* uiButton = registry.try_get<UIButtonComponent>(entity))
+                    uiButton->Visible = visible;
+                if (auto* uiSlider = registry.try_get<UISliderComponent>(entity))
+                    uiSlider->Visible = visible;
+                if (auto* uiToggle = registry.try_get<UIToggleComponent>(entity))
+                    uiToggle->Visible = visible;
+            });
+        };
+
+        auto SetUIAnchor = [this](entt::registry& registry, entt::entity root, UIAnchorPosition anchor) {
+            this->ProcessHierarchy(registry, root, [&](entt::entity entity) {
+                if (auto* uiImage = registry.try_get<UIImageComponent>(entity))
+                    uiImage->Anchor = anchor;
+                if (auto* uiText = registry.try_get<UITextComponent>(entity))
+                    uiText->Anchor = anchor;
+                if (auto* uiButton = registry.try_get<UIButtonComponent>(entity))
+                    uiButton->Anchor = anchor;
+                if (auto* uiSlider = registry.try_get<UISliderComponent>(entity))
+                    uiSlider->Anchor = anchor;
+                if (auto* uiToggle = registry.try_get<UIToggleComponent>(entity))
+                    uiToggle->Anchor = anchor;
+            });
+        };
+
+        auto SetUILayer = [this](entt::registry& registry, entt::entity root, int layer) {
+            this->ProcessHierarchy(registry, root, [&](entt::entity entity) {
+                if (auto* uiImage = registry.try_get<UIImageComponent>(entity))
+                    uiImage->Layer = layer;
+                if (auto* uiText = registry.try_get<UITextComponent>(entity))
+                    uiText->Layer = layer;
+                if (auto* uiButton = registry.try_get<UIButtonComponent>(entity))
+                    uiButton->Layer = layer;
+                if (auto* uiSlider = registry.try_get<UISliderComponent>(entity))
+                    uiSlider->Layer = layer;
+                if (auto* uiToggle = registry.try_get<UIToggleComponent>(entity))
+                    uiToggle->Layer = layer;
+            });
+        };
+
+        const char* anchorPoints[] = {"TopLeft",     "TopCenter",  "TopRight",     "CenterLeft", "Center",
+                                      "CenterRight", "BottomLeft", "BottomCenter", "BottomRight"};
+
+        auto DrawAnchorPointCombo = [this, &anchorPoints](UIAnchorPosition& anchor, entt::registry* registry = nullptr,
+                                                          entt::entity root = entt::null) {
+            int currentAnchor = static_cast<int>(anchor);
+            if (ImGui::Combo("Anchor Point", &currentAnchor, anchorPoints, IM_ARRAYSIZE(anchorPoints)))
+            {
+                anchor = static_cast<UIAnchorPosition>(currentAnchor);
+
+                if (registry && root != entt::null)
+                {
+                    this->ProcessHierarchy(*registry, root, [&](entt::entity entity) {
+                        if (auto* uiImage = registry->try_get<UIImageComponent>(entity))
+                        {
+                            uiImage->Anchor = anchor;
+                        }
+                        if (auto* uiText = registry->try_get<UITextComponent>(entity))
+                        {
+                            uiText->Anchor = anchor;
+                        }
+                        if (auto* uiButton = registry->try_get<UIButtonComponent>(entity))
+                        {
+                            uiButton->Anchor = anchor;
+                        }
+                        if (auto* uiSlider = registry->try_get<UISliderComponent>(entity))
+                        {
+                            uiSlider->Anchor = anchor;
+                        }
+                        if (auto* uiToggle = registry->try_get<UIToggleComponent>(entity))
+                        {
+                            uiToggle->Anchor = anchor;
+                        }
+                    });
+                }
+            }
+        };
+
+        auto DrawTextureWidget = [this](const std::string& label, Ref<Texture2D>& texture,
+                                        entt::registry* registry = nullptr, entt::entity root = entt::null) {
+            uint32_t textureID = texture ? texture->GetID() : 0;
+            ImGui::ImageButton(label.c_str(), (ImTextureID)textureID, {64, 64});
+
+            auto textureImageFormat = [](ImageFormat format) -> std::string {
+                switch (format)
+                {
+                case ImageFormat::R8:
+                    return "R8";
+                case ImageFormat::RGB8:
+                    return "RGB8";
+                case ImageFormat::RGBA8:
+                    return "RGBA8";
+                case ImageFormat::SRGB8:
+                    return "SRGB8";
+                case ImageFormat::SRGBA8:
+                    return "SRGBA8";
+                case ImageFormat::RGBA32F:
+                    return "RGBA32F";
+                case ImageFormat::DEPTH24STENCIL8:
+                    return "DEPTH24STENCIL8";
+                default:
+                    return "Unknown";
+                }
+            };
+
+            if (ImGui::IsItemHovered() && texture)
+            {
+                ImGui::SetTooltip("Name: %s\nSize: %d x %d\nFormat: %s\nPath: %s", texture->GetName().c_str(),
+                                  texture->GetWidth(), texture->GetHeight(),
+                                  textureImageFormat(texture->GetImageFormat()).c_str(), texture->GetPath().c_str());
+            }
+
+            if (ImGui::BeginDragDropTarget())
+            {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("RESOURCE"))
+                {
+                    const Ref<Resource>& resource = *(Ref<Resource>*)payload->Data;
+                    if (resource->GetType() == ResourceType::Texture2D)
+                    {
+                        texture = std::static_pointer_cast<Texture2D>(resource);
+                    }
+                }
+                ImGui::EndDragDropTarget();
+            }
+
+            ImGui::SameLine();
+            if (ImGui::BeginCombo((label + "texture").c_str(), "", ImGuiComboFlags_NoPreview))
+            {
+                if (ImGui::Selectable("Clear"))
+                {
+                    texture = nullptr;
+                }
+                if (ImGui::Selectable("Open"))
+                {
+                    std::string path = FileDialog::OpenFile({}).string();
+                    if (!path.empty())
+                    {
+                        texture = Texture2D::Load(path);
+                    }
+                }
+                ImGui::EndCombo();
+            }
+
+            /*if (registry && root != entt::null) {
+                this->ProcessHierarchy(*registry, root, [&](entt::entity entity) {
+                    if (auto* uiImage = registry->try_get<UIImageComponent>(entity)) {
+                        uiImage->texture = texture;
+                    }
+                    // Si hay más tipos de UI que usan texturas, agrégalos aquí
+                });
+            }*/
+        };
+
+        if (entity.HasComponent<UIImageComponent>())
+        {
+            auto& uiImageComponent = entity.GetComponent<UIImageComponent>();
+            bool isCollapsingHeaderOpen = true;
+
+            if (ImGui::CollapsingHeader("UI Transform", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::Text("Position");
+
+                auto& transformComponent = entity.GetComponent<TransformComponent>();
+
+                glm::vec2 previousPosition = glm::vec2(transformComponent.Position.x, transformComponent.Position.y);
+                glm::vec2 newPosition = previousPosition;
+
+                if (ImGui::DragFloat2("##UIPosition", glm::value_ptr(newPosition), 0.1f))
+                {
+                    glm::vec2 delta = newPosition - previousPosition;
+                    UpdateUITransform(m_Context->m_Registry, entity, delta,
+                                      0.0f); // Aplica el cambio a toda la jerarquía
+                }
+
+                ImGui::Text("Rotation");
+                static float previousRotation = transformComponent.Rotation.z;
+                float currentRotation = previousRotation;
+
+                if (ImGui::DragFloat("##Rotation", &currentRotation, 0.1f))
+                {
+                    float delta = currentRotation - previousRotation;
+                    UpdateUITransform(m_Context->m_Registry, entity, {0.0f, 0.0f}, delta);
+                    previousRotation = currentRotation;
+                }
+            }
+
+            ImGui::Text("Size");
+            ImGui::DragFloat2("##Size", glm::value_ptr(uiImageComponent.Size), 0.1f);
+
+            ImGui::Text("Anchor Points");
+
+            const char* eyeIcon = uiImageComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
+
+            if (ImGui::Button(eyeIcon, {24, 24}))
+            {
+                bool newVisibility = !uiImageComponent.Visible;
+                SetUIVisibility(m_Context->m_Registry, entity, newVisibility);
+            }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("Toggle visibility of this UI component and its children.");
+            }
+            ImGui::SameLine();
+
+            DrawAnchorPointCombo(uiImageComponent.Anchor);
+
+            if (ImGui::Button("Apply Anchor to Children"))
+            {
+                SetUIAnchor(m_Context->m_Registry, entity, uiImageComponent.Anchor);
+            }
+
+            ImGui::Text("Layer");
+            ImGui::DragInt("##Layer", &uiImageComponent.Layer, 1, 0);
+
+            ImGui::SameLine();
+            if (ImGui::Button("Apply Children"))
+            {
+                SetUILayer(m_Context->m_Registry, entity, uiImageComponent.Layer);
+            }
+
+            if (ImGui::CollapsingHeader("UI Image", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::Text("Texture");
+                DrawTextureWidget("##UIImageTexture", uiImageComponent.texture);
+
+                ImGui::Checkbox("Visible", &uiImageComponent.Visible);
+
+                if (!isCollapsingHeaderOpen)
+                {
+                    entity.RemoveComponent<UIImageComponent>();
+                }
+            }
+        }
+
+        if (entity.HasComponent<UITextComponent>())
+        {
+            auto& uiTextComponent = entity.GetComponent<UITextComponent>();
+            bool isCollapsingHeaderOpen = true;
+
+            if (ImGui::CollapsingHeader("UI Transform", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::Text("Position");
+
+                auto& transformComponent = entity.GetComponent<TransformComponent>();
+
+                glm::vec2 previousPosition = glm::vec2(transformComponent.Position.x, transformComponent.Position.y);
+                glm::vec2 newPosition = previousPosition;
+
+                if (ImGui::DragFloat2("##UIPosition", glm::value_ptr(newPosition), 0.1f))
+                {
+                    glm::vec2 delta = newPosition - previousPosition;
+                    UpdateUITransform(m_Context->m_Registry, entity, delta,
+                                      0.0f); // Aplica el cambio a toda la jerarquía
+                }
+
+                ImGui::Text("Rotation");
+                static float previousRotation = transformComponent.Rotation.z;
+                float currentRotation = previousRotation;
+
+                if (ImGui::DragFloat("##Rotation", &currentRotation, 0.1f))
+                {
+                    float delta = currentRotation - previousRotation;
+                    UpdateUITransform(m_Context->m_Registry, entity, {0.0f, 0.0f}, delta);
+                    previousRotation = currentRotation;
+                }
+
+                ImGui::Text("Anchor Points");
+
+                const char* eyeIcon = uiTextComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
+
+                if (ImGui::Button(eyeIcon, {24, 24}))
+                {
+                    bool newVisibility = !uiTextComponent.Visible;
+                    SetUIVisibility(m_Context->m_Registry, entity, newVisibility);
+                }
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Toggle visibility of this UI component and its children.");
+                }
+                ImGui::SameLine();
+
+                DrawAnchorPointCombo(uiTextComponent.Anchor);
+
+                if (ImGui::Button("Apply Anchor to Children"))
+                {
+                    SetUIAnchor(m_Context->m_Registry, entity, uiTextComponent.Anchor);
+                }
+
+                ImGui::Text("Layer");
+                ImGui::DragInt("##Layer", &uiTextComponent.Layer, 1, 0);
+
+                ImGui::SameLine();
+                if (ImGui::Button("Apply Children"))
+                {
+                    SetUILayer(m_Context->m_Registry, entity, uiTextComponent.Layer);
+                }
+            }
+
+            if (ImGui::CollapsingHeader("UI Text", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                // Text content
+                ImGui::Text("Text Content");
+                char buffer[256];
+                memset(buffer, 0, sizeof(buffer));
+                strncpy(buffer, uiTextComponent.Text.c_str(), sizeof(buffer) - 1);
+
+                if (ImGui::InputTextMultiline("##Text", buffer, sizeof(buffer)))
+                {
+                    uiTextComponent.Text = std::string(buffer);
+                }
+
+                // Font selection
+                ImGui::Text("Font Path");
+                ImGui::SameLine();
+                ImGui::Text("%s", uiTextComponent.FontPath.c_str());
+
+                if (ImGui::Button("Select Font"))
+                {
+                    std::string path = FileDialog::OpenFile({}).string();
+                    if (!path.empty())
+                    {
+                        uiTextComponent.FontPath = path;
+                        uiTextComponent.FontLoaded = std::make_shared<Font>(path);
+                    }
+                }
+
+                // Font size
+                ImGui::Text("Font Size");
+                ImGui::DragFloat("##FontSize", &uiTextComponent.FontSize, 0.1f, 5.0f, 100.0f);
+
+                // Line spacing
+                ImGui::Text("Line Spacing");
+                ImGui::DragFloat("##LineSpacing", &uiTextComponent.LineSpacing, 0.1f, 0.5f);
+
+                // Text color
+                ImGui::Text("Text Color");
+                ImGui::ColorEdit4("##TextColor", glm::value_ptr(uiTextComponent.Color));
+
+                // Text alignment
+                ImGui::Text("Text Alignment");
+                const char* alignmentOptions[] = {"Left", "Center", "Right"};
+                int currentAlignment = static_cast<int>(uiTextComponent.Alignment);
+                if (ImGui::Combo("##TextAlignment", &currentAlignment, alignmentOptions,
+                                 IM_ARRAYSIZE(alignmentOptions)))
+                {
+                    uiTextComponent.Alignment = static_cast<Font::UITextAlignment>(currentAlignment);
+                }
+
+                ImGui::Checkbox("Visible", &uiTextComponent.Visible);
+            }
+        }
+
+        if (entity.HasComponent<UIButtonComponent>())
+        {
+            auto& uiButtonComponent = entity.GetComponent<UIButtonComponent>();
+            bool isCollapsingHeaderOpen = true;
+
+            if (ImGui::CollapsingHeader("UI Transform", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::Text("Position");
+
+                auto& transformComponent = entity.GetComponent<TransformComponent>();
+
+                glm::vec2 previousPosition = glm::vec2(transformComponent.Position.x, transformComponent.Position.y);
+                glm::vec2 newPosition = previousPosition;
+
+                if (ImGui::DragFloat2("##UIPosition", glm::value_ptr(newPosition), 0.1f))
+                {
+                    glm::vec2 delta = newPosition - previousPosition;
+                    UpdateUITransform(m_Context->m_Registry, entity, delta, 0.0f);
+                }
+
+                ImGui::Text("Rotation");
+                static float previousRotation = transformComponent.Rotation.z;
+                float currentRotation = previousRotation;
+
+                if (ImGui::DragFloat("##Rotation", &currentRotation, 0.1f))
+                {
+                    float delta = currentRotation - previousRotation;
+                    UpdateUITransform(m_Context->m_Registry, entity, {0.0f, 0.0f}, delta);
+                    previousRotation = currentRotation;
+                }
+
+                ImGui::Text("Size");
+                ImGui::DragFloat2("##Size", glm::value_ptr(uiButtonComponent.BaseSize), 0.1f);
+
+                ImGui::Text("Anchor Points");
+                const char* eyeIcon = uiButtonComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
+
+                if (ImGui::Button(eyeIcon, {24, 24}))
+                {
+                    bool newVisibility = !uiButtonComponent.Visible;
+                    SetUIVisibility(m_Context->m_Registry, entity, newVisibility);
+                }
+
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Toggle visibility of this UI component and its children.");
+                }
+                ImGui::SameLine();
+
+                DrawAnchorPointCombo(uiButtonComponent.Anchor);
+
+                if (ImGui::Button("Apply Anchor to Children"))
+                {
+                    SetUIAnchor(m_Context->m_Registry, entity, uiButtonComponent.Anchor);
+                }
+
+                ImGui::Text("Layer");
+                ImGui::DragInt("##Layer", &uiButtonComponent.Layer, 1, 0);
+
+                ImGui::SameLine();
+                if (ImGui::Button("Apply Children"))
+                {
+                    SetUILayer(m_Context->m_Registry, entity, uiButtonComponent.Layer);
+                }
+            }
+
+            if (ImGui::CollapsingHeader("UI Button", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                // Button-specific properties
+                ImGui::Text("State");
+                const char* stateNames[] = {"Base", "Selected", "Pressed"};
+                int currentState = static_cast<int>(uiButtonComponent.CurrentState);
+                if (ImGui::Combo("##State", &currentState, stateNames, IM_ARRAYSIZE(stateNames)))
+                {
+                    uiButtonComponent.CurrentState = static_cast<UIButtonComponent::ButtonState>(currentState);
+                }
+
+                ImGui::Text("Base Texture");
+                DrawTextureWidget("##UIButtonBaseTexture", uiButtonComponent.BaseTexture);
+
+                ImGui::Text("Selected Texture");
+                DrawTextureWidget("##UIButtonSelectedTexture", uiButtonComponent.SelectedTexture);
+
+                ImGui::Text("Pressed Texture");
+                DrawTextureWidget("##UIButtonPressedTexture", uiButtonComponent.PressedTexture);
+
+                ImGui::Text("Base Color");
+                ImGui::ColorEdit4("##BaseColor", glm::value_ptr(uiButtonComponent.BaseColor));
+
+                ImGui::Text("Selected Color");
+                ImGui::ColorEdit4("##SelectedColor", glm::value_ptr(uiButtonComponent.SelectedColor));
+
+                ImGui::Text("Pressed Color");
+                ImGui::ColorEdit4("##PressedColor", glm::value_ptr(uiButtonComponent.PressedColor));
+
+                ImGui::Checkbox("Visible", &uiButtonComponent.Visible);
+            }
+        }
+
+        if (entity.HasComponent<UISliderComponent>())
+        {
+            auto& uiSliderComponent = entity.GetComponent<UISliderComponent>();
+            bool isCollapsingHeaderOpen = true;
+
+            if (ImGui::CollapsingHeader("UI Transform", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::Text("Position");
+
+                auto& transformComponent = entity.GetComponent<TransformComponent>();
+
+                glm::vec2 previousPosition = glm::vec2(transformComponent.Position.x, transformComponent.Position.y);
+                glm::vec2 newPosition = previousPosition;
+
+                if (ImGui::DragFloat2("##UIPosition", glm::value_ptr(newPosition), 0.1f))
+                {
+                    glm::vec2 delta = newPosition - previousPosition;
+                    UpdateUITransform(m_Context->m_Registry, entity, delta, 0.0f);
+                }
+
+                ImGui::Text("Rotation");
+                static float previousRotation = transformComponent.Rotation.z;
+                float currentRotation = previousRotation;
+
+                if (ImGui::DragFloat("##Rotation", &currentRotation, 0.1f))
+                {
+                    float delta = currentRotation - previousRotation;
+                    UpdateUITransform(m_Context->m_Registry, entity, {0.0f, 0.0f}, delta);
+                    previousRotation = currentRotation;
+                }
+
+                ImGui::Text("Bar Size");
+                ImGui::DragFloat2("##Bar Size", glm::value_ptr(uiSliderComponent.Size), 0.1f);
+
+                ImGui::Text("Handle Size");
+                ImGui::DragFloat2("##Handle Size", glm::value_ptr(uiSliderComponent.HandleSize), 0.1f);
+
+                ImGui::Text("Anchor Points");
+                const char* eyeIcon = uiSliderComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
+
+                if (ImGui::Button(eyeIcon, {24, 24}))
+                {
+                    bool newVisibility = !uiSliderComponent.Visible;
+                    SetUIVisibility(m_Context->m_Registry, entity, newVisibility);
+                }
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Toggle visibility of this UI component and its children.");
+                }
+                ImGui::SameLine();
+
+                DrawAnchorPointCombo(uiSliderComponent.Anchor);
+
+                if (ImGui::Button("Apply Anchor to Children"))
+                {
+                    SetUIAnchor(m_Context->m_Registry, entity, uiSliderComponent.Anchor);
+                }
+
+                ImGui::Text("Layer");
+                ImGui::DragInt("##Layer", &uiSliderComponent.Layer, 1, 0);
+
+                ImGui::SameLine();
+                if (ImGui::Button("Apply Children"))
+                {
+                    SetUILayer(m_Context->m_Registry, entity, uiSliderComponent.Layer);
+                }
+            }
+
+            if (ImGui::CollapsingHeader("UI Slider", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                // Slider-specific properties
+                ImGui::Text("Bar Texture");
+                DrawTextureWidget("##UISliderBarTexture", uiSliderComponent.BarTexture);
+
+                ImGui::Text("Handle Texture");
+                DrawTextureWidget("##UISliderHandleTexture", uiSliderComponent.HandleTexture);
+
+                ImGui::Text("Value");
+                ImGui::SliderFloat("##SliderValue", &uiSliderComponent.Value, 0.0f, 1.0f);
+
+                ImGui::Checkbox("Visible", &uiSliderComponent.Visible);
+            }
+        }
+
+        if (entity.HasComponent<UIToggleComponent>())
+        {
+            auto& uiToggleComponent = entity.GetComponent<UIToggleComponent>();
+            bool isCollapsingHeaderOpen = true;
+
+            if (ImGui::CollapsingHeader("UI Transform", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::Text("Position");
+
+                auto& transformComponent = entity.GetComponent<TransformComponent>();
+
+                glm::vec2 previousPosition = glm::vec2(transformComponent.Position.x, transformComponent.Position.y);
+                glm::vec2 newPosition = previousPosition;
+
+                if (ImGui::DragFloat2("##UIPosition", glm::value_ptr(newPosition), 0.1f))
+                {
+                    glm::vec2 delta = newPosition - previousPosition;
+                    UpdateUITransform(m_Context->m_Registry, entity, delta, 0.0f);
+                }
+
+                ImGui::Text("Rotation");
+                static float previousRotation = transformComponent.Rotation.z;
+                float currentRotation = previousRotation;
+
+                if (ImGui::DragFloat("##Rotation", &currentRotation, 0.1f))
+                {
+                    float delta = currentRotation - previousRotation;
+                    UpdateUITransform(m_Context->m_Registry, entity, {0.0f, 0.0f}, delta);
+                    previousRotation = currentRotation;
+                }
+
+                ImGui::Text("Size");
+                ImGui::DragFloat2("##Size", glm::value_ptr(uiToggleComponent.Size), 0.1f);
+
+                ImGui::Text("Anchor Points");
+                const char* eyeIcon = uiToggleComponent.Visible ? ICON_LC_EYE : ICON_LC_EYE_CLOSED;
+
+                if (ImGui::Button(eyeIcon, {24, 24}))
+                {
+                    bool newVisibility = !uiToggleComponent.Visible;
+                    SetUIVisibility(m_Context->m_Registry, entity, newVisibility);
+                }
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Toggle visibility of this UI component and its children.");
+                }
+                ImGui::SameLine();
+
+                DrawAnchorPointCombo(uiToggleComponent.Anchor);
+
+                if (ImGui::Button("Apply Anchor to Children"))
+                {
+                    SetUIAnchor(m_Context->m_Registry, entity, uiToggleComponent.Anchor);
+                }
+
+                ImGui::Text("Layer");
+                ImGui::DragInt("##Layer", &uiToggleComponent.Layer, 1, 0);
+
+                ImGui::SameLine();
+                if (ImGui::Button("Apply Children"))
+                {
+                    SetUILayer(m_Context->m_Registry, entity, uiToggleComponent.Layer);
+                }
+            }
+
+            if (ImGui::CollapsingHeader("UI Toggle", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                // Toggle-specific properties
+                ImGui::Text("Active Texture");
+                DrawTextureWidget("##UIToggleActiveTexture", uiToggleComponent.ActiveTexture);
+
+                ImGui::Text("Inactive Texture");
+                DrawTextureWidget("##UIToggleInactiveTexture", uiToggleComponent.InactiveTexture);
+
+                ImGui::Checkbox("Is Active", &uiToggleComponent.IsActive);
+                ImGui::Checkbox("Visible", &uiToggleComponent.Visible);
             }
         }
 
@@ -1296,8 +2002,8 @@ namespace Coffee
                 // TODO remove animator component from entity and all the animation data
             }
         }
-        
-        if(entity.HasComponent<ScriptComponent>())
+
+        if (entity.HasComponent<ScriptComponent>())
         {
             auto& scriptComponent = entity.GetComponent<ScriptComponent>();
             bool isCollapsingHeaderOpen = true;
@@ -1427,11 +2133,14 @@ namespace Coffee
             if (ImGui::CollapsingHeader("NavMesh", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::Checkbox("Show NavMesh", &navMeshComponent.ShowDebug);
-                ImGui::DragFloat("Walkable Slope Angle", &navMeshComponent.GetNavMesh()->WalkableSlopeAngle, 0.1f, 0.1f, 60.0f);
+                ImGui::DragFloat("Walkable Slope Angle", &navMeshComponent.GetNavMesh()->WalkableSlopeAngle, 0.1f, 0.1f,
+                                 60.0f);
 
                 if (ImGui::SmallButton("Generate NavMesh"))
                 {
-                    navMeshComponent.GetNavMesh()->CalculateWalkableAreas(entity.GetComponent<MeshComponent>().GetMesh(), entity.GetComponent<TransformComponent>().GetWorldTransform());
+                    navMeshComponent.GetNavMesh()->CalculateWalkableAreas(
+                        entity.GetComponent<MeshComponent>().GetMesh(),
+                        entity.GetComponent<TransformComponent>().GetWorldTransform());
                 }
             }
             if (!isCollapsingHeaderOpen)
@@ -1450,13 +2159,19 @@ namespace Coffee
 
                 ImGui::Checkbox("Show Path", &navigationAgentComponent.ShowDebug);
 
-                if (ImGui::BeginCombo("NavMesh", navigationAgentComponent.GetNavMeshComponent() ? std::to_string(navigationAgentComponent.GetNavMeshComponent()->GetNavMeshUUID()).c_str() : "Select NavMesh"))
+                if (ImGui::BeginCombo(
+                        "NavMesh",
+                        navigationAgentComponent.GetNavMeshComponent()
+                            ? std::to_string(navigationAgentComponent.GetNavMeshComponent()->GetNavMeshUUID()).c_str()
+                            : "Select NavMesh"))
                 {
                     for (auto entityID : view)
                     {
                         Entity e{entityID, m_Context.get()};
                         auto& navMeshComponent = e.GetComponent<NavMeshComponent>();
-                        bool isSelected = (navigationAgentComponent.GetNavMeshComponent() && navigationAgentComponent.GetNavMeshComponent()->GetNavMeshUUID() == navMeshComponent.GetNavMeshUUID());
+                        bool isSelected = (navigationAgentComponent.GetNavMeshComponent() &&
+                                           navigationAgentComponent.GetNavMeshComponent()->GetNavMeshUUID() ==
+                                               navMeshComponent.GetNavMeshUUID());
                         if (ImGui::Selectable(std::to_string(navMeshComponent.GetNavMeshUUID()).c_str(), isSelected))
                         {
                             navigationAgentComponent.SetNavMeshComponent(CreateRef<NavMeshComponent>(navMeshComponent));
@@ -1642,8 +2357,8 @@ namespace Coffee
                         float unirformValueSize = emitter->startSize.x;
                         if (ImGui::DragFloat("##NoAxesParticleStartSize", &unirformValueSize, 0.1f))
                         {
-                             emitter->startSize = glm::vec3(unirformValueSize);
-                         }
+                            emitter->startSize = glm::vec3(unirformValueSize);
+                        }
                     }
                 }
 
@@ -2078,7 +2793,11 @@ namespace Coffee
             static char buffer[256] = "";
             ImGui::InputTextWithHint("##Search Component", "Search Component:", buffer, 256);
 
-            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "Particles System Component", "NavMesh Component", "Navigation Agent Component" };
+            std::string items[] = {"Tag Component",          "Transform Component",       "Mesh Component",
+                                   "Material Component",     "Light Component",           "Camera Component",
+                                   "Audio Source Component", "Audio Listener Component",  "Audio Zone Component",
+                                   "Lua Script Component",   "Rigidbody Component",       "Particles System Component",
+                                   "NavMesh Component",      "Navigation Agent Component"};
 
             static int item_current = 1;
 
@@ -2129,7 +2848,7 @@ namespace Coffee
                 }
                 else if (items[item_current] == "Material Component")
                 {
-                    if(!entity.HasComponent<MaterialComponent>())
+                    if (!entity.HasComponent<MaterialComponent>())
                     {
                         entity.AddComponent<MaterialComponent>(Material::Create("Default Material"));
                     }
@@ -2200,52 +2919,58 @@ namespace Coffee
                         /*if (!entity.HasComponent<MaterialComponent>())
                          {
                              entity.AddComponent<MaterialComponent>(Material::Create("Default Particle Material"));
-                             
+
                          }*/
                         ImGui::CloseCurrentPopup();
                     }
-                }  
-                else if(items[item_current] == "Rigidbody Component")
+                }
+                else if (items[item_current] == "Rigidbody Component")
                 {
-                    if(!entity.HasComponent<RigidbodyComponent>())
+                    if (!entity.HasComponent<RigidbodyComponent>())
                     {
-                        try {
+                        try
+                        {
                             Ref<BoxCollider> collider = CreateRef<BoxCollider>(glm::vec3(1.0f, 1.0f, 1.0f));
-                            
+
                             RigidBody::Properties props;
                             props.type = RigidBody::Type::Dynamic;
                             props.mass = 1.0f;
                             props.useGravity = true;
-                            
+
                             auto& rbComponent = entity.AddComponent<RigidbodyComponent>(props, collider);
-                            
-                            if (entity.HasComponent<TransformComponent>()) {
+
+                            if (entity.HasComponent<TransformComponent>())
+                            {
                                 auto& transform = entity.GetComponent<TransformComponent>();
                                 rbComponent.rb->SetPosition(transform.Position);
                                 rbComponent.rb->SetRotation(transform.Rotation);
                             }
-                            
+
                             m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
-                            
+
                             // Set user pointer for collision detection
-                            rbComponent.rb->GetNativeBody()->setUserPointer(reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
-                            
+                            rbComponent.rb->GetNativeBody()->setUserPointer(
+                                reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
+
                             // Try to automatically size the collider to the mesh AABB
                             ResizeColliderToFitMeshAABB(entity, rbComponent);
                         }
-                        catch (const std::exception& e) {
+                        catch (const std::exception& e)
+                        {
                             COFFEE_CORE_ERROR("Exception creating rigidbody: {0}", e.what());
-                            if (entity.HasComponent<RigidbodyComponent>()) {
+                            if (entity.HasComponent<RigidbodyComponent>())
+                            {
                                 entity.RemoveComponent<RigidbodyComponent>();
                             }
                         }
                     }
-                
+
                     ImGui::CloseCurrentPopup();
                 }
-                else if(items[item_current] == "NavMesh Component")
+                else if (items[item_current] == "NavMesh Component")
                 {
-                    if(!entity.HasComponent<NavMeshComponent>() && entity.HasComponent<MeshComponent>() && entity.HasComponent<TransformComponent>())
+                    if (!entity.HasComponent<NavMeshComponent>() && entity.HasComponent<MeshComponent>() &&
+                        entity.HasComponent<TransformComponent>())
                     {
                         auto& navMeshComponent = entity.AddComponent<NavMeshComponent>();
                         navMeshComponent.SetNavMesh(CreateRef<NavMesh>());
@@ -2254,9 +2979,9 @@ namespace Coffee
 
                     ImGui::CloseCurrentPopup();
                 }
-                else if(items[item_current] == "Navigation Agent Component")
+                else if (items[item_current] == "Navigation Agent Component")
                 {
-                    if(!entity.HasComponent<NavigationAgentComponent>())
+                    if (!entity.HasComponent<NavigationAgentComponent>())
                     {
                         auto& navigationAgentComponent = entity.AddComponent<NavigationAgentComponent>();
                         navigationAgentComponent.SetPathFinder(CreateRef<NavMeshPathfinding>(nullptr));
@@ -2356,7 +3081,8 @@ namespace Coffee
             static char buffer[256] = "";
             ImGui::InputTextWithHint("##Search Component", "Search Component:", buffer, 256);
 
-            std::string items[] = {"Empty", "Camera", "Primitive", "Light", "Particle System"};
+            std::string items[] = {"Empty",    "Camera",  "Primitive", "Light",     "Particle System",
+                                   "UI Image", "UI Text", "UI Button", "UI Slider", "UI Toggle"};
             static int item_current = 1;
 
             if (ImGui::BeginListBox("##listbox 2", ImVec2(-FLT_MIN, ImGui::GetContentRegionAvail().y - 200)))
@@ -2414,6 +3140,41 @@ namespace Coffee
                     SetSelectedEntity(e);
                     ImGui::CloseCurrentPopup();
                 }
+                else if (items[item_current] == "UI Image")
+                {
+                    Entity e = m_Context->CreateEntity("UI Image");
+                    e.AddComponent<UIImageComponent>();
+                    SetSelectedEntity(e);
+                    ImGui::CloseCurrentPopup();
+                }
+                else if (items[item_current] == "UI Text")
+                {
+                    Entity e = m_Context->CreateEntity("UI Text");
+                    e.AddComponent<UITextComponent>();
+                    SetSelectedEntity(e);
+                    ImGui::CloseCurrentPopup();
+                }
+                else if (items[item_current] == "UI Button")
+                {
+                    Entity e = m_Context->CreateEntity("UI Button");
+                    e.AddComponent<UIButtonComponent>();
+                    SetSelectedEntity(e);
+                    ImGui::CloseCurrentPopup();
+                }
+                else if (items[item_current] == "UI Slider")
+                {
+                    Entity e = m_Context->CreateEntity("UI Slider");
+                    e.AddComponent<UISliderComponent>();
+                    SetSelectedEntity(e);
+                    ImGui::CloseCurrentPopup();
+                }
+                else if (items[item_current] == "UI Toggle")
+                {
+                    Entity e = m_Context->CreateEntity("UI Toggle");
+                    e.AddComponent<UIToggleComponent>();
+                    SetSelectedEntity(e);
+                    ImGui::CloseCurrentPopup();
+                }
                 else if (items[item_current] == "Particle System")
                 {
                     Entity e = m_Context->CreateEntity("ParticleSystem");
@@ -2435,36 +3196,38 @@ namespace Coffee
     bool SceneTreePanel::ResizeColliderToFitMeshAABB(Entity entity, RigidbodyComponent& rbComponent)
     {
         // Check if entity has a mesh component
-        if (entity.HasComponent<MeshComponent>()) {
+        if (entity.HasComponent<MeshComponent>())
+        {
             auto& meshComponent = entity.GetComponent<MeshComponent>();
             Ref<Collider> currentCollider = rbComponent.rb->GetCollider();
-            
+
             // Make sure we have both a valid mesh and collider
-            if (meshComponent.GetMesh() && currentCollider) {
+            if (meshComponent.GetMesh() && currentCollider)
+            {
                 // Get the mesh's AABB
                 const AABB& meshAABB = meshComponent.GetMesh()->GetAABB();
-                
+
                 // Store current rigidbody properties
                 RigidBody::Properties props = rbComponent.rb->GetProperties();
                 glm::vec3 position = rbComponent.rb->GetPosition();
                 glm::vec3 rotation = rbComponent.rb->GetRotation();
                 glm::vec3 velocity = rbComponent.rb->GetVelocity();
-                
+
                 // Remove from physics world
                 m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-                
+
                 // Resize the collider to fit the mesh AABB
                 rbComponent.rb->ResizeColliderToFitAABB(meshAABB);
-                
+
                 // Add back to physics world
                 m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
                 rbComponent.rb->GetNativeBody()->setUserPointer(
                     reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
-                
+
                 return true;
             }
         }
-        
+
         return false;
     }
 } // namespace Coffee

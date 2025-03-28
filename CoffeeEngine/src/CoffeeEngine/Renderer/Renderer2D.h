@@ -2,6 +2,9 @@
 
 #include "CoffeeEngine/Renderer/Font.h"
 #include "CoffeeEngine/Renderer/RenderTarget.h"
+#include "CoffeeEngine/Scene/Scene.h"
+#include "CoffeeEngine/Core/DataStructures/Octree.h"
+#include "CoffeeEngine/Scene/Components.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -84,9 +87,10 @@ namespace Coffee {
 			glm::vec4 Color{ 1.0f };
 			float Kerning = 0.0f;
 			float LineSpacing = 0.0f;
+            Font::UITextAlignment Alignment = Font::UITextAlignment::Left;
 		};
 
-        static void DrawText(const std::string& text, Ref<Font> font, const glm::mat4& transform, const TextParams& textParams, RenderMode mode, uint32_t entityID = 4294967295);
+        static void DrawString(const std::string& text, Ref<Font> font, const glm::mat4& transform, const TextParams& textParams, RenderMode mode, uint32_t entityID = 4294967295);
     private:
         static Batch& GetBatch(RenderMode mode);
         static void NextBatch(RenderMode mode);

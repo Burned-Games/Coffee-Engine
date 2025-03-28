@@ -21,6 +21,8 @@ namespace Coffee {
         Entity GetSelectedEntity() const { return m_SelectionContext; };
         void SetSelectedEntity(Entity entity) { m_SelectionContext = entity; };
 
+        void ProcessHierarchy(entt::registry& registry, entt::entity root, const std::function<void(entt::entity)>& callback);
+
     private:
         void DrawEntityNode(Entity entity);
         void DrawComponents(Entity entity);

@@ -102,8 +102,15 @@ namespace Coffee {
         void OnExitEditor();
         void OnExitRuntime();
 
+        void OnUpdateUI(float dt, entt::registry& registry);
+
         const PhysicsWorld& GetPhysicsWorld() const { return m_PhysicsWorld; }
         PhysicsWorld& GetPhysicsWorld() { return m_PhysicsWorld; }
+
+        glm::vec2 CalculateAnchorOffset(UIAnchorPosition anchor, const glm::vec2& windowSize);
+        std::vector<std::string> SplitTextIntoLines(const std::string& text);
+
+
 
         /**
          * @brief Load a scene from a file.
@@ -164,6 +171,12 @@ namespace Coffee {
             .template get<AudioSourceComponent>(archive)
             .template get<AudioListenerComponent>(archive)
             .template get<AudioZoneComponent>(archive)
+            .template get<UIComponent>(archive)
+            .template get<UIImageComponent>(archive)
+            .template get<UITextComponent>(archive)
+            .template get<UISliderComponent>(archive)
+            .template get<UIButtonComponent>(archive)
+            .template get<UIToggleComponent>(archive)
             .template get<ParticlesSystemComponent>(archive)
             .template get<ActiveComponent>(archive)
             .template get<StaticComponent>(archive);
@@ -194,6 +207,12 @@ namespace Coffee {
             .template get<AudioSourceComponent>(archive)
             .template get<AudioListenerComponent>(archive)
             .template get<AudioZoneComponent>(archive)
+            .template get<UIComponent>(archive)
+            .template get<UIImageComponent>(archive)
+            .template get<UITextComponent>(archive)
+            .template get<UISliderComponent>(archive)
+            .template get<UIButtonComponent>(archive)
+            .template get<UIToggleComponent>(archive)
             .template get<ParticlesSystemComponent>(archive)
             .template get<ActiveComponent>(archive)
             .template get<StaticComponent>(archive);
@@ -204,7 +223,7 @@ namespace Coffee {
 
     private:
         // NOTE: this macro should be modified when adding new components
-        #define ALL_COMPONENTS TagComponent, TransformComponent, HierarchyComponent, CameraComponent, MeshComponent, MaterialComponent, LightComponent, RigidbodyComponent, ScriptComponent, AudioSourceComponent, AudioListenerComponent, AudioZoneComponent, ParticlesSystemComponent //, AnimatorComponent
+        #define ALL_COMPONENTS TagComponent, TransformComponent, HierarchyComponent, CameraComponent, MeshComponent, MaterialComponent, LightComponent, RigidbodyComponent, ScriptComponent, AudioSourceComponent, AudioListenerComponent, AudioZoneComponent, ParticlesSystemComponent, UIComponent, UIImageComponent, UITextComponent, UISliderComponent, UIButtonComponent, UIToggleComponent //, AnimatorComponent
 
         entt::registry m_Registry;
         Scope<SceneTree> m_SceneTree;

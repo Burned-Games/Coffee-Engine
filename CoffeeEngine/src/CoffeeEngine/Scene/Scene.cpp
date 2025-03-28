@@ -201,7 +201,7 @@ namespace Coffee {
 
         CollisionSystem::Initialize(this);
 
-/*         auto view = m_Registry.view<MeshComponent>();
+/*      auto view = m_Registry.view<MeshComponent>();
 
         for (auto& entity : view)
         {
@@ -329,8 +329,9 @@ namespace Coffee {
         }
 
         m_PhysicsWorld.drawCollisionShapes();
-    }
 
+        OnUpdateUI(dt, m_Registry);
+    }
 
     void Scene::OnUpdateRuntime(float dt)
     {
@@ -452,6 +453,23 @@ namespace Coffee {
             Renderer3D::Submit(RenderCommand{transformComponent.GetWorldTransform(), mesh, material, (uint32_t)entity, meshComponent.animator});
         }
 
+        //Get all entities with LightComponent and TransformComponent
+        auto lightView = m_Registry.view<LightComponent, TransformComponent>();
+
+        //Loop through each entity with the specified components
+        for(auto& entity : lightView)
+        {
+            auto& lightComponent = lightView.get<LightComponent>(entity);
+            auto& transformComponent = lightView.get<TransformComponent>(entity);
+
+            lightComponent.Position = transformComponent.GetWorldTransform()[3];
+            lightComponent.Direction = glm::normalize(glm::vec3(-transformComponent.GetWorldTransform()[1]));
+
+            Renderer3D::Submit(lightComponent);
+        }
+
+
+
         // Get all entities with ParticlesSystemComponent and TransformComponent
         auto particleSystemView = m_Registry.view<ActiveComponent, ParticlesSystemComponent, TransformComponent>();
         for (auto& entity : particleSystemView)
@@ -473,6 +491,7 @@ namespace Coffee {
             particlesSystemComponent.GetParticleEmitter()->Update(dt);
 
         }
+        OnUpdateUI(dt, m_Registry);
     }
 
     void Scene::OnEvent(Event& e)
@@ -675,5 +694,296 @@ namespace Coffee {
                 );
             }
         }
+    }
+
+    void Scene::OnUpdateUI(float dt, entt::registry& registry) {
+        auto windowSize = Renderer::GetCurrentRenderTarget()->GetSize();
+
+        auto CalculateAnchorOffset = [](UIAnchorPosition anchor, const glm::vec2& windowSize) -> glm::vec2 {
+            switch (anchor) {
+            case UIAnchorPosition::BottomLeft: return glm::vec2(0.0f, windowSize.y);
+            case UIAnchorPosition::BottomCenter: return glm::vec2(windowSize.x / 2.0f, windowSize.y);
+            case UIAnchorPosition::BottomRight: return glm::vec2(windowSize.x, windowSize.y);
+            case UIAnchorPosition::CenterLeft: return glm::vec2(0.0f, windowSize.y / 2.0f);
+            case UIAnchorPosition::Center: return glm::vec2(windowSize.x / 2.0f, windowSize.y / 2.0f);
+            case UIAnchorPosition::CenterRight: return glm::vec2(windowSize.x, windowSize.y / 2.0f);
+            case UIAnchorPosition::TopLeft: return glm::vec2(0.0f, 0.0f);
+            case UIAnchorPosition::TopCenter: return glm::vec2(windowSize.x / 2.0f, 0.0f);
+            case UIAnchorPosition::TopRight: return glm::vec2(windowSize.x, 0.0f);
+            default: return glm::vec2(0.0f, 0.0f);
+            }
+        };
+
+        auto uiImageView = registry.view<UIImageComponent, TransformComponent>();
+        auto uiTextView = registry.view<UITextComponent, TransformComponent>();
+        auto uiSliderView = registry.view<UISliderComponent, TransformComponent>();
+        auto uiButtonView = registry.view<UIButtonComponent, TransformComponent>();
+        auto uiToggleView = registry.view<UIToggleComponent, TransformComponent>();
+
+        std::vector<std::tuple<entt::entity, int, int, int>> uiEntities;
+
+        auto GetHierarchyDepthAndSiblingIndex = [&registry](entt::entity entity) -> std::pair<int, int> {
+            int depth = 0;
+            int siblingIndex = 0;
+            auto* hierarchyComponent = registry.try_get<HierarchyComponent>(entity);
+            if (hierarchyComponent && hierarchyComponent->m_Parent != entt::null) {
+                auto* parentHierarchy = registry.try_get<HierarchyComponent>(hierarchyComponent->m_Parent);
+                while (parentHierarchy) {
+                    depth++;
+                    parentHierarchy = registry.try_get<HierarchyComponent>(parentHierarchy->m_Parent);
+                }
+
+                auto parent = hierarchyComponent->m_Parent;
+                auto* parentChildren = registry.try_get<HierarchyComponent>(parent);
+                if (parentChildren) {
+                    entt::entity currentChild = parentChildren->m_First;
+                    while (currentChild != entt::null) {
+                        if (currentChild == entity) {
+                            break;
+                        }
+                        siblingIndex++;
+                        currentChild = registry.get<HierarchyComponent>(currentChild).m_Next;
+                    }
+                }
+            }
+            return {depth, siblingIndex};
+        };
+
+        // Consistent function to calculate world transform for all UI components
+        auto CalculateWorldTransform = [&](entt::entity entity, const glm::vec2& anchorOffset,
+                                           const TransformComponent& transform, const glm::vec2& size,
+                                           float zOffset) -> glm::mat4 {
+            glm::vec2 finalPosition = anchorOffset + glm::vec2(transform.Position);
+
+            glm::mat4 worldTransform = glm::mat4(1.0f);
+            worldTransform = glm::translate(worldTransform, glm::vec3(finalPosition, zOffset));
+            worldTransform = glm::rotate(worldTransform, glm::radians(transform.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+            worldTransform = glm::scale(worldTransform, glm::vec3(size.x, size.y, 1.0f));
+
+            return worldTransform;
+        };
+
+        // Collect all UI entities with their respective layer, depth, and sibling index
+        for (auto entity : uiImageView) {
+            auto& uiImageComponent = uiImageView.get<UIImageComponent>(entity);
+            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
+            uiEntities.push_back({entity, uiImageComponent.Layer, depth, siblingIndex});
+        }
+
+        for (auto entity : uiTextView) {
+            auto& uiTextComponent = uiTextView.get<UITextComponent>(entity);
+            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
+            uiEntities.push_back({entity, uiTextComponent.Layer, depth, siblingIndex});
+        }
+
+        for (auto entity : uiSliderView) {
+            auto& uiSliderComponent = uiSliderView.get<UISliderComponent>(entity);
+            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
+            uiEntities.push_back({entity, uiSliderComponent.Layer, depth, siblingIndex});
+        }
+
+        for (auto entity : uiButtonView) {
+            auto& uiButtonComponent = uiButtonView.get<UIButtonComponent>(entity);
+            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
+            uiEntities.push_back({entity, uiButtonComponent.Layer, depth, siblingIndex});
+        }
+
+        for (auto entity : uiToggleView) {
+            auto& uiToggleComponent = uiToggleView.get<UIToggleComponent>(entity);
+            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
+            uiEntities.push_back({entity, uiToggleComponent.Layer, depth, siblingIndex});
+        }
+
+        // Sort UI entities based on layer, depth, and sibling index
+        std::sort(uiEntities.begin(), uiEntities.end(), [](const std::tuple<entt::entity, int, int, int>& a, const std::tuple<entt::entity, int, int, int>& b) {
+            if (std::get<1>(a) == std::get<1>(b)) {
+                if (std::get<2>(a) == std::get<2>(b)) {
+                    return std::get<3>(a) < std::get<3>(b);
+                }
+                return std::get<2>(a) < std::get<2>(b);
+            }
+            return std::get<1>(a) < std::get<1>(b);
+        });
+
+        // Process all UI entities in the sorted order
+        for (auto& [entity, layer, depth, siblingIndex] : uiEntities) {
+            float zOffset = depth * 0.1f + siblingIndex * 0.01f;
+
+            if (uiImageView.contains(entity)) {
+                auto& uiImageComponent = uiImageView.get<UIImageComponent>(entity);
+                auto& transformComponent = uiImageView.get<TransformComponent>(entity);
+
+                if (!uiImageComponent.Visible || !uiImageComponent.texture) continue;
+
+                glm::vec2 anchorOffset = CalculateAnchorOffset(uiImageComponent.Anchor, windowSize);
+                glm::mat4 transform = CalculateWorldTransform(
+                    entity,
+                    anchorOffset,
+                    transformComponent,
+                    uiImageComponent.Size,
+                    zOffset
+                );
+
+                Renderer2D::DrawQuad(transform, uiImageComponent.texture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
+            }
+            else if (uiTextView.contains(entity)) {
+                auto& uiTextComponent = uiTextView.get<UITextComponent>(entity);
+                auto& transformComponent = uiTextView.get<TransformComponent>(entity);
+
+                if (!uiTextComponent.Visible || uiTextComponent.Text.empty()) continue;
+
+                if (!uiTextComponent.FontLoaded) uiTextComponent.FontLoaded = Font::GetDefault();
+
+                std::vector<std::string> lines = SplitTextIntoLines(uiTextComponent.Text);
+                glm::vec2 anchorOffset = CalculateAnchorOffset(uiTextComponent.Anchor, windowSize);
+                glm::vec2 basePosition = anchorOffset + glm::vec2(transformComponent.Position);
+                float lineHeight = uiTextComponent.FontSize * uiTextComponent.LineSpacing;
+
+                for (size_t i = 0; i < lines.size(); i++) {
+                    glm::vec2 linePosition = basePosition;
+                    linePosition.y += i * lineHeight;
+
+                    glm::mat4 transform = glm::mat4(1.0f);
+                    transform = glm::translate(transform, glm::vec3(linePosition, zOffset));
+                    transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+                    transform = glm::scale(transform, glm::vec3(uiTextComponent.FontSize, -uiTextComponent.FontSize, 1.0f));
+
+                    Renderer2D::DrawString(lines[i], uiTextComponent.FontLoaded, transform,
+                                           {uiTextComponent.Color, 0.0f, 0.0f, uiTextComponent.Alignment},
+                                           Renderer2D::RenderMode::Screen, (uint32_t)entity);
+                }
+            }
+            else if (uiSliderView.contains(entity)) {
+                auto& uiSliderComponent = uiSliderView.get<UISliderComponent>(entity);
+                auto& transformComponent = uiSliderView.get<TransformComponent>(entity);
+
+                if (!uiSliderComponent.Visible) continue;
+
+                glm::vec2 anchorOffset = CalculateAnchorOffset(uiSliderComponent.Anchor, windowSize);
+                glm::mat4 transform = CalculateWorldTransform(
+                    entity,
+                    anchorOffset,
+                    transformComponent,
+                    uiSliderComponent.Size,
+                    zOffset
+                );
+
+                if (uiSliderComponent.BarTexture) {
+                    Renderer2D::DrawQuad(transform, uiSliderComponent.BarTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
+                }
+
+                if (uiSliderComponent.HandleTexture) {
+                    float normalizedValue = glm::clamp(uiSliderComponent.Value, 0.0f, 1.0f);
+                    float handleOffset = normalizedValue * (uiSliderComponent.Size.x - uiSliderComponent.HandleSize.x);
+                    handleOffset -= (uiSliderComponent.Size.x / 2.0f) - (uiSliderComponent.HandleSize.x / 2.0f);
+
+                    glm::mat4 baseTransform = glm::mat4(1.0f);
+                    baseTransform = glm::translate(baseTransform, glm::vec3(anchorOffset + glm::vec2(transformComponent.Position), zOffset));
+                    baseTransform = glm::rotate(baseTransform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+
+                    glm::mat4 handleTransform = glm::translate(baseTransform, glm::vec3(handleOffset, 0.0f, 0.001f));
+                    handleTransform = glm::scale(handleTransform, glm::vec3(uiSliderComponent.HandleSize.x, uiSliderComponent.HandleSize.y, 1.0f));
+
+                    Renderer2D::DrawQuad(handleTransform, uiSliderComponent.HandleTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
+                }
+            }
+            else if (uiButtonView.contains(entity)) {
+                auto& uiButtonComponent = uiButtonView.get<UIButtonComponent>(entity);
+                auto& transformComponent = uiButtonView.get<TransformComponent>(entity);
+
+                uiButtonComponent.Update(dt);
+
+                if (!uiButtonComponent.Visible) continue;
+
+                Ref<Texture2D> CurrentTexture = uiButtonComponent.GetCurrentTexture();
+                if (!CurrentTexture) continue;
+
+                glm::vec2 anchorOffset = CalculateAnchorOffset(uiButtonComponent.Anchor, windowSize);
+                glm::vec2 currentSize = glm::vec2(
+                    glm::max(uiButtonComponent.GetCurrentSize().x, 0.1f),
+                    glm::max(uiButtonComponent.GetCurrentSize().y, 0.1f)
+                );
+
+                try {
+                    glm::mat4 transform = CalculateWorldTransform(
+                        entity,
+                        anchorOffset,
+                        transformComponent,
+                        currentSize,
+                        zOffset
+                    );
+
+                    Renderer2D::DrawQuad(
+                        transform,
+                        CurrentTexture,
+                        1.0f,
+                        uiButtonComponent.GetCurrentColor(),
+                        Renderer2D::RenderMode::Screen,
+                        (uint32_t)entity
+                    );
+                }
+                catch (...) {
+                    COFFEE_CORE_ERROR("Invalid transform for button entity {}", (uint32_t)entity);
+                    continue;
+                }
+            }
+            else if (uiToggleView.contains(entity)) {
+                auto& uiToggleComponent = uiToggleView.get<UIToggleComponent>(entity);
+                auto& transformComponent = uiToggleView.get<TransformComponent>(entity);
+
+                if (!uiToggleComponent.Visible) continue;
+
+                glm::vec2 anchorOffset = CalculateAnchorOffset(uiToggleComponent.Anchor, windowSize);
+                glm::mat4 transform = CalculateWorldTransform(
+                    entity,
+                    anchorOffset,
+                    transformComponent,
+                    uiToggleComponent.Size,
+                    zOffset
+                );
+
+                Ref<Texture2D> currentTexture = uiToggleComponent.IsActive ? uiToggleComponent.ActiveTexture : uiToggleComponent.InactiveTexture;
+                if (currentTexture) {
+                    Renderer2D::DrawQuad(transform, currentTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
+                }
+            }
+        }
+    }
+
+    glm::vec2 Scene::CalculateAnchorOffset(UIAnchorPosition anchor, const glm::vec2& windowSize)
+    {
+        switch (anchor)
+        {
+        case UIAnchorPosition::TopLeft:
+            return glm::vec2(0.0f, windowSize.y);
+        case UIAnchorPosition::TopCenter:
+            return glm::vec2(windowSize.x / 2.0f, windowSize.y);
+        case UIAnchorPosition::TopRight:
+            return glm::vec2(windowSize.x, windowSize.y);
+        case UIAnchorPosition::CenterLeft:
+            return glm::vec2(0.0f, windowSize.y / 2.0f);
+        case UIAnchorPosition::Center:
+            return glm::vec2(windowSize.x / 2.0f, windowSize.y / 2.0f);
+        case UIAnchorPosition::CenterRight:
+            return glm::vec2(windowSize.x, windowSize.y / 2.0f);
+        case UIAnchorPosition::BottomLeft:
+            return glm::vec2(0.0f, 0.0f);
+        case UIAnchorPosition::BottomCenter:
+            return glm::vec2(windowSize.x / 2.0f, 0.0f);
+        case UIAnchorPosition::BottomRight:
+            return glm::vec2(windowSize.x, 0.0f);
+        default:
+            return glm::vec2(0.0f, 0.0f);
+        }
+    }
+
+    std::vector<std::string> Scene::SplitTextIntoLines(const std::string& text) {
+        std::vector<std::string> lines;
+        std::stringstream ss(text);
+        std::string line;
+        while (std::getline(ss, line, '\n')) {
+            lines.push_back(line);
+        }
+        return lines;
     }
 }

@@ -808,7 +808,7 @@ namespace Coffee {
         }
     }
 
-    void Renderer2D::DrawText(const std::string &text, Ref<Font> font, const glm::mat4 &transform, const TextParams &textParams, RenderMode mode, uint32_t entityID)
+    void Renderer2D::DrawString(const std::string &text, Ref<Font> font, const glm::mat4 &transform, const TextParams &textParams, RenderMode mode, uint32_t entityID)
     {
 
         Batch& batch = GetBatch(mode);
@@ -831,6 +831,23 @@ namespace Coffee {
 		double y = 0.0;
 
 		const float spaceGlyphAdvance = fontGeometry.getGlyph(' ')->getAdvance();
+
+
+        //Text alignment
+        double totalWidth = font->CalculateTextWidth(text, fsScale, textParams.Kerning);
+        switch (textParams.Alignment)
+        {
+        case Font::UITextAlignment::Center:
+            x = -totalWidth / 2.0;
+            break;
+        case Font::UITextAlignment::Right :
+            x = -totalWidth;
+            break;
+        case Font::UITextAlignment::Left :
+        default:
+            break;
+        }
+
 
         for (size_t i = 0; i < text.size(); i++)
 		{
