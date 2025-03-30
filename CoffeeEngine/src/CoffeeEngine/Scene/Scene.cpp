@@ -42,6 +42,9 @@
 
 namespace Coffee {
 
+    std::map <UUID, UUID> Scene::s_UUIDMap;
+    std::vector<MeshComponent*> Scene::s_MeshComponents;
+    std::vector<AnimatorComponent*> Scene::s_AnimatorComponents;
 
     Scene::Scene() : m_Octree({glm::vec3(-50.0f), glm::vec3(50.0f)}, 10, 5)
     {
@@ -57,6 +60,79 @@ namespace Coffee {
         {
             auto srcComponent = registry.get<T>(sourceEntity);
             registry.emplace_or_replace<T>(destinyEntity, srcComponent);
+        }
+    }
+
+    template <>
+    void CopyComponentIfExists<HierarchyComponent>(entt::entity destinyEntity, entt::entity sourceEntity, entt::registry& registry)
+    {
+        // We don't need to copy the hierarchy component directly
+        // The hierarchy will be set up by SetParent() calls in DuplicateEntityRecursive
+        
+        // Just make sure we have a fresh hierarchy component
+        if (!registry.all_of<HierarchyComponent>(destinyEntity)) {
+            registry.emplace<HierarchyComponent>(destinyEntity);
+        }
+    }
+
+    template <>
+    void CopyComponentIfExists<AnimatorComponent>(entt::entity destinyEntity, entt::entity sourceEntity, entt::registry& registry)
+    {
+        if(registry.all_of<AnimatorComponent>(sourceEntity))
+        {
+            const auto& srcComponent = registry.get<AnimatorComponent>(sourceEntity);
+
+            AnimatorComponent newComponent;
+
+            newComponent.Loop = srcComponent.Loop;
+            newComponent.BlendDuration = srcComponent.BlendDuration;
+            newComponent.AnimationSpeed = srcComponent.AnimationSpeed;
+            newComponent.modelUUID = srcComponent.modelUUID;
+            newComponent.animatorUUID = srcComponent.animatorUUID;
+            newComponent.UpperBodyRootJoint = srcComponent.UpperBodyRootJoint;
+            newComponent.PartialBlendOutput = srcComponent.PartialBlendOutput;
+            newComponent.UpperBodyWeight = srcComponent.UpperBodyWeight;
+            newComponent.LowerBodyWeight = srcComponent.LowerBodyWeight;
+            newComponent.PartialBlendThreshold = srcComponent.PartialBlendThreshold;
+
+            newComponent.UpperAnimation = CreateRef<AnimationLayer>(*srcComponent.UpperAnimation);
+            newComponent.LowerAnimation = CreateRef<AnimationLayer>(*srcComponent.LowerAnimation);
+
+            AnimationSystem::LoadAnimator(&newComponent);
+
+            UUID newUUID = UUID();
+            Scene::s_UUIDMap[srcComponent.animatorUUID] = newUUID;
+            newComponent.animatorUUID = newUUID;
+
+            const std::string rootJointName = newComponent.GetSkeleton()->GetJoints()[newComponent.UpperBodyRootJoint].name;
+            AnimationSystem::SetupPartialBlending(
+                newComponent.UpperAnimation->CurrentAnimation,
+                newComponent.LowerAnimation->CurrentAnimation,
+                rootJointName,
+                &newComponent
+            );
+
+            registry.emplace<AnimatorComponent>(destinyEntity, std::move(newComponent));
+
+            Scene::s_AnimatorComponents.push_back(&registry.get<AnimatorComponent>(destinyEntity));
+        }
+    }
+
+    template <>
+    void CopyComponentIfExists<MeshComponent>(entt::entity destinyEntity, entt::entity sourceEntity, entt::registry& registry)
+    {
+        if(registry.all_of<MeshComponent>(sourceEntity))
+        {
+            const auto& srcComponent = registry.get<MeshComponent>(sourceEntity);
+
+            MeshComponent newComponent(srcComponent);
+
+            registry.emplace<MeshComponent>(destinyEntity, std::move(newComponent));
+
+            if (newComponent.animator != nullptr)
+            {
+                Scene::s_MeshComponents.push_back(&registry.get<MeshComponent>(destinyEntity));
+            }
         }
     }
 
@@ -122,11 +198,49 @@ namespace Coffee {
         return entity;
     }
 
-    Entity Scene::Duplicate(const Entity& parent)
+    Entity Scene::DuplicateEntityRecursive(Entity& sourceEntity, Entity* parentEntity = nullptr)
     {
-        Entity newEntity = CreateEntity();
-        CopyEntity<ALL_COMPONENTS>(newEntity, parent, m_Registry);
+        Entity newEntity = CreateEntity(sourceEntity.GetComponent<TagComponent>().Tag);
+        CopyEntity<ALL_COMPONENTS>(newEntity, sourceEntity, m_Registry);
+        
+        if (parentEntity)
+            newEntity.SetParent(*parentEntity);
+
+        
+        auto children = sourceEntity.GetChildren();
+        for (auto& child : children)
+        {
+            DuplicateEntityRecursive(child, &newEntity);
+        }
+        
         return newEntity;
+    }
+    
+    Entity Scene::Duplicate(Entity& entity)
+    {
+        s_AnimatorComponents.clear();
+        s_MeshComponents.clear();
+        s_UUIDMap.clear();
+
+        Entity duplicatedEntity = DuplicateEntityRecursive(entity);
+
+        for (auto mesh : s_MeshComponents)
+        {
+            auto it = s_UUIDMap.find(mesh->animator->animatorUUID);
+            if (it != s_UUIDMap.end())
+            {
+                for (auto& animator : s_AnimatorComponents)
+                {
+                    if (animator->animatorUUID == s_UUIDMap[mesh->animator->animatorUUID])
+                    {
+                        mesh->animatorUUID = animator->animatorUUID;
+                        mesh->animator = animator;
+                    }
+                }
+            }
+        }
+
+        return duplicatedEntity;
     }
 
     void Scene::DestroyEntity(Entity entity)
