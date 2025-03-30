@@ -364,8 +364,8 @@ namespace Coffee {
         std::vector<std::pair<std::string, std::string>> actionCodes = {
             {"UiMoveHorizontal", "UiX"},
             {"UiMoveVertical", "UiY"},
-            {"Confirm", "Cancel"},
-            {"Cancel",  "Confirm"},
+            {"Confirm", "Confirm"},
+            {"Cancel",  "Cancel"},
             {"MoveHorizontal", "MoveX"},
             {"MoveVertical", "MoveY"},
             {"AimHorizontal", "AimX"},
