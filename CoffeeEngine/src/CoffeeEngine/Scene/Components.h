@@ -321,6 +321,8 @@ namespace Coffee {
                      cereal::make_nvp("UpperBodyWeight", UpperBodyWeight),
                      cereal::make_nvp("LowerBodyWeight", LowerBodyWeight),
                      cereal::make_nvp("UpperBodyRootJoint", UpperBodyRootJoint));
+
+             AnimationSystem::LoadAnimator(this);
          }
 
          public:
