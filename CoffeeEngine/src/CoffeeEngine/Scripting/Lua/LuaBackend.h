@@ -7,6 +7,8 @@
 namespace Coffee {
 
     class LuaScript;
+    class Entity;
+    struct RigidbodyComponent;
 
     class LuaBackend : public IScriptingBackend {
         public:
@@ -20,6 +22,10 @@ namespace Coffee {
             void SetWorkingDirectory(const std::filesystem::path& path) override;
 
             void Shutdown() override {}
+
+
+            bool ResizeColliderToFitMeshAABB(Coffee::Entity entity, RigidbodyComponent& rbComponent);
+
         private:
             sol::state luaState;
             std::string dafaultPackagePath;

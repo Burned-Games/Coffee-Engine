@@ -18,6 +18,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "../../../../../CoffeeEditor/Panels/SceneTreePanel.h"
 
 #define SOL_PRINT_ERRORS 1
 
@@ -612,7 +613,7 @@ namespace Coffee {
         #pragma region Bind Entity Functions
         luaState.new_usertype<Entity>("Entity",
             sol::constructors<Entity(), Entity(entt::entity, Scene*)>(),
-            "add_component", [](Entity* self, const std::string& componentName) {
+            "add_component", [this](Entity* self, const std::string& componentName) {
                 if (componentName == "TagComponent") {
                     self->AddComponent<TagComponent>();
                 } else if (componentName == "TransformComponent") {
@@ -644,6 +645,52 @@ namespace Coffee {
                     self->AddComponent<ParticlesSystemComponent>();
                 } else if (componentName == "AudioSourceComponent") {
                     self->AddComponent<AudioSourceComponent>();
+                }
+                else if (componentName == "RigidbodyComponent")
+                {
+                    if (!self->HasComponent<RigidbodyComponent>())
+                    {
+                        try
+                        {
+                            Ref<BoxCollider> collider = CreateRef<BoxCollider>(glm::vec3(1.0f, 1.0f, 1.0f));
+
+                            RigidBody::Properties props;
+                            props.type = RigidBody::Type::Dynamic;
+                            props.mass = 1.0f;
+                            props.useGravity = true;
+
+                            auto& rbComponent = self->AddComponent<RigidbodyComponent>(props, collider);
+
+                            if (self->HasComponent<TransformComponent>())
+                            {
+                                auto& transform = self->GetComponent<TransformComponent>();
+                                rbComponent.rb->SetPosition(transform.Position);
+                                rbComponent.rb->SetRotation(transform.Rotation);
+                            }
+
+                            
+                             
+                           SceneManager::GetActiveScene()->GetPhysicsWorld().addRigidBody(
+                                rbComponent.rb->GetNativeBody());
+
+                            // Set user pointer for collision detection
+                            rbComponent.rb->GetNativeBody()->setUserPointer(
+                                reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)*self)));
+
+                            // Try to automatically size the collider to the mesh AABB
+                            ResizeColliderToFitMeshAABB(*self, rbComponent);
+                        }
+                        catch (const std::exception& e)
+                        {
+                            COFFEE_CORE_ERROR("Exception creating rigidbody: {0}", e.what());
+                            if (self->HasComponent<RigidbodyComponent>())
+                            {
+                                self->RemoveComponent<RigidbodyComponent>();
+                            }
+                        }
+                    }
+
+
                 }
             },
             "get_component", [this](Entity* self, const std::string& componentName) -> sol::object {
@@ -1275,6 +1322,45 @@ namespace Coffee {
         
         luaState["package"]["path"] = dafaultPackagePath + ";" + path.string() + "/?.lua";
 
+    }
+
+
+    bool LuaBackend::ResizeColliderToFitMeshAABB(Coffee::Entity entity, RigidbodyComponent& rbComponent)
+    {
+        // Check if entity has a mesh component
+        if (entity.HasComponent<MeshComponent>())
+        {
+            auto& meshComponent = entity.GetComponent<MeshComponent>();
+            Ref<Collider> currentCollider = rbComponent.rb->GetCollider();
+
+            // Make sure we have both a valid mesh and collider
+            if (meshComponent.GetMesh() && currentCollider)
+            {
+                // Get the mesh's AABB
+                const AABB& meshAABB = meshComponent.GetMesh()->GetAABB();
+
+                // Store current rigidbody properties
+                RigidBody::Properties props = rbComponent.rb->GetProperties();
+                glm::vec3 position = rbComponent.rb->GetPosition();
+                glm::vec3 rotation = rbComponent.rb->GetRotation();
+                glm::vec3 velocity = rbComponent.rb->GetVelocity();
+
+                // Remove from physics world
+                SceneManager::GetActiveScene()->GetPhysicsWorld().removeRigidBody(rbComponent.rb->GetNativeBody());
+
+                // Resize the collider to fit the mesh AABB
+                rbComponent.rb->ResizeColliderToFitAABB(meshAABB);
+
+                // Add back to physics world
+                SceneManager::GetActiveScene()->GetPhysicsWorld().addRigidBody(rbComponent.rb->GetNativeBody());
+                rbComponent.rb->GetNativeBody()->setUserPointer(
+                    reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
+
+                return true;
+            }
+        }
+
+        return false;
     }
 
 } // namespace Coffee
