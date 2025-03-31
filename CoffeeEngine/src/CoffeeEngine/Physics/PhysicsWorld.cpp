@@ -14,6 +14,10 @@ namespace Coffee {
         solver = new btSequentialImpulseConstraintSolver();
         dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfig);
         dynamicsWorld->setGravity(btVector3(0, GRAVITY, 0));
+
+        dynamicsWorld->getDispatchInfo().m_allowedCcdPenetration = 0.0001f;
+        dynamicsWorld->getDispatchInfo().m_useContinuous = true;
+        dynamicsWorld->getSolverInfo().m_splitImpulse = true;
     }
 
     PhysicsWorld::~PhysicsWorld() {
