@@ -664,8 +664,8 @@ namespace Coffee {
                             if (self->HasComponent<TransformComponent>())
                             {
                                 auto& transform = self->GetComponent<TransformComponent>();
-                                rbComponent.rb->SetPosition(transform.Position);
-                                rbComponent.rb->SetRotation(transform.Rotation);
+                                rbComponent.rb->SetPosition(transform.GetLocalPosition());
+                                rbComponent.rb->SetRotation(transform.GetLocalRotation());
                             }
 
                             
@@ -838,9 +838,18 @@ namespace Coffee {
 
         luaState.new_usertype<TransformComponent>("TransformComponent",
             sol::constructors<TransformComponent(), TransformComponent(const glm::vec3&)>(),
-            "position", &TransformComponent::Position,
-            "rotation", &TransformComponent::Rotation,
-            "scale", &TransformComponent::Scale,
+            "position", sol::property(
+                [](TransformComponent& self) { return self.GetLocalPosition(); }, // Getter
+                [](TransformComponent& self, const glm::vec3& pos) { self.SetLocalPosition(pos); } // Setter
+            ),
+            "rotation", sol::property(
+                [](TransformComponent& self) { return self.GetLocalRotation(); }, // Getter
+                [](TransformComponent& self, const glm::vec3& rot) { self.SetLocalRotation(rot); } // Setter
+            ),
+            "scale", sol::property(
+                [](TransformComponent& self) { return self.GetLocalScale(); }, // Getter
+                [](TransformComponent& self, const glm::vec3& scale) { self.SetLocalScale(scale); } // Setter
+            ),
             "get_local_transform", &TransformComponent::GetLocalTransform,
             "set_local_transform", &TransformComponent::SetLocalTransform,
             "get_world_transform", &TransformComponent::GetWorldTransform,

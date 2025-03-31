@@ -3,7 +3,6 @@
 #include "CoffeeEngine/Core/Base.h"
 #include "CoffeeEngine/Core/FileDialog.h"
 #include "CoffeeEngine/IO/Resource.h"
-#include "CoffeeEngine/Project/Project.h"
 #include "CoffeeEngine/Renderer/Camera.h"
 #include "CoffeeEngine/Renderer/Material.h"
 #include "CoffeeEngine/Renderer/Model.h"
@@ -21,7 +20,6 @@
 #include <IconsLucide.h>
 
 #include <CoffeeEngine/Scripting/Script.h>
-#include <any>
 #include <array>
 #include <cstdint>
 #include <cstring>
@@ -327,14 +325,21 @@ namespace Coffee
             {
                 if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
                 {
+                    glm::vec3 position = transformComponent.GetLocalPosition();
+                    glm::vec3 rotation = transformComponent.GetLocalRotation();
+                    glm::vec3 scale = transformComponent.GetLocalScale();
+
                     ImGui::Text("Position");
-                    ImGui::DragFloat3("##Position", glm::value_ptr(transformComponent.Position), 0.1f);
+                    ImGui::DragFloat3("##Position", glm::value_ptr(position), 0.1f);
+                    transformComponent.SetLocalPosition(position);
 
                     ImGui::Text("Rotation");
-                    ImGui::DragFloat3("##Rotation", glm::value_ptr(transformComponent.Rotation), 0.1f);
+                    ImGui::DragFloat3("##Rotation", glm::value_ptr(rotation), 0.1f);
+                    transformComponent.SetLocalRotation(rotation);
 
                     ImGui::Text("Scale");
-                    ImGui::DragFloat3("##Scale", glm::value_ptr(transformComponent.Scale), 0.1f);
+                    ImGui::DragFloat3("##Scale", glm::value_ptr(scale), 0.1f);
+                    transformComponent.SetLocalScale(scale);
                 }
             }
         }
@@ -1279,9 +1284,10 @@ namespace Coffee
             if (registry.all_of<TransformComponent>(root))
             {
                 auto& rootTransform = registry.get<TransformComponent>(root);
-                rootTransform.Position.x += posDelta.x;
-                rootTransform.Position.y += posDelta.y;
-                rootTransform.Rotation.z += rotDelta;
+                const glm::vec3& rootPos = rootTransform.GetLocalPosition();
+                const glm::vec3& rootRot = rootTransform.GetLocalRotation();
+                rootTransform.SetLocalPosition({rootPos.x + posDelta.x, rootPos.y + posDelta.y, rootPos.z});
+                rootTransform.SetLocalRotation({rootRot.x, rootRot.y, rootRot.z + rotDelta});
             }
 
             this->ProcessHierarchy(registry, root, [&](entt::entity entity) {
@@ -1291,8 +1297,8 @@ namespace Coffee
                 if (registry.all_of<TransformComponent>(entity))
                 {
                     auto& transformComponent = registry.get<TransformComponent>(entity);
-                    transformComponent.Position.x += posDelta.x;
-                    transformComponent.Position.y += posDelta.y;
+                    const glm::vec3& localPos = transformComponent.GetLocalPosition();
+                    transformComponent.SetLocalPosition({localPos.x + posDelta.x, localPos.y + posDelta.y, localPos.z});
                 }
             });
         };
@@ -1466,7 +1472,7 @@ namespace Coffee
 
                 auto& transformComponent = entity.GetComponent<TransformComponent>();
 
-                glm::vec2 previousPosition = glm::vec2(transformComponent.Position.x, transformComponent.Position.y);
+                glm::vec2 previousPosition = glm::vec2(transformComponent.GetLocalPosition().x, transformComponent.GetLocalPosition().y);
                 glm::vec2 newPosition = previousPosition;
 
                 if (ImGui::DragFloat2("##UIPosition", glm::value_ptr(newPosition), 0.1f))
@@ -1477,7 +1483,7 @@ namespace Coffee
                 }
 
                 ImGui::Text("Rotation");
-                static float previousRotation = transformComponent.Rotation.z;
+                static float previousRotation = transformComponent.GetLocalRotation().z;
                 float currentRotation = previousRotation;
 
                 if (ImGui::DragFloat("##Rotation", &currentRotation, 0.1f))
@@ -1547,7 +1553,7 @@ namespace Coffee
 
                 auto& transformComponent = entity.GetComponent<TransformComponent>();
 
-                glm::vec2 previousPosition = glm::vec2(transformComponent.Position.x, transformComponent.Position.y);
+                glm::vec2 previousPosition = glm::vec2(transformComponent.GetLocalPosition().x, transformComponent.GetLocalPosition().y);
                 glm::vec2 newPosition = previousPosition;
 
                 if (ImGui::DragFloat2("##UIPosition", glm::value_ptr(newPosition), 0.1f))
@@ -1558,7 +1564,7 @@ namespace Coffee
                 }
 
                 ImGui::Text("Rotation");
-                static float previousRotation = transformComponent.Rotation.z;
+                static float previousRotation = transformComponent.GetLocalRotation().z;
                 float currentRotation = previousRotation;
 
                 if (ImGui::DragFloat("##Rotation", &currentRotation, 0.1f))
@@ -1665,7 +1671,7 @@ namespace Coffee
 
                 auto& transformComponent = entity.GetComponent<TransformComponent>();
 
-                glm::vec2 previousPosition = glm::vec2(transformComponent.Position.x, transformComponent.Position.y);
+                glm::vec2 previousPosition = glm::vec2(transformComponent.GetLocalPosition().x, transformComponent.GetLocalPosition().y);
                 glm::vec2 newPosition = previousPosition;
 
                 if (ImGui::DragFloat2("##UIPosition", glm::value_ptr(newPosition), 0.1f))
@@ -1675,7 +1681,7 @@ namespace Coffee
                 }
 
                 ImGui::Text("Rotation");
-                static float previousRotation = transformComponent.Rotation.z;
+                static float previousRotation = transformComponent.GetLocalRotation().z;
                 float currentRotation = previousRotation;
 
                 if (ImGui::DragFloat("##Rotation", &currentRotation, 0.1f))
@@ -1764,7 +1770,7 @@ namespace Coffee
 
                 auto& transformComponent = entity.GetComponent<TransformComponent>();
 
-                glm::vec2 previousPosition = glm::vec2(transformComponent.Position.x, transformComponent.Position.y);
+                glm::vec2 previousPosition = glm::vec2(transformComponent.GetLocalPosition().x, transformComponent.GetLocalPosition().y);
                 glm::vec2 newPosition = previousPosition;
 
                 if (ImGui::DragFloat2("##UIPosition", glm::value_ptr(newPosition), 0.1f))
@@ -1774,7 +1780,7 @@ namespace Coffee
                 }
 
                 ImGui::Text("Rotation");
-                static float previousRotation = transformComponent.Rotation.z;
+                static float previousRotation = transformComponent.GetLocalRotation().z;
                 float currentRotation = previousRotation;
 
                 if (ImGui::DragFloat("##Rotation", &currentRotation, 0.1f))
@@ -1848,7 +1854,7 @@ namespace Coffee
 
                 auto& transformComponent = entity.GetComponent<TransformComponent>();
 
-                glm::vec2 previousPosition = glm::vec2(transformComponent.Position.x, transformComponent.Position.y);
+                glm::vec2 previousPosition = glm::vec2(transformComponent.GetLocalPosition().x, transformComponent.GetLocalPosition().y);
                 glm::vec2 newPosition = previousPosition;
 
                 if (ImGui::DragFloat2("##UIPosition", glm::value_ptr(newPosition), 0.1f))
@@ -1858,7 +1864,7 @@ namespace Coffee
                 }
 
                 ImGui::Text("Rotation");
-                static float previousRotation = transformComponent.Rotation.z;
+                static float previousRotation = transformComponent.GetLocalRotation().z;
                 float currentRotation = previousRotation;
 
                 if (ImGui::DragFloat("##Rotation", &currentRotation, 0.1f))
@@ -2942,8 +2948,8 @@ namespace Coffee
                             if (entity.HasComponent<TransformComponent>())
                             {
                                 auto& transform = entity.GetComponent<TransformComponent>();
-                                rbComponent.rb->SetPosition(transform.Position);
-                                rbComponent.rb->SetRotation(transform.Rotation);
+                                rbComponent.rb->SetPosition(transform.GetLocalPosition());
+                                rbComponent.rb->SetRotation(transform.GetLocalRotation());
                             }
 
                             m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
