@@ -83,7 +83,8 @@ namespace Coffee {
    struct TransformComponent
    {
      private:
-       glm::mat4 worldMatrix = glm::mat4(1.0f); ///< The world transformation matrix.
+         glm::mat4 worldMatrix = glm::mat4(1.0f); ///< The world transformation matrix.
+         bool isDirty = true; ///< Flag to indicate if the transform is dirty.
      public:
          glm::vec3 Position = { 0.0f, 0.0f, 0.0f }; ///< The position vector.
          glm::vec3 Rotation = { 0.0f, 0.0f, 0.0f }; ///< The rotation vector.
@@ -137,6 +138,14 @@ namespace Coffee {
          void SetWorldTransform(const glm::mat4& transform)
          {
              worldMatrix = transform * GetLocalTransform();
+         }
+
+         void MarkDirty() {
+            isDirty = true; // Mark the transform as dirty
+         }
+    
+         bool IsDirty() const {
+            return isDirty; // Check if the transform is dirty
          }
  
          /**
