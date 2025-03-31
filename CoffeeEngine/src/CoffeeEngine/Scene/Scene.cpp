@@ -46,6 +46,8 @@ namespace Coffee {
     std::vector<MeshComponent*> Scene::s_MeshComponents;
     std::vector<AnimatorComponent*> Scene::s_AnimatorComponents;
 
+    std::vector<std::tuple<entt::entity, int, int, int>> Scene::uiEntities;
+
     Scene::Scene() : m_Octree({glm::vec3(-50.0f), glm::vec3(50.0f)}, 10, 5)
     {
         m_SceneTree = CreateScope<SceneTree>(this);
@@ -305,6 +307,7 @@ namespace Coffee {
 
         CollisionSystem::Initialize(this);
 
+        UpdateUIEntities();
     }
 
     void Scene::OnInitRuntime()
@@ -329,6 +332,8 @@ namespace Coffee {
 
         Audio::StopAllEvents();
         Audio::PlayInitialAudios();
+
+        UpdateUIEntities();
 
         // Get all entities with ScriptComponent
         auto scriptView = m_Registry.view<ScriptComponent>();
@@ -839,35 +844,6 @@ namespace Coffee {
         auto uiButtonView = registry.view<UIButtonComponent, TransformComponent>();
         auto uiToggleView = registry.view<UIToggleComponent, TransformComponent>();
 
-        std::vector<std::tuple<entt::entity, int, int, int>> uiEntities;
-
-        auto GetHierarchyDepthAndSiblingIndex = [&registry](entt::entity entity) -> std::pair<int, int> {
-            int depth = 0;
-            int siblingIndex = 0;
-            auto* hierarchyComponent = registry.try_get<HierarchyComponent>(entity);
-            if (hierarchyComponent && hierarchyComponent->m_Parent != entt::null) {
-                auto* parentHierarchy = registry.try_get<HierarchyComponent>(hierarchyComponent->m_Parent);
-                while (parentHierarchy) {
-                    depth++;
-                    parentHierarchy = registry.try_get<HierarchyComponent>(parentHierarchy->m_Parent);
-                }
-
-                auto parent = hierarchyComponent->m_Parent;
-                auto* parentChildren = registry.try_get<HierarchyComponent>(parent);
-                if (parentChildren) {
-                    entt::entity currentChild = parentChildren->m_First;
-                    while (currentChild != entt::null) {
-                        if (currentChild == entity) {
-                            break;
-                        }
-                        siblingIndex++;
-                        currentChild = registry.get<HierarchyComponent>(currentChild).m_Next;
-                    }
-                }
-            }
-            return {depth, siblingIndex};
-        };
-
         // Consistent function to calculate world transform for all UI components
         auto CalculateWorldTransform = [&](entt::entity entity, const glm::vec2& anchorOffset,
                                            const TransformComponent& transform, const glm::vec2& size,
@@ -881,48 +857,6 @@ namespace Coffee {
 
             return worldTransform;
         };
-
-        // Collect all UI entities with their respective layer, depth, and sibling index
-        for (auto entity : uiImageView) {
-            auto& uiImageComponent = uiImageView.get<UIImageComponent>(entity);
-            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
-            uiEntities.push_back({entity, uiImageComponent.Layer, depth, siblingIndex});
-        }
-
-        for (auto entity : uiTextView) {
-            auto& uiTextComponent = uiTextView.get<UITextComponent>(entity);
-            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
-            uiEntities.push_back({entity, uiTextComponent.Layer, depth, siblingIndex});
-        }
-
-        for (auto entity : uiSliderView) {
-            auto& uiSliderComponent = uiSliderView.get<UISliderComponent>(entity);
-            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
-            uiEntities.push_back({entity, uiSliderComponent.Layer, depth, siblingIndex});
-        }
-
-        for (auto entity : uiButtonView) {
-            auto& uiButtonComponent = uiButtonView.get<UIButtonComponent>(entity);
-            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
-            uiEntities.push_back({entity, uiButtonComponent.Layer, depth, siblingIndex});
-        }
-
-        for (auto entity : uiToggleView) {
-            auto& uiToggleComponent = uiToggleView.get<UIToggleComponent>(entity);
-            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
-            uiEntities.push_back({entity, uiToggleComponent.Layer, depth, siblingIndex});
-        }
-
-        // Sort UI entities based on layer, depth, and sibling index
-        std::sort(uiEntities.begin(), uiEntities.end(), [](const std::tuple<entt::entity, int, int, int>& a, const std::tuple<entt::entity, int, int, int>& b) {
-            if (std::get<1>(a) == std::get<1>(b)) {
-                if (std::get<2>(a) == std::get<2>(b)) {
-                    return std::get<3>(a) < std::get<3>(b);
-                }
-                return std::get<2>(a) < std::get<2>(b);
-            }
-            return std::get<1>(a) < std::get<1>(b);
-        });
 
         // Process all UI entities in the sorted order
         for (auto& [entity, layer, depth, siblingIndex] : uiEntities) {
@@ -1067,6 +1001,87 @@ namespace Coffee {
                 }
             }
         }
+    }
+
+    void Scene::UpdateUIEntities()
+    {
+        uiEntities.clear();
+        auto& registry = m_Registry;
+
+        auto GetHierarchyDepthAndSiblingIndex = [&registry](entt::entity entity) -> std::pair<int, int> {
+            int depth = 0;
+            int siblingIndex = 0;
+            auto* hierarchyComponent = registry.try_get<HierarchyComponent>(entity);
+            if (hierarchyComponent && hierarchyComponent->m_Parent != entt::null) {
+                auto* parentHierarchy = registry.try_get<HierarchyComponent>(hierarchyComponent->m_Parent);
+                while (parentHierarchy) {
+                    depth++;
+                    parentHierarchy = registry.try_get<HierarchyComponent>(parentHierarchy->m_Parent);
+                }
+
+                auto parent = hierarchyComponent->m_Parent;
+                auto* parentChildren = registry.try_get<HierarchyComponent>(parent);
+                if (parentChildren) {
+                    entt::entity currentChild = parentChildren->m_First;
+                    while (currentChild != entt::null) {
+                        if (currentChild == entity) {
+                            break;
+                        }
+                        siblingIndex++;
+                        currentChild = registry.get<HierarchyComponent>(currentChild).m_Next;
+                    }
+                }
+            }
+            return {depth, siblingIndex};
+        };
+
+        auto uiImageView = registry.view<UIImageComponent, TransformComponent>();
+        auto uiTextView = registry.view<UITextComponent, TransformComponent>();
+        auto uiSliderView = registry.view<UISliderComponent, TransformComponent>();
+        auto uiButtonView = registry.view<UIButtonComponent, TransformComponent>();
+        auto uiToggleView = registry.view<UIToggleComponent, TransformComponent>();
+
+        // Collect all UI entities with their respective layer, depth, and sibling index
+        for (auto entity : uiImageView) {
+            auto& uiImageComponent = uiImageView.get<UIImageComponent>(entity);
+            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
+            uiEntities.push_back({entity, uiImageComponent.Layer, depth, siblingIndex});
+        }
+
+        for (auto entity : uiTextView) {
+            auto& uiTextComponent = uiTextView.get<UITextComponent>(entity);
+            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
+            uiEntities.push_back({entity, uiTextComponent.Layer, depth, siblingIndex});
+        }
+
+        for (auto entity : uiSliderView) {
+            auto& uiSliderComponent = uiSliderView.get<UISliderComponent>(entity);
+            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
+            uiEntities.push_back({entity, uiSliderComponent.Layer, depth, siblingIndex});
+        }
+
+        for (auto entity : uiButtonView) {
+            auto& uiButtonComponent = uiButtonView.get<UIButtonComponent>(entity);
+            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
+            uiEntities.push_back({entity, uiButtonComponent.Layer, depth, siblingIndex});
+        }
+
+        for (auto entity : uiToggleView) {
+            auto& uiToggleComponent = uiToggleView.get<UIToggleComponent>(entity);
+            auto [depth, siblingIndex] = GetHierarchyDepthAndSiblingIndex(entity);
+            uiEntities.push_back({entity, uiToggleComponent.Layer, depth, siblingIndex});
+        }
+
+        // Sort UI entities based on layer, depth, and sibling index
+        std::sort(uiEntities.begin(), uiEntities.end(), [](const std::tuple<entt::entity, int, int, int>& a, const std::tuple<entt::entity, int, int, int>& b) {
+            if (std::get<1>(a) == std::get<1>(b)) {
+                if (std::get<2>(a) == std::get<2>(b)) {
+                    return std::get<3>(a) < std::get<3>(b);
+                }
+                return std::get<2>(a) < std::get<2>(b);
+            }
+            return std::get<1>(a) < std::get<1>(b);
+        });
     }
 
     glm::vec2 Scene::CalculateAnchorOffset(UIAnchorPosition anchor, const glm::vec2& windowSize)

@@ -145,9 +145,13 @@ namespace Coffee {
          */
         void AssignAnimatorsToMeshes(const std::vector<AnimatorComponent*> animators);
 
+        void UpdateUIEntities();
+
         static std::map<UUID, UUID> s_UUIDMap;
         static std::vector<MeshComponent*> s_MeshComponents;
         static std::vector<AnimatorComponent*> s_AnimatorComponents;
+
+        static std::vector<std::tuple<entt::entity, int, int, int>> uiEntities;
 
     private:
         friend class cereal::access;
