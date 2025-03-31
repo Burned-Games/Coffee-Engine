@@ -166,8 +166,8 @@ namespace Coffee {
 
                 if (registry.all_of<TransformComponent>(destinyEntity)) {
                     auto& transform = registry.get<TransformComponent>(destinyEntity);
-                    newComponent.rb->SetPosition(transform.Position);
-                    newComponent.rb->SetRotation(transform.Rotation);
+                    newComponent.rb->SetPosition(transform.GetLocalPosition());
+                    newComponent.rb->SetRotation(transform.GetLocalRotation());
                 }
             }
             catch (const std::exception& e) {
@@ -372,8 +372,8 @@ namespace Coffee {
         for (auto entity : viewRigidbody) {
             auto [rb, transform] = viewRigidbody.get<RigidbodyComponent, TransformComponent>(entity);
             if (rb.rb) {
-                rb.rb->SetPosition(transform.Position);
-                rb.rb->SetRotation(transform.Rotation);
+                rb.rb->SetPosition(transform.GetLocalPosition());
+                rb.rb->SetRotation(transform.GetLocalRotation());
             }
         }
 
@@ -382,7 +382,11 @@ namespace Coffee {
         for (auto& entity : animatorView)
         {
             AnimatorComponent* animatorComponent = &animatorView.get<AnimatorComponent>(entity);
-            AnimationSystem::Update(dt, animatorComponent);
+            if (animatorComponent->NeedsUpdate)
+            {
+                AnimationSystem::Update(dt, animatorComponent);
+                animatorComponent->NeedsUpdate = false;
+            }
         }
 
         UpdateAudioComponentsPositions();
@@ -502,8 +506,8 @@ namespace Coffee {
         for (auto entity : viewPhysics) {
             auto [rb, transform] = viewPhysics.get<RigidbodyComponent, TransformComponent>(entity);
             if (rb.rb) {
-                transform.Position = rb.rb->GetPosition();
-                transform.Rotation = rb.rb->GetRotation();
+                transform.SetLocalPosition(rb.rb->GetPosition());
+                transform.SetLocalRotation(rb.rb->GetRotation());
             }
         }
 
@@ -556,6 +560,7 @@ namespace Coffee {
         // Loop through each entity with the specified components
         for (auto& entity : view)
         {
+
             // Get the ModelComponent and TransformComponent for the current entity
             auto& meshComponent = view.get<MeshComponent>(entity);
             auto& transformComponent = view.get<TransformComponent>(entity);
@@ -659,8 +664,8 @@ namespace Coffee {
             if (rb.rb && rb.rb->GetNativeBody())
             {
                 // Set initial transform
-                rb.rb->SetPosition(transform.Position);
-                rb.rb->SetRotation(transform.Rotation);
+                rb.rb->SetPosition(transform.GetLocalPosition());
+                rb.rb->SetRotation(transform.GetLocalRotation());
 
                 // Add to physics world
                 scene->m_PhysicsWorld.addRigidBody(rb.rb->GetNativeBody());
@@ -867,11 +872,11 @@ namespace Coffee {
         auto CalculateWorldTransform = [&](entt::entity entity, const glm::vec2& anchorOffset,
                                            const TransformComponent& transform, const glm::vec2& size,
                                            float zOffset) -> glm::mat4 {
-            glm::vec2 finalPosition = anchorOffset + glm::vec2(transform.Position);
+            glm::vec2 finalPosition = anchorOffset + glm::vec2(transform.GetLocalPosition());
 
             glm::mat4 worldTransform = glm::mat4(1.0f);
             worldTransform = glm::translate(worldTransform, glm::vec3(finalPosition, zOffset));
-            worldTransform = glm::rotate(worldTransform, glm::radians(transform.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+            worldTransform = glm::rotate(worldTransform, glm::radians(transform.GetLocalRotation().z), glm::vec3(0.0f, 0.0f, 1.0f));
             worldTransform = glm::scale(worldTransform, glm::vec3(size.x, size.y, 1.0f));
 
             return worldTransform;
@@ -950,7 +955,7 @@ namespace Coffee {
 
                 std::vector<std::string> lines = SplitTextIntoLines(uiTextComponent.Text);
                 glm::vec2 anchorOffset = CalculateAnchorOffset(uiTextComponent.Anchor, windowSize);
-                glm::vec2 basePosition = anchorOffset + glm::vec2(transformComponent.Position);
+                glm::vec2 basePosition = anchorOffset + glm::vec2(transformComponent.GetLocalPosition());
                 float lineHeight = uiTextComponent.FontSize * uiTextComponent.LineSpacing;
 
                 for (size_t i = 0; i < lines.size(); i++) {
@@ -959,7 +964,7 @@ namespace Coffee {
 
                     glm::mat4 transform = glm::mat4(1.0f);
                     transform = glm::translate(transform, glm::vec3(linePosition, zOffset));
-                    transform = glm::rotate(transform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+                    transform = glm::rotate(transform, glm::radians(transformComponent.GetLocalRotation().z), glm::vec3(0.0f, 0.0f, 1.0f));
                     transform = glm::scale(transform, glm::vec3(uiTextComponent.FontSize, -uiTextComponent.FontSize, 1.0f));
 
                     Renderer2D::DrawString(lines[i], uiTextComponent.FontLoaded, transform,
@@ -992,8 +997,8 @@ namespace Coffee {
                     handleOffset -= (uiSliderComponent.Size.x / 2.0f) - (uiSliderComponent.HandleSize.x / 2.0f);
 
                     glm::mat4 baseTransform = glm::mat4(1.0f);
-                    baseTransform = glm::translate(baseTransform, glm::vec3(anchorOffset + glm::vec2(transformComponent.Position), zOffset));
-                    baseTransform = glm::rotate(baseTransform, glm::radians(transformComponent.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+                    baseTransform = glm::translate(baseTransform, glm::vec3(anchorOffset + glm::vec2(transformComponent.GetLocalPosition()), zOffset));
+                    baseTransform = glm::rotate(baseTransform, glm::radians(transformComponent.GetLocalRotation().z), glm::vec3(0.0f, 0.0f, 1.0f));
 
                     glm::mat4 handleTransform = glm::translate(baseTransform, glm::vec3(handleOffset, 0.0f, 0.001f));
                     handleTransform = glm::scale(handleTransform, glm::vec3(uiSliderComponent.HandleSize.x, uiSliderComponent.HandleSize.y, 1.0f));
