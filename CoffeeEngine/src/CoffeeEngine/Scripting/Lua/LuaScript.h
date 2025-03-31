@@ -39,7 +39,7 @@ namespace Coffee {
                 COFFEE_CORE_ERROR("Lua: {0}", err.what());
             }
 
-            ParseScript();
+            //ParseScript();
         }
 
         void OnUpdate(float dt) override
