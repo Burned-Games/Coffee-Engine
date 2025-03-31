@@ -382,7 +382,11 @@ namespace Coffee {
         for (auto& entity : animatorView)
         {
             AnimatorComponent* animatorComponent = &animatorView.get<AnimatorComponent>(entity);
-            AnimationSystem::Update(dt, animatorComponent);
+            if (animatorComponent->NeedsUpdate)
+            {
+                AnimationSystem::Update(dt, animatorComponent);
+                animatorComponent->NeedsUpdate = false;
+            }
         }
 
         UpdateAudioComponentsPositions();

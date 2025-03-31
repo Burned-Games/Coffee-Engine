@@ -2000,6 +2000,8 @@ namespace Coffee
                 ImGui::DragFloat("Animation Speed", &animatorComponent.AnimationSpeed, 0.01f, 0.1f, 5.0f, "%.2f");
 
                 ImGui::Checkbox("Loop", &animatorComponent.Loop);
+
+                animatorComponent.NeedsUpdate = true;
             }
 
             if (!isCollapsingHeaderOpen)
