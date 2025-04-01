@@ -838,18 +838,9 @@ namespace Coffee {
 
         luaState.new_usertype<TransformComponent>("TransformComponent",
             sol::constructors<TransformComponent(), TransformComponent(const glm::vec3&)>(),
-            "position", sol::property(
-                [](TransformComponent& self) { return self.GetLocalPosition(); }, // Getter
-                [](TransformComponent& self, const glm::vec3& pos) { self.SetLocalPosition(pos); } // Setter
-            ),
-            "rotation", sol::property(
-                [](TransformComponent& self) { return self.GetLocalRotation(); }, // Getter
-                [](TransformComponent& self, const glm::vec3& rot) { self.SetLocalRotation(rot); } // Setter
-            ),
-            "scale", sol::property(
-                [](TransformComponent& self) { return self.GetLocalScale(); }, // Getter
-                [](TransformComponent& self, const glm::vec3& scale) { self.SetLocalScale(scale); } // Setter
-            ),
+            "position", sol::property(&TransformComponent::GetLocalPosition, &TransformComponent::SetLocalPosition),
+            "rotation", sol::property(&TransformComponent::GetLocalRotation, &TransformComponent::SetLocalRotation),
+            "scale", sol::property(&TransformComponent::GetLocalScale, &TransformComponent::SetLocalScale),
             "get_local_transform", &TransformComponent::GetLocalTransform,
             "set_local_transform", &TransformComponent::SetLocalTransform,
             "get_world_transform", &TransformComponent::GetWorldTransform,

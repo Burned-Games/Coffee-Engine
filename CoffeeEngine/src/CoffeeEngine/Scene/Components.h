@@ -117,9 +117,9 @@ namespace Coffee {
         * @brief Gets the local position vector.
         * @return The local position vector.
         */
-        const glm::vec3& GetLocalPosition() const { return Position; }
-        const glm::vec3& GetLocalRotation() const { return Rotation; }
-        const glm::vec3& GetLocalScale() const { return Scale; }
+        glm::vec3& GetLocalPosition() { return Position; }
+        glm::vec3& GetLocalRotation() { return Rotation; }
+        glm::vec3& GetLocalScale() { return Scale; }
 
         void SetWorldPosition(const glm::vec3& position)
         {

@@ -846,7 +846,7 @@ namespace Coffee {
 
         // Consistent function to calculate world transform for all UI components
         auto CalculateWorldTransform = [&](entt::entity entity, const glm::vec2& anchorOffset,
-                                           const TransformComponent& transform, const glm::vec2& size,
+                                           TransformComponent& transform, const glm::vec2& size,
                                            float zOffset) -> glm::mat4 {
             glm::vec2 finalPosition = anchorOffset + glm::vec2(transform.GetLocalPosition());
 
