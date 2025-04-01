@@ -16,6 +16,7 @@ namespace Coffee {
         const glm::mat4& transform;
         const AABB& aabb;
         const T& object;
+        mutable int id;
     };
 
     template <typename T>
@@ -28,7 +29,7 @@ namespace Coffee {
         std::array<Scope<OctreeNode>, 8> children;
 
         void DebugDrawAABB();
-        int GetChildIndex(const AABB& bounds, const glm::vec3& point) const;
+
     };
 
     template <typename T>
@@ -43,7 +44,8 @@ namespace Coffee {
         void DebugDraw();
         void Clear();
 
-        std::vector<ObjectContainer<T>> Query(const Frustum& frustum) const;
+        std::unordered_map<int, ObjectContainer<T>> Query(const Frustum& frustum) const;
+
 
     private:
         void Insert(OctreeNode<T>& node, const ObjectContainer<T>& object);
@@ -53,11 +55,13 @@ namespace Coffee {
         void Subdivide(OctreeNode<T>& node);
         void CreateChildren(OctreeNode<T>& node, const glm::vec3& center);
 
-        void Query(const OctreeNode<T>& node, const Frustum& frustum, std::vector<ObjectContainer<T>>& results) const;
+        void Query(const OctreeNode<T>& node, const Frustum& frustum,
+                   std::unordered_map<int, ObjectContainer<T>>& results) const;
 
         OctreeNode<T> rootNode;
         int maxObjectsPerNode;
         int maxDepth;
+        int objectsCounter = 0;
     };
 
     template <typename T>
@@ -92,23 +96,37 @@ namespace Coffee {
         }
     }
 
-    template <typename T>
-    void Octree<T>::InsertIntoChild(OctreeNode<T>& node, const ObjectContainer<T>& object) {
-        int childIndex = node.GetChildIndex(node.aabb, object.transform[3]);
-        Insert(*node.children[childIndex], object);
+    template <typename T> 
+    void Octree<T>::InsertIntoChild(OctreeNode<T>& node, const ObjectContainer<T>& object)
+    {
+        for (auto& child : node.children)
+        {
+            if (!child)
+                continue;
+            if (child->aabb.Intersect(object.aabb.CalculateTransformedAABB(object.transform)) !=
+                IntersectionType::Outside)
+            {
+                Insert(*child, object);
+            }
+        }
+
     }
 
     template <typename T>
-    void Octree<T>::RedistributeObjects(OctreeNode<T>& node) {
-        for (const auto& obj : node.objectList) {
-            int childIndex = node.GetChildIndex(node.aabb, obj.transform[3]);
-            Insert(*node.children[childIndex], obj);
+    void Octree<T>::RedistributeObjects(OctreeNode<T>& node)
+    {
+        for (const auto& obj : node.objectList)
+        {
+            InsertIntoChild(node, obj);
         }
         node.objectList.clear();
     }
 
     template <typename T>
-    void Octree<T>::Insert(const ObjectContainer<T>& object) {
+    void Octree<T>::Insert(const ObjectContainer<T>& object)
+    {
+        object.id = objectsCounter;
+        objectsCounter++;
         Insert(rootNode, object);
     }
 
@@ -121,25 +139,27 @@ namespace Coffee {
     }
 
     template <typename T>
-    void Octree<T>::CreateChildren(OctreeNode<T>& node, const glm::vec3& center) {
+    void Octree<T>::CreateChildren(OctreeNode<T>& node, const glm::vec3& center)
+    {
         node.children[0] = CreateScope<OctreeNode<T>>(AABB(node.aabb.min, center));
         node.children[1] = CreateScope<OctreeNode<T>>(AABB(glm::vec3(center.x, node.aabb.min.y, node.aabb.min.z),
-                                                        glm::vec3(node.aabb.max.x, center.y, center.z)));
+                                                           glm::vec3(node.aabb.max.x, center.y, center.z)));
         node.children[2] = CreateScope<OctreeNode<T>>(AABB(glm::vec3(node.aabb.min.x, center.y, node.aabb.min.z),
-                                                        glm::vec3(center.x, node.aabb.max.y, center.z)));
+                                                           glm::vec3(center.x, node.aabb.max.y, center.z)));
         node.children[3] = CreateScope<OctreeNode<T>>(AABB(glm::vec3(center.x, center.y, node.aabb.min.z),
-                                                        glm::vec3(node.aabb.max.x, node.aabb.max.y, center.z)));
+                                                           glm::vec3(node.aabb.max.x, node.aabb.max.y, center.z)));
         node.children[4] = CreateScope<OctreeNode<T>>(AABB(glm::vec3(node.aabb.min.x, node.aabb.min.y, center.z),
-                                                        glm::vec3(center.x, center.y, node.aabb.max.z)));
+                                                           glm::vec3(center.x, center.y, node.aabb.max.z)));
         node.children[5] = CreateScope<OctreeNode<T>>(AABB(glm::vec3(center.x, node.aabb.min.y, center.z),
-                                                        glm::vec3(node.aabb.max.x, center.y, node.aabb.max.z)));
+                                                           glm::vec3(node.aabb.max.x, center.y, node.aabb.max.z)));
         node.children[6] = CreateScope<OctreeNode<T>>(AABB(glm::vec3(node.aabb.min.x, center.y, center.z),
-                                                        glm::vec3(center.x, node.aabb.max.y, node.aabb.max.z)));
+                                                           glm::vec3(center.x, node.aabb.max.y, node.aabb.max.z)));
         node.children[7] = CreateScope<OctreeNode<T>>(AABB(center, node.aabb.max));
     }
 
     template <typename T>
-    void Octree<T>::Query(const OctreeNode<T>& node, const Frustum& frustum, std::vector<ObjectContainer<T>>& results) const
+    void Octree<T>::Query(const OctreeNode<T>& node, const Frustum& frustum,
+                          std::unordered_map<int, ObjectContainer<T>>& results) const
     {
         if (!frustum.Contains(node.aabb))
             return;
@@ -147,7 +167,9 @@ namespace Coffee {
         for (const auto& object : node.objectList)
         {
             if (frustum.Contains(object.aabb.CalculateTransformedAABB(object.transform)))
-                results.push_back(object);
+            {
+                results.emplace(object.id, object); // Evita duplicados usando el id como clave
+            }
         }
 
         if (node.isLeaf)
@@ -194,18 +216,8 @@ namespace Coffee {
     }
 
     template <typename T>
-    int OctreeNode<T>::GetChildIndex(const AABB& bounds, const glm::vec3& point) const
-    {
-        glm::vec3 center = (bounds.min + bounds.max) * 0.5f;
-        int index = 0;
-        if (point.x > center.x) index |= 1;
-        if (point.y > center.y) index |= 2;
-        if (point.z > center.z) index |= 4;
-        return index;
-    }
-
-    template <typename T>
-    Octree<T>::Octree(const AABB& bounds, int maxObjectsPerNode, int maxDepth) : maxObjectsPerNode(maxObjectsPerNode), maxDepth(maxDepth)
+    Octree<T>::Octree(const AABB& bounds, int maxObjectsPerNode, int maxDepth)
+        : maxObjectsPerNode(maxObjectsPerNode), maxDepth(maxDepth)
     {
         rootNode.aabb = bounds;
     }
@@ -236,9 +248,9 @@ namespace Coffee {
     }
 
     template <typename T>
-    std::vector<ObjectContainer<T>> Octree<T>::Query(const Frustum& frustum) const
+    std::unordered_map<int, ObjectContainer<T>> Octree<T>::Query(const Frustum& frustum) const
     {
-        std::vector<ObjectContainer<T>> results;
+        std::unordered_map<int, ObjectContainer<T>> results;
         Query(rootNode, frustum, results);
         return results;
     }
