@@ -141,10 +141,10 @@ namespace Coffee {
     void SceneTree::Update()
     {
         auto& registry = m_Context->m_Registry;
-        auto view = registry.view<TransformComponent>();
+        auto view = registry.view<TransformComponent, ActiveComponent>();
         for (auto entity : view) {
-            const auto transform = registry.get<TransformComponent>(entity);
-    
+            auto& transform = view.get<TransformComponent>(entity);
+
             if (transform.IsDirty()) {
                 UpdateTransform(entity);
             }
@@ -154,14 +154,14 @@ namespace Coffee {
     void SceneTree::UpdateTransform(entt::entity entity)
     {
         auto& registry = m_Context->m_Registry;
-    
-        auto& hierarchyComponent = registry.get<HierarchyComponent>(entity);
-        auto& transformComponent = registry.get<TransformComponent>(entity);
+        auto view = registry.view<TransformComponent, HierarchyComponent>();
+        auto& hierarchyComponent = view.get<HierarchyComponent>(entity);
+        auto& transformComponent = view.get<TransformComponent>(entity);
     
         // Update the world transform of the entity
         if (hierarchyComponent.m_Parent != entt::null)
         {
-            auto& parentTransformComponent = registry.get<TransformComponent>(hierarchyComponent.m_Parent);
+            auto& parentTransformComponent = view.get<TransformComponent>(hierarchyComponent.m_Parent);
             
             transformComponent.SetWorldTransform(parentTransformComponent.GetWorldTransform());
         } 
@@ -174,7 +174,7 @@ namespace Coffee {
         entt::entity child = hierarchyComponent.m_First;
         while (child != entt::null) {
             UpdateTransform(child);
-            child = registry.get<HierarchyComponent>(child).m_Next;
+            child = view.get<HierarchyComponent>(child).m_Next;
         }
     }
 
