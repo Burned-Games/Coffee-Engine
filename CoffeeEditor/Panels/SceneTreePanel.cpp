@@ -330,16 +330,23 @@ namespace Coffee
                     glm::vec3 scale = transformComponent.GetLocalScale();
 
                     ImGui::Text("Position");
-                    ImGui::DragFloat3("##Position", glm::value_ptr(position), 0.1f);
-                    transformComponent.SetLocalPosition(position);
+                    if (ImGui::DragFloat3("##Position", glm::value_ptr(position), 0.1f))
+                    {
+                        transformComponent.SetLocalPosition(position);
+                    }
+                    
 
                     ImGui::Text("Rotation");
-                    ImGui::DragFloat3("##Rotation", glm::value_ptr(rotation), 0.1f);
-                    transformComponent.SetLocalRotation(rotation);
+                    if (ImGui::DragFloat3("##Rotation", glm::value_ptr(rotation), 0.1f))
+                    {
+                        transformComponent.SetLocalRotation(rotation);
+                    }
 
                     ImGui::Text("Scale");
-                    ImGui::DragFloat3("##Scale", glm::value_ptr(scale), 0.1f);
-                    transformComponent.SetLocalScale(scale);
+                    if (ImGui::DragFloat3("##Scale", glm::value_ptr(scale), 0.1f))
+                    {
+                        transformComponent.SetLocalScale(scale);
+                    }
                 }
             }
         }
