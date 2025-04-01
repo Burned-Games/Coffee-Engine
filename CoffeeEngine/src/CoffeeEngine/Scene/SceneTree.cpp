@@ -141,11 +141,11 @@ namespace Coffee {
     void SceneTree::Update()
     {
         auto& registry = m_Context->m_Registry;
-        auto view = registry.view<HierarchyComponent>();
+        auto view = registry.view<TransformComponent>();
         for (auto entity : view) {
-            const auto hierarchy = registry.get<HierarchyComponent>(entity);
+            const auto transform = registry.get<TransformComponent>(entity);
     
-            if (hierarchy.m_Parent == entt::null) {
+            if (transform.IsDirty()) {
                 UpdateTransform(entity);
             }
         }
@@ -158,26 +158,16 @@ namespace Coffee {
         auto& hierarchyComponent = registry.get<HierarchyComponent>(entity);
         auto& transformComponent = registry.get<TransformComponent>(entity);
     
-        // If the transform is not dirty and the parent hasn't changed, skip the update
-        if (!transformComponent.IsDirty() && hierarchyComponent.m_Parent == entt::null) {
-            return;
-        }
-    
         // Update the world transform of the entity
-        if (hierarchyComponent.m_Parent != entt::null) {
+        if (hierarchyComponent.m_Parent != entt::null)
+        {
             auto& parentTransformComponent = registry.get<TransformComponent>(hierarchyComponent.m_Parent);
-    
-            if (parentTransformComponent.IsDirty()) {
-                transformComponent.MarkDirty(); // Mark as dirty if the parent is dirty
-            }
-    
-            if (transformComponent.IsDirty()) {
-                transformComponent.SetWorldTransform(parentTransformComponent.GetWorldTransform());
-            }
-        } else {
-            if (transformComponent.IsDirty()) {
-                transformComponent.SetWorldTransform(glm::mat4(1.0f));
-            }
+            
+            transformComponent.SetWorldTransform(parentTransformComponent.GetWorldTransform());
+        } 
+        else
+        {
+            transformComponent.SetWorldTransform(glm::mat4(1.0f));
         }
     
         // Recursively update all the children
