@@ -533,9 +533,10 @@ namespace Coffee {
 
         // Get all the static meshes from the Octree
 
-        //glm::mat4 testProjection = glm::perspective(glm::radians(90.0f), 16.0f / 9.0f, 0.1f, 100.0f);
+        glm::mat4 testProjection = glm::perspective(glm::radians(90.0f), 16.0f / 9.0f, 0.1f, 100.0f);
 
-        Frustum frustum = Frustum(camera->GetProjection() * glm::inverse(cameraTransform));
+        //Frustum frustum = Frustum(camera->GetProjection() * glm::inverse(cameraTransform));
+        Frustum frustum = Frustum(testProjection * glm::inverse(cameraTransform));
         Renderer2D::DrawFrustum(frustum, glm::vec4(1.0f), 1.0f);
 
         auto staticEntities = m_Octree.Query(frustum);
