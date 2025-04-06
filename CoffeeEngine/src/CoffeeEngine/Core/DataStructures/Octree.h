@@ -12,9 +12,9 @@ namespace Coffee {
     template <typename T>
     struct ObjectContainer
     {
-        const glm::mat4& transform;
-        const AABB& aabb;
-        const T& object;
+        const glm::mat4 transform;
+        const AABB aabb;
+        const T object;
         mutable int id; //REMOVE
     };
 
@@ -27,7 +27,7 @@ namespace Coffee {
         std::vector<int> objectIDs; // Store only object IDs
         std::array<Scope<OctreeNode>, 8> children;
 
-        void DebugDrawAABB();
+        void DebugDrawAABB(const std::unordered_map<int, Ref<ObjectContainer<T>>>& objectMap);
     };
 
     template <typename T>
@@ -38,7 +38,7 @@ namespace Coffee {
         Octree(const AABB& bounds, int maxObjectsPerNode = 8, int maxDepth = 5);
         ~Octree();
 
-        void Insert(const Ref<ObjectContainer<T>>& object);
+        void Insert(Ref<ObjectContainer<T>> object);
         void DebugDraw();
         void Clear();
 
@@ -62,11 +62,17 @@ namespace Coffee {
     };
 
     template <typename T>
-    void Octree<T>::Insert(const Ref<ObjectContainer<T>>& object)
+    void Octree<T>::Insert(Ref<ObjectContainer<T>> object)
     {
         object->id = objectsCounter++;
         objectMap[object->id] = object; // Store in centralized map
         Insert(rootNode, object->id);
+    }
+
+    template <typename T>
+    void Octree<T>::DebugDraw()
+    {
+        rootNode.DebugDrawAABB(objectMap);
     }
 
     template <typename T>
@@ -201,32 +207,30 @@ namespace Coffee {
     }
 
     template <typename T>
-    void OctreeNode<T>::DebugDrawAABB()
+    void OctreeNode<T>::DebugDrawAABB(const std::unordered_map<int, Ref<ObjectContainer<T>>>& objectMap)
     {
-/*         int numObjects = objectIDs.size();
+            int numObjects = objectIDs.size();
 
-        float green = glm::clamp(numObjects / 10.0f, 0.0f, 1.0f);
-        float red = glm::clamp(1.0f - (numObjects / 10.0f), 0.0f, 1.0f);
-        glm::vec4 color(red, green, 0.0f, 1.0f);
+            float green = glm::clamp(numObjects / 10.0f, 0.0f, 1.0f);
+            float red = glm::clamp(1.0f - (numObjects / 10.0f), 0.0f, 1.0f);
+            glm::vec4 color(red, green, 0.0f, 1.0f);
 
-        Renderer2D::DrawBox(aabb.min, aabb.max, color);
-        if (!isLeaf)
-        {
-            for (auto& child : children)
+            Renderer2D::DrawBox(aabb.min, aabb.max, color);
+
+            for (int id : objectIDs)
+            {
+                const ObjectContainer<T>& obj = objectMap.at(id);
+                AABB aabb = obj.aabb.CalculateTransformedAABB(obj.transform);
+                Renderer2D::DrawBox(aabb.min, aabb.max, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+            }
+
+            for (const auto& child : children)
             {
                 if (child)
                 {
-                    child->DebugDrawAABB();
+                    child->DebugDrawAABB(objectMap);
                 }
             }
-        }
-
-        for (int id : objectIDs)
-        {
-            const ObjectContainer<T>& obj = objectMap.at(id);
-            AABB aabb = obj.aabb.CalculateTransformedAABB(obj.transform);
-            Renderer2D::DrawBox(aabb.min, aabb.max, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-        } */
     }
 
     template <typename T>
