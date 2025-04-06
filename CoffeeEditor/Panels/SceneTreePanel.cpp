@@ -28,6 +28,7 @@
 #include <imgui.h>
 #include <memory>
 #include <string>
+#include <functional>
 
 namespace Coffee
 {
@@ -298,17 +299,31 @@ namespace Coffee
             bool isStatic = entity.HasComponent<StaticComponent>();
             if (ImGui::Checkbox("Static", &isStatic))
             {
-                if (isStatic)
-                {
-                    if (!entity.HasComponent<StaticComponent>())
-                        entity.AddComponent<StaticComponent>();
-                }
-                else
-                {
-                    if (entity.HasComponent<StaticComponent>())
-                        entity.RemoveComponent<StaticComponent>();
-                }
+                // Use std::function to allow recursion
+                std::function<void(Entity, bool)> SetStaticRecursively = [&](Entity currentEntity, bool addStatic) {
+                    if (addStatic)
+                    {
+                        if (!currentEntity.HasComponent<StaticComponent>())
+                            currentEntity.AddComponent<StaticComponent>();
+                    }
+                    else
+                    {
+                        if (currentEntity.HasComponent<StaticComponent>())
+                            currentEntity.RemoveComponent<StaticComponent>();
+                    }
+            
+                    // Recursively handle children
+                    auto children = currentEntity.GetChildren();
+                    for (auto& child : children)
+                    {
+                        SetStaticRecursively(child, addStatic);
+                    }
+                };
+            
+                SetStaticRecursively(entity, isStatic);
             }
+            
+            // ...existing code...
         
             ImGui::Separator();
         }
