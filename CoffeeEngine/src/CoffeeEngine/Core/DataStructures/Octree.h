@@ -24,6 +24,7 @@ namespace Coffee {
     public:
         AABB aabb;
         bool isLeaf = true;
+        int depth = 0; // Depth of the node in the octree
         std::vector<int> objectIDs; // Store only object IDs
         std::array<Scope<OctreeNode>, 8> children;
 
@@ -102,7 +103,7 @@ namespace Coffee {
     void Octree<T>::InsertIntoLeaf(OctreeNode<T>& node, int objectID)
     {
         node.objectIDs.push_back(objectID);
-        if (node.objectIDs.size() > maxObjectsPerNode && maxDepth > 0)
+        if (node.objectIDs.size() > maxObjectsPerNode && node.depth < maxDepth)
         {
             Subdivide(node);
             RedistributeObjects(node);
@@ -164,6 +165,7 @@ namespace Coffee {
             // Create a new child node and set its AABB
             node.children[i] = CreateScope<OctreeNode<T>>();
             node.children[i]->aabb = AABB(childMin, childMax);
+            node.children[i]->depth = node.depth + 1;
         }
     }
 
