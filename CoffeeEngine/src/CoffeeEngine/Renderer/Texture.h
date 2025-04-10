@@ -162,6 +162,8 @@ namespace Coffee {
         void LoadStandardFromData(const std::vector<unsigned char>& data);
         void LoadHDRFromData(const std::vector<float>& data);
 
+        void EquirectToCubemap(float* data, int width, int height);
+
         friend class cereal::access;
 
         template<class Archive>

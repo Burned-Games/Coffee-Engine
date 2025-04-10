@@ -384,9 +384,6 @@ namespace Coffee {
             COFFEE_CORE_ERROR("Failed to load cubemap texture: {0} (REASON: {1})", m_FilePath.string(), stbi_failure_reason());
             return;
         }
-        
-        m_HDRData = std::vector<float>(data, data + m_Width * m_Height * nrChannels);
-        stbi_image_free(data);
 
         switch (nrChannels)
         {
@@ -400,8 +397,10 @@ namespace Coffee {
                 m_Properties.Format = ImageFormat::RGBA32F;
                 break;
         }
-        
-        LoadHDRFromData(m_HDRData);
+
+        EquirectToCubemap(data, m_Width, m_Height);
+
+        stbi_image_free(data);
     }
 
     void Cubemap::LoadStandardFromData(const std::vector<unsigned char>& data)
@@ -539,6 +538,11 @@ namespace Coffee {
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    }
+
+    void Cubemap::EquirectToCubemap(float* data, int width, int height)
+    {
+        
     }
 
     Ref<Cubemap> Cubemap::Load(const std::filesystem::path& path)
