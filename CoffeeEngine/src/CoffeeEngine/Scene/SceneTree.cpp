@@ -121,6 +121,16 @@ namespace Coffee {
         hierarchyComponent->m_Prev = entt::null;
     
         if (parent != entt::null) {
+
+            // //Check if it's from same "family"
+            // auto p = hierarchyComponent;
+            // while (p != entt::null)
+            // {
+            //     auto e = hierarchyComponent->m_Parent;
+            //     p = registry.try_get<HierarchyComponent>(e);
+            //     //if (e.)
+            // }
+
             hierarchyComponent->m_Parent = parent;
             HierarchyComponent::OnConstruct(registry, entity);
     
