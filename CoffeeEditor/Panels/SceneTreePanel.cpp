@@ -89,6 +89,21 @@ namespace Coffee
 
         ImGui::EndChild();
 
+        // Entity unparenting
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_NODE"))
+            {
+                // Unparent the entity if dragged onto empty space in the hierarchy view
+                // Copy-paste of payload handling for reparenting entities found in DrawEntityNode(entity)
+                Entity payloadEntity = *(const Entity*)payload->Data;
+                HierarchyComponent::Reparent(
+                    m_Context->m_Registry, (entt::entity)payloadEntity,
+                    entt::null); // Parent set to null (unparented)
+            }
+            ImGui::EndDragDropTarget();
+        }
+
         // Entity Tree Drag and Drop functionality
         if (ImGui::BeginDragDropTarget())
         {
