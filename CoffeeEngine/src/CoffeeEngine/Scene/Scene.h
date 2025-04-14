@@ -181,6 +181,8 @@ namespace Coffee {
          */
         template <class Archive> void load(Archive& archive, std::uint32_t const version)
         {
+            HierarchyComponent::LoadingScene = true;
+
             entt::snapshot_loader{m_Registry}
             .get<entt::entity>(archive)
             .template get<TagComponent>(archive)
@@ -202,6 +204,7 @@ namespace Coffee {
             .template get<ActiveComponent>(archive)
             .template get<StaticComponent>(archive);
 
+             HierarchyComponent::LoadingScene = false;
 
             AssignAnimatorsToMeshes(AnimationSystem::GetAnimators());
         }

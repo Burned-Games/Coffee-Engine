@@ -8,6 +8,8 @@
 
 namespace Coffee {
 
+    bool HierarchyComponent::LoadingScene = false;
+
     HierarchyComponent::HierarchyComponent(entt::entity parent)
     {
         m_Parent = parent;
@@ -25,6 +27,8 @@ namespace Coffee {
 
     void HierarchyComponent::OnConstruct(entt::registry& registry, entt::entity entity)
     {
+        if (LoadingScene) return;
+
         auto& hierarchy = registry.get<HierarchyComponent>(entity);
 
         if(hierarchy.m_Parent != entt::null)
@@ -58,7 +62,7 @@ namespace Coffee {
                     return;
                 }
                 lastHierarchy->m_Next = entity;
-                lastHierarchy->m_Prev = lastEntity;
+                hierarchy.m_Prev = lastEntity;
             }
         }
     }
@@ -116,18 +120,18 @@ namespace Coffee {
 
         //Prevent making a parent into a child of one of its own children
         HierarchyComponent* h = registry.try_get<HierarchyComponent>(parent);
-            while (h != nullptr)
+        while (h != nullptr)
+        {
+            // if one of the parents iterated through is equal to the entity being re-parented, abort
+            if (h->m_Parent == entity)
             {
-                // if one of the parents iterated through is equal to the entity being re-parented, abort
-                if (h->m_Parent == entity)
-                {
-                    auto tag = registry.try_get<TagComponent>(h->m_Parent);
-                    COFFEE_CORE_WARN("Tried to re-parent {} to its own child. This is not allowed", tag ? tag->Tag : "an entity");
-                    return;
-                }
-                // Get next parent up the chain and keep iterating
-                h = registry.try_get<HierarchyComponent>(h->m_Parent);
+                auto tag = registry.try_get<TagComponent>(h->m_Parent);
+                COFFEE_CORE_WARN("Tried to re-parent {} to its own child. This is not allowed", tag ? tag->Tag : "an entity");
+                return;
             }
+            // Get next parent up the chain and keep iterating
+            h = registry.try_get<HierarchyComponent>(h->m_Parent);
+        }
     
         HierarchyComponent::OnDestroy(registry, entity);
     
@@ -144,6 +148,99 @@ namespace Coffee {
             auto& transformComponent = registry.get<TransformComponent>(entity);
             transformComponent.MarkDirty();
         }
+    }
+
+    void HierarchyComponent::Reorder(entt::registry& registry, entt::entity entity, entt::entity after,
+        entt::entity before)
+    {
+        ZoneScoped;
+
+        // Can't move next to itself, the result would be the same position
+        if (entity == after || entity == before)
+        {
+            return;
+        }
+
+        auto hierarchyComponent = registry.try_get<HierarchyComponent>(entity);
+        auto afterHierarchy = registry.try_get<HierarchyComponent>(after);
+        auto beforeHierarchy = registry.try_get<HierarchyComponent>(before);
+
+        HierarchyComponent* h = nullptr; // Set to either the entity before or after (at least one must exist, "before" has priority)
+        entt::entity parentTmp = entt::null; //Prevent double assignment of parent later if both the "before" and "after" entities are valid
+        if (afterHierarchy)
+        {
+            h = afterHierarchy;
+            parentTmp = afterHierarchy->m_Parent;
+        }
+        else if (beforeHierarchy)
+        {
+            h = beforeHierarchy;
+            parentTmp = beforeHierarchy->m_Parent;
+        }
+
+        if (h == nullptr)
+        {
+            COFFEE_ERROR("This error should never be shown (HierarchyComponent::Reorder). Both new sibling entities were null");
+            return;
+        }
+
+        // Check if entity is being moved into one of its own children
+        while (h != nullptr)
+        {
+            // if one of the parents iterated through is equal to the entity being moved, abort
+            if (h->m_Parent == entity)
+            {
+                auto tag = registry.try_get<TagComponent>(h->m_Parent);
+                COFFEE_CORE_WARN("Tried to re-parent {} to its own child. This is not allowed", tag ? tag->Tag : "an entity");
+                return;
+            }
+            // Get next parent up the chain and keep iterating
+            h = registry.try_get<HierarchyComponent>(h->m_Parent);
+        }
+
+        // Remove temporalilly from children list
+        HierarchyComponent::OnDestroy(registry, entity);
+
+        hierarchyComponent->m_Parent = parentTmp;
+        hierarchyComponent->m_Next = entt::null;
+        hierarchyComponent->m_Prev = entt::null;
+
+        // Might need a diagram to properly understand this part (^~^')
+        // Place entity between afterHierarchy and its next sibling (if any)
+        if (afterHierarchy != nullptr)
+        {
+            auto oldNext = afterHierarchy->m_Next;
+            if (oldNext != entt::null)
+            {
+                auto oldNextComponent = registry.try_get<HierarchyComponent>(oldNext);
+                oldNextComponent->m_Prev = entity;
+                hierarchyComponent->m_Next = oldNext;
+            }
+            afterHierarchy->m_Next = entity;
+            hierarchyComponent->m_Prev = after;
+
+        }
+        // Place entity between beforeHierarchy and its previous sibling (if any)
+        else if (beforeHierarchy != nullptr)
+        {
+            auto oldPrev = beforeHierarchy->m_Prev;
+            if (oldPrev != entt::null && oldPrev != entity)
+            {
+                auto oldPrevComponent = registry.try_get<HierarchyComponent>(oldPrev);
+                oldPrevComponent->m_Next = entity;
+                hierarchyComponent->m_Prev = oldPrev;
+            }
+            beforeHierarchy->m_Prev = entity;
+            hierarchyComponent->m_Next = before;
+
+            // If the moved entity ends up being the first in the child list, update the parent accordingly
+            if (hierarchyComponent->m_Prev == entt::null && parentTmp != entt::null)
+            {
+                auto parent = registry.try_get<HierarchyComponent>(parentTmp);
+                parent->m_First = entity;
+            }
+        }
+
     }
 
     SceneTree::SceneTree(Scene* scene) : m_Context(scene)
