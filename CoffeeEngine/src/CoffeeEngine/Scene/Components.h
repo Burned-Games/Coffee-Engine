@@ -1264,7 +1264,7 @@
 
          float Value = 0.0f; ///< The value of the slider.
          float MinValue = 0.0f; ///< The minimum value of the slider.
-         float MaxValue = 100.0f; ///< The maximum value of the slider.
+         float MaxValue = 1.0f; ///< The maximum value of the slider.
          glm::vec2 HandleScale; ///< The scale of the handle.
          Ref<Texture2D> BackgroundTexture; ///< The texture of the background.
          Ref<Texture2D> HandleTexture; ///< The texture of the handle.

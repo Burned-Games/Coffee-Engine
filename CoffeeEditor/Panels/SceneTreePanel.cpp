@@ -2664,7 +2664,7 @@ namespace Coffee
 
             if (ImGui::CollapsingHeader("UI Slider", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
-                ImGui::DragFloat("Value", &sliderComponent.Value, 0.1f, sliderComponent.MinValue, sliderComponent.MaxValue);
+                ImGui::DragFloat("Value", &sliderComponent.Value, 0.01f, sliderComponent.MinValue, sliderComponent.MaxValue);
                 ImGui::DragFloat("Min Value", &sliderComponent.MinValue, 0.1f, 0.0f, sliderComponent.MaxValue);
                 ImGui::DragFloat("Max Value", &sliderComponent.MaxValue, 0.1f, sliderComponent.MinValue, 100.0f);
 
