@@ -17,6 +17,8 @@ namespace Coffee {
         Ref<Texture2D> GetAtlasTexture() const { return m_AtlasTexture; }
 
         static Ref<Font> GetDefault();
+        double CalculateTextWidth(const std::string& text, double fsScale, float kerning);
+
     private:
         MSDFData* m_Data;
         Ref<Texture2D> m_AtlasTexture;

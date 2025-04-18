@@ -170,6 +170,7 @@ namespace Coffee {
         textParams.Kerning = uiTextComponent.Kerning;
         textParams.LineSpacing = uiTextComponent.LineSpacing;
         textParams.Size = uiTextComponent.FontSize;
+        textParams.Alignment = uiTextComponent.Alignment;
 
         Renderer2D::DrawTextString(uiTextComponent.Text, uiTextComponent.UIFont, textTransform, textParams, Renderer2D::RenderMode::Screen, (uint32_t)entity);
     }

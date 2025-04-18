@@ -2516,9 +2516,31 @@ namespace Coffee
                     textComponent.Text = std::string(buffer);
                 }
 
+                if (ImGui::Selectable("Font"))
+                {
+                    std::string path = FileDialog::OpenFile({}).string();
+                    if (!path.empty() && path != textComponent.FontPath)
+                    {
+                       textComponent.UIFont = CreateRef<Coffee::Font>(path);
+                        textComponent.FontPath = path;
+                    }
+                }
+
+
                 ImGui::DragFloat("Size", &textComponent.FontSize, 0.1f, 0.0f, 100.0f);
                 ImGui::DragFloat("Kerning", &textComponent.Kerning, 0.1f, 0.0f, 100.0f);
                 ImGui::DragFloat("Line Spacing", &textComponent.LineSpacing, 0.1f, 0.0f, 100.0f);
+                ImGui::Text("Text Alignment");
+                ImGui::SameLine();
+                ImGui::PushItemWidth(100.0f);
+                const char* alignmentOptions[] = {"Left", "Center", "Right"};
+                int currentAlignment = static_cast<int>(textComponent.Alignment);
+                if (ImGui::Combo("##TextAlignment", &currentAlignment, alignmentOptions,
+                                 IM_ARRAYSIZE(alignmentOptions)))
+                {
+                    textComponent.Alignment = static_cast<Renderer2D::TextAlignment>(currentAlignment);
+                }
+                ImGui::PopItemWidth();
                 ImGui::ColorEdit4("Color", glm::value_ptr(textComponent.Color));
             }
 
@@ -3016,7 +3038,8 @@ namespace Coffee
             static char buffer[256] = "";
             ImGui::InputTextWithHint("##Search Component", "Search Component:", buffer, 256);
 
-            std::string items[] = {"Empty", "Camera", "Primitive", "Light", "Particle System", "Sprite2D"};
+            std::string items[] = {"Empty", "Camera", "Primitive", "Light", "Particle System", "Sprite2D",
+                                    "UI - Image", "UI - Text", "UI - Toggle", "UI - Button", "UI - Slider"};
             static int item_current = 1;
 
             if (ImGui::BeginListBox("##listbox 2", ImVec2(-FLT_MIN, ImGui::GetContentRegionAvail().y - 200)))
@@ -3086,6 +3109,41 @@ namespace Coffee
                 {
                     Entity e = m_Context->CreateEntity("Sprite2D");
                     e.AddComponent<SpriteComponent>();
+                    SetSelectedEntity(e);
+                    ImGui::CloseCurrentPopup();
+                }
+                else if (items[item_current] == "UI - Image")
+                {
+                    Entity e = m_Context->CreateEntity("UI Image");
+                    e.AddComponent<UIImageComponent>();
+                    SetSelectedEntity(e);
+                    ImGui::CloseCurrentPopup();
+                }
+                else if (items[item_current] == "UI - Text")
+                {
+                    Entity e = m_Context->CreateEntity("UI Text");
+                    e.AddComponent<UITextComponent>();
+                    SetSelectedEntity(e);
+                    ImGui::CloseCurrentPopup();
+                }
+                else if (items[item_current] == "UI - Toggle")
+                {
+                    Entity e = m_Context->CreateEntity("UI Toggle");
+                    e.AddComponent<UIToggleComponent>();
+                    SetSelectedEntity(e);
+                    ImGui::CloseCurrentPopup();
+                }
+                else if (items[item_current] == "UI - Button")
+                {
+                    Entity e = m_Context->CreateEntity("UI Button");
+                    e.AddComponent<UIButtonComponent>();
+                    SetSelectedEntity(e);
+                    ImGui::CloseCurrentPopup();
+                }
+                else if (items[item_current] == "UI - Slider")
+                {
+                    Entity e = m_Context->CreateEntity("UI Slider");
+                    e.AddComponent<UISliderComponent>();
                     SetSelectedEntity(e);
                     ImGui::CloseCurrentPopup();
                 }

@@ -154,4 +154,38 @@ namespace Coffee {
 		return DefaultFont;
 	}
 
+    double Font::CalculateTextWidth(const std::string& text, double fsScale, float kerning)
+    {
+        double totalWidth = 0.0;
+        for (size_t i = 0; i < text.size(); i++)
+        {
+            char character = text[i];
+            if (character == ' ')
+            {
+                totalWidth += m_Data->FontGeometry.getGlyph(' ')->getAdvance() * fsScale + kerning;
+            }
+            else if (character == '\t')
+            {
+                totalWidth += 4.0f * (m_Data->FontGeometry.getGlyph(' ')->getAdvance() * fsScale + kerning);
+            }
+            else if (character != '\r' && character != '\n')
+            {
+                auto glyph = m_Data->FontGeometry.getGlyph(character);
+                if (!glyph)
+                    glyph = m_Data->FontGeometry.getGlyph('?');
+                if (glyph)
+                {
+                    double advance = glyph->getAdvance();
+                    if (i < text.size() - 1)
+                    {
+                        char nextCharacter = text[i + 1];
+                        m_Data->FontGeometry.getAdvance(advance, character, nextCharacter);
+                    }
+                    totalWidth += advance * fsScale + kerning;
+                }
+            }
+        }
+        return totalWidth;
+    }
+
 }

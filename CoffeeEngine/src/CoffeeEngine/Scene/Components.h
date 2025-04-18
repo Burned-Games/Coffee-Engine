@@ -23,6 +23,7 @@
  #include "CoffeeEngine/UI/UIAnchor.h"
  #include "CoffeeEngine/UI/UIManager.h"
  #include "CoffeeEngine//Renderer/Font.h"
+ #include "CoffeeEngine/Renderer/Renderer2D.h"
 
  #include <cereal/cereal.hpp>
  #include <cereal/access.hpp>
@@ -1113,6 +1114,7 @@
         float Kerning = 0.0f; ///< The kerning.
         float LineSpacing = 0.0f; ///< The line spacing.
         float FontSize = 16.0f; ///< The font size.
+        Renderer2D::TextAlignment Alignment = Renderer2D::TextAlignment::Left; ///< The text alignment.
 
         template<class Archive> void save(Archive& archive, std::uint32_t const version) const
         {
@@ -1121,7 +1123,8 @@
                     cereal::make_nvp("Color", Color),
                     cereal::make_nvp("Kerning", Kerning),
                     cereal::make_nvp("LineSpacing", LineSpacing),
-                    cereal::make_nvp("FontSize", FontSize));
+                    cereal::make_nvp("FontSize", FontSize),
+                    cereal::make_nvp("Alignment", Alignment));
             UIComponent::save(archive, version);
         }
 
@@ -1132,7 +1135,8 @@
                     cereal::make_nvp("Color", Color),
                     cereal::make_nvp("Kerning", Kerning),
                     cereal::make_nvp("LineSpacing", LineSpacing),
-                    cereal::make_nvp("FontSize", FontSize));
+                    cereal::make_nvp("FontSize", FontSize),
+                    cereal::make_nvp("Alignment", Alignment));
             if (!FontPath.empty())
                 UIFont = CreateRef<Coffee::Font>(FontPath);
             else

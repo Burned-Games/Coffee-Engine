@@ -23,6 +23,14 @@ namespace Coffee {
             World,
             Screen
         };
+
+        enum class TextAlignment
+        {
+            Left = 0,
+            Center,
+            Right
+        };
+
     public:
         static void Init();
 
@@ -85,9 +93,11 @@ namespace Coffee {
 			float Kerning = 0.0f;
 			float LineSpacing = 0.0f;
             float Size = 16.0f;
+            TextAlignment Alignment = TextAlignment::Left;
 		};
 
         static void DrawTextString(const std::string& text, Ref<Font> font, const glm::mat4& transform, const TextParams& textParams, RenderMode mode, uint32_t entityID = 4294967295);
+
     private:
         static Batch& GetBatch(RenderMode mode);
         static void NextBatch(RenderMode mode);

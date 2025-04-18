@@ -832,6 +832,25 @@ namespace Coffee {
 
 		const float spaceGlyphAdvance = fontGeometry.getGlyph(' ')->getAdvance();
 
+        //Text alignment
+        double totalWidth = font->CalculateTextWidth(text, fsScale, textParams.Kerning); // TODO: Improve
+        switch (textParams.Alignment)
+        {
+        case TextAlignment::Center:
+            x = -totalWidth / 2.0;
+            break;
+        case TextAlignment::Right:
+            x = -totalWidth;
+            break;
+        case TextAlignment::Left:
+        default:
+            break;
+        }
+
+
+
+
+
         for (size_t i = 0; i < text.size(); i++)
 		{
 			char character = text[i];
