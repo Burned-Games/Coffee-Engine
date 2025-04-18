@@ -832,34 +832,77 @@ namespace Coffee {
 
 		const float spaceGlyphAdvance = fontGeometry.getGlyph(' ')->getAdvance();
 
-        //Text alignment
-        double totalWidth = font->CalculateTextWidth(text, fsScale, textParams.Kerning); // TODO: Improve
+        //FIX Alignment multiple lines
+        std::vector<std::string> lines;
+        std::istringstream stream(text);
+        std::string line;
+
+        while (std::getline(stream, line))
+        {
+            lines.push_back(line);
+        }
+
+
+        double totalWidth;
+        double offSetAlignment;
+        totalWidth = font->CalculateTextWidth(lines[0], fsScale, textParams.Kerning);
+        offSetAlignment = 0.0;
         switch (textParams.Alignment)
         {
         case TextAlignment::Center:
-            x = -totalWidth / 2.0;
+            offSetAlignment = -totalWidth / 2.0;
             break;
         case TextAlignment::Right:
-            x = -totalWidth;
+            offSetAlignment = -totalWidth;
             break;
         case TextAlignment::Left:
         default:
             break;
         }
+        x = offSetAlignment;
 
+        //END FIX
 
-
-
-
+        int indexLine = 0;
         for (size_t i = 0; i < text.size(); i++)
 		{
+            
 			char character = text[i];
 			if (character == '\r')
 				continue;
 
 			if (character == '\n')
 			{
-				x = 0;
+
+                //FIX Alignment multiple lines
+                indexLine++;
+                
+                if (lines.size() > indexLine)
+                {
+                    totalWidth = font->CalculateTextWidth(lines[indexLine], fsScale, textParams.Kerning);
+                }
+                else
+                {
+                    totalWidth = 0;
+                }
+                
+                offSetAlignment = 0.0;
+                switch (textParams.Alignment)
+                {
+                case TextAlignment::Center:
+                    offSetAlignment = -totalWidth / 2.0;
+                    break;
+                case TextAlignment::Right:
+                    offSetAlignment = -totalWidth;
+                    break;
+                case TextAlignment::Left:
+                default:
+                    break;
+                }
+
+                //END FIX
+                
+                x = offSetAlignment;
 				y -= fsScale * metrics.lineHeight + textParams.LineSpacing;
 				continue;
 			}

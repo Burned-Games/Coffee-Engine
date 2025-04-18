@@ -156,6 +156,8 @@ namespace Coffee {
 
     double Font::CalculateTextWidth(const std::string& text, double fsScale, float kerning)
     {
+        if (text.empty()) return 0;
+
         double totalWidth = 0.0;
         for (size_t i = 0; i < text.size(); i++)
         {
