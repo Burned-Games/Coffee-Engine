@@ -169,13 +169,13 @@ namespace Coffee {
         template<class Archive>
         void save(Archive& archive) const
         {
-            archive(m_Properties, m_Data, m_HDRData, m_Width, m_Height, cereal::base_class<Texture>(this));
+            archive(m_Properties, /* m_Data, */ m_HDRData, m_Width, m_Height, cereal::base_class<Texture>(this));
         }
 
         template <class Archive>
         void load(Archive& archive)
         {
-            archive(m_Properties, m_Data, m_HDRData, m_Width, m_Height, cereal::base_class<Texture>(this));
+            archive(m_Properties, /* m_Data, */ m_HDRData, m_Width, m_Height, cereal::base_class<Texture>(this));
         }
 
         template <class Archive>
@@ -183,24 +183,23 @@ namespace Coffee {
         {
             construct();
 
-            data(construct->m_Properties, construct->m_Data, construct->m_HDRData, construct->m_Width, construct->m_Height,
+            data(construct->m_Properties, /* construct->m_Data, */ construct->m_HDRData, construct->m_Width, construct->m_Height,
                  cereal::base_class<Texture>(construct.ptr()));
 
             const ImageFormat& format = construct->m_Properties.Format;
             if (format == ImageFormat::R8 || format == ImageFormat::RG8 || format == ImageFormat::RGB8 || format == ImageFormat::RGBA8)
             {
-                construct->LoadStandardFromData(construct->m_Data);
+                /* construct->LoadStandardFromData(construct->m_Data); */
             }
             else
             {
-                construct->LoadHDRFromData(construct->m_HDRData);
+                /* construct->LoadHDRFromData(construct->m_HDRData); */
             }
         }
 
     private:
         TextureProperties m_Properties;
-        std::vector<unsigned char> m_Data;
-        std::vector<float> m_HDRData;
+        std::vector<std::vector<std::vector<float>>> m_HDRData; // m_HDRData[faceIndex][mipLevel][pixelIndex]
         uint32_t m_textureID;
         int m_Width, m_Height;
     };
