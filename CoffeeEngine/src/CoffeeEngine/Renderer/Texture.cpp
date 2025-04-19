@@ -383,6 +383,7 @@ namespace Coffee {
     void Cubemap::LoadHDRFromFile(const std::filesystem::path& path)
     {
         int nrChannels;
+        stbi_set_flip_vertically_on_load(true);
         float* data = stbi_loadf(path.string().c_str(), &m_Width, &m_Height, &nrChannels, 0);
         if (!data) {
             COFFEE_CORE_ERROR("Failed to load cubemap texture: {0} (REASON: {1})", m_FilePath.string(), stbi_failure_reason());

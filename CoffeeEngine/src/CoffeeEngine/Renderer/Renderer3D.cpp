@@ -178,6 +178,8 @@ namespace Coffee {
         forwardBuffer->SetDrawBuffers({0});
 
         RendererAPI::SetDepthMask(false);
+        s_EnvironmentMap->Bind(0);
+        //s_SkyboxShader->setInt("skybox", 0);
         s_SkyboxShader->Bind();
         RendererAPI::DrawIndexed(s_SkyboxMesh->GetVertexArray());
         RendererAPI::SetDepthMask(true);
