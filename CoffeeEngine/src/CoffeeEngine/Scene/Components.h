@@ -1089,7 +1089,8 @@
 
         template<class Archive> void save(Archive& archive, std::uint32_t const version) const
         {
-            archive(cereal::make_nvp("TextureUUID", Texture ? Texture->GetUUID() : UUID(0)));
+            archive(cereal::make_nvp("TextureUUID", Texture ? Texture->GetUUID() : UUID(0)),
+                    cereal::make_nvp("Color", Color));
             UIComponent::save(archive, version);
         }
 
@@ -1097,6 +1098,8 @@
         {
             UUID textureUUID;
             archive(cereal::make_nvp("TextureUUID", textureUUID));
+            if (version >= 1)
+                archive(cereal::make_nvp("Color", Color));
             if (textureUUID != UUID(0))
                 Texture = ResourceLoader::GetResource<Texture2D>(textureUUID);
             UIComponent::load(archive, version);
@@ -1316,7 +1319,7 @@
  CEREAL_CLASS_VERSION(Coffee::NavigationAgentComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::ParticlesSystemComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::UIComponent, 0);
- CEREAL_CLASS_VERSION(Coffee::UIImageComponent, 0);
+ CEREAL_CLASS_VERSION(Coffee::UIImageComponent, 1);
  CEREAL_CLASS_VERSION(Coffee::UITextComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::UIToggleComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::UIButtonComponent, 0);
