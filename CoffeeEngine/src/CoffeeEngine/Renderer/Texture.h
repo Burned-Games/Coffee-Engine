@@ -141,8 +141,6 @@ namespace Coffee {
     public:
         Cubemap() = default;
         Cubemap(const std::filesystem::path& path);
-        // This way of loading a cubemap is deprecated because is not compatible with the serialization system and the resource management.
-        Cubemap(const std::vector<std::filesystem::path>& paths);
         Cubemap(ImportData& importData);
         ~Cubemap();
 
