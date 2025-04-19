@@ -142,7 +142,7 @@ namespace Coffee {
         worldTransform = glm::rotate(worldTransform, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
         worldTransform = glm::scale(worldTransform, glm::vec3(anchored.Size.x, -anchored.Size.y, 1.0f));
 
-        Renderer2D::DrawQuad(worldTransform, uiImageComponent.Texture, 1.0f, uiImageComponent.Color, Renderer2D::RenderMode::Screen, (uint32_t)entity);
+        Renderer2D::DrawQuad(worldTransform, uiImageComponent.Texture, 1.0f, uiImageComponent.Color, Renderer2D::RenderMode::Screen, (uint32_t)entity, uiImageComponent.UVRect);
     }
 
     void UIManager::RenderUIText(entt::registry& registry, entt::entity entity)

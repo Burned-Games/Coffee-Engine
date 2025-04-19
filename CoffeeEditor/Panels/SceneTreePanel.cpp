@@ -2492,6 +2492,8 @@ namespace Coffee
                 }
 
                 ImGui::ColorEdit4("Color", glm::value_ptr(imageComponent.Color));
+
+                ImGui::DragFloat4("UVRect", glm::value_ptr(imageComponent.UVRect), 0.01f, 0.0f, 1.0f);
             }
 
             if (!isCollapsingHeaderOpen)

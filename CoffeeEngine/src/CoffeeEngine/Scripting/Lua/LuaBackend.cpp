@@ -854,7 +854,8 @@ namespace Coffee {
          "pause", &AudioSourceComponent::Stop);
 
         luaState.new_usertype<UIImageComponent>("UIImageComponent", sol::constructors<UIImageComponent()>(),
-            "set_color", [](UIImageComponent& self, const glm::vec4& color) { self.Color = color; }
+            "set_color", [](UIImageComponent& self, const glm::vec4& color) { self.Color = color; },
+            "set_rect", [](UIImageComponent& self, const glm::vec4& uvRect) { self.UVRect = uvRect; }
         );
 
         luaState.new_usertype<UITextComponent>("UITextComponent",

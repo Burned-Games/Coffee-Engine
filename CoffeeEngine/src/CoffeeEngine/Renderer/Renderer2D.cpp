@@ -376,14 +376,14 @@ namespace Coffee {
         DrawQuad(transform, texture, tilingFactor, tintColor, RenderMode::World);
     }
 
-    void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintColor, RenderMode mode, uint32_t entityID)
+    void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintColor, RenderMode mode, uint32_t entityID, const glm::vec4& uvRect)
     {
         constexpr size_t quadVertexCount = 4;
-        constexpr glm::vec2 texCoords[] = {
-            {0.0f, 0.0f},
-            {1.0f, 0.0f},
-            {1.0f, 1.0f},
-            {0.0f, 1.0f}
+        const glm::vec2 texCoords[] = {
+            {uvRect.x, uvRect.y},
+            {uvRect.x + uvRect.z, uvRect.y},
+            {uvRect.x + uvRect.z, uvRect.y + uvRect.w},
+            {uvRect.x, uvRect.y + uvRect.w}
         };
 
         Batch& batch = GetBatch(mode);
@@ -423,11 +423,21 @@ namespace Coffee {
         uint32_t b = (entityID & 0x00FF0000) >> 16;
         glm::vec3 entityIDVec3 = glm::vec3(r / 255.0f, g / 255.0f, b / 255.0f);
 
+        glm::vec4 quadVerts[4] = {
+            s_Renderer2DData.QuadVertexPositions[0],
+            s_Renderer2DData.QuadVertexPositions[1],
+            s_Renderer2DData.QuadVertexPositions[2],
+            s_Renderer2DData.QuadVertexPositions[3]
+        };
+
+        quadVerts[1].x = quadVerts[2].x = -0.5f + uvRect.z;
+        quadVerts[2].y = quadVerts[3].y = -0.5f + uvRect.w;
+
         for(size_t i = 0; i < quadVertexCount; i++)
         {
             batch.QuadVertices.push_back(
             {
-                transform * s_Renderer2DData.QuadVertexPositions[i], 
+                transform * quadVerts[i],
                 tintColor, 
                 texCoords[i], 
                 textureIndex, 
