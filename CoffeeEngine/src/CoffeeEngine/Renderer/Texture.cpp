@@ -7,6 +7,7 @@
 #include "CoffeeEngine/Renderer/Shader.h"
 #include "CoffeeEngine/Embedded/EquirectToCubemap.inl"
 #include "CoffeeEngine/Embedded/IrradianceConvolution.inl"
+#include "CoffeeEngine/Embedded/PreFilterConvolutionShader.inl"
 #include "CoffeeEngine/Scene/PrimitiveMesh.h"
 
 #include <cereal/archives/binary.hpp>
@@ -305,6 +306,11 @@ namespace Coffee {
         glBindTextureUnit(slot, m_IrradianceMapID);
     }
 
+    void Cubemap::BindPrefilteredMap(uint32_t slot)
+    {
+        glBindTextureUnit(slot, m_PrefilteredMapID);
+    }
+
     void Cubemap::LoadFromFile(const std::filesystem::path& path)
     {
         m_FilePath = path;
@@ -347,6 +353,7 @@ namespace Coffee {
 
         EquirectToCubemap(data, m_Width, m_Height);
         GenerateIrradianceMap();
+        GeneratePrefilteredMap();
 
         stbi_image_free(data);
     }
@@ -375,9 +382,11 @@ namespace Coffee {
         glNamedRenderbufferStorage(rbo, GL_DEPTH_COMPONENT24, cubemapFaceSize, cubemapFaceSize);
         glNamedFramebufferRenderbuffer(fbo, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
 
+        int mipLevels = 1 + floor(log2(std::max(cubemapFaceSize, cubemapFaceSize)));
+
         // Create the cubemap texture
         glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_CubeMapID);
-        glTextureStorage2D(m_CubeMapID, 1, GL_RGB32F, cubemapFaceSize, cubemapFaceSize);
+        glTextureStorage2D(m_CubeMapID, mipLevels, GL_RGB32F, cubemapFaceSize, cubemapFaceSize);
 
         for(int i = 0; i < 6; ++i)
         {
@@ -385,7 +394,7 @@ namespace Coffee {
             //glTextureSubImage3D(m_textureID, 0, 0, 0, i, cubemapFaceSize, cubemapFaceSize, 1, GL_RGB, GL_FLOAT, nullptr);
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB32F, cubemapFaceSize, cubemapFaceSize, 0, GL_RGB, GL_FLOAT, nullptr);
         }
-        glTextureParameteri(m_CubeMapID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTextureParameteri(m_CubeMapID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTextureParameteri(m_CubeMapID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTextureParameteri(m_CubeMapID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTextureParameteri(m_CubeMapID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -421,6 +430,9 @@ namespace Coffee {
             cube->GetVertexArray()->Bind();
             glDrawElements(GL_TRIANGLES, cube->GetVertexArray()->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, 0);
         }
+
+        glGenerateTextureMipmap(m_CubeMapID);
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         glDeleteTextures(1, &equirectTextureID);
@@ -477,6 +489,71 @@ namespace Coffee {
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
+
+    void Cubemap::GeneratePrefilteredMap()
+    {
+        unsigned int maxMipLevels = 5;
+
+        glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_PrefilteredMapID);
+        glTextureStorage2D(m_PrefilteredMapID, maxMipLevels, GL_RGB32F, 128, 128);
+        glTextureParameteri(m_PrefilteredMapID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(m_PrefilteredMapID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(m_PrefilteredMapID, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(m_PrefilteredMapID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTextureParameteri(m_PrefilteredMapID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        uint32_t fbo, rbo;
+        glCreateFramebuffers(1, &fbo);
+        glCreateRenderbuffers(1, &rbo);
+        glNamedRenderbufferStorage(rbo, GL_DEPTH_COMPONENT24, 128, 128);
+        glNamedFramebufferRenderbuffer(fbo, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
+
+        glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+        glm::mat4 captureViews[] = 
+        {
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+        };
+
+        static Ref<Shader> prefilterShader = CreateRef<Shader>("PreFilterConvolution", PreFilterConvolutionSource);
+        static Ref<Mesh> cube = PrimitiveMesh::CreateCube({-1.0f, -1.0f, -1.0f});
+
+        prefilterShader->Bind();
+        prefilterShader->setInt("environmentMap", 0);
+        prefilterShader->setMat4("projection", captureProjection);
+        glBindTextureUnit(0, m_CubeMapID);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        for (unsigned int mip = 0; mip < maxMipLevels; mip++)
+        {
+            // Resize framebuffer according to mip-level size.
+            unsigned int mipWidth = 128 * std::pow(0.5, mip);
+            unsigned int mipHeight = 128 * std::pow(0.5, mip);
+            glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
+            glViewport(0, 0, mipWidth, mipHeight);
+
+            float roughness = (float)mip / (float)(maxMipLevels - 1);
+            prefilterShader->setFloat("roughness", roughness);
+            for (uint32_t i = 0; i < 6; ++i)
+            {
+                prefilterShader->setMat4("view", captureViews[i]);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, m_PrefilteredMapID, mip);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                cube->GetVertexArray()->Bind();
+                glDrawElements(GL_TRIANGLES, cube->GetVertexArray()->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, 0);
+            }
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDeleteFramebuffers(1, &fbo);
+        glDeleteRenderbuffers(1, &rbo);
+    }
+
 
     Ref<Cubemap> Cubemap::Load(const std::filesystem::path& path)
     {
