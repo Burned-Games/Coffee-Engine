@@ -117,6 +117,8 @@ namespace Coffee {
 
         // Bind the irradiance map
         s_EnvironmentMap->BindIrradianceMap(6);
+        s_EnvironmentMap->BindPrefilteredMap(7);
+        s_EnvironmentMap->BindBRDFLUT(8);
 
         for(const auto& command : s_RendererData.renderQueue)
         {
@@ -135,6 +137,8 @@ namespace Coffee {
 
             // Set the irradiance map, is 6 because the first 6 slots are used by the material
             shader->setInt("irradianceMap", 6);
+            shader->setInt("prefilterMap", 7);
+            shader->setInt("brdfLUT", 8);
 
             if (command.animator)
                 AnimationSystem::SetBoneTransformations(shader, command.animator);

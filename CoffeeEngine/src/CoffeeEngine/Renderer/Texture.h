@@ -148,9 +148,11 @@ namespace Coffee {
         // Temporal, in the future i think it would be nice that the irradiance is a Cubemap object
         void BindIrradianceMap(uint32_t slot);
         void BindPrefilteredMap(uint32_t slot);
+        void BindBRDFLUT(uint32_t slot);
         uint32_t GetID() override { return m_CubeMapID; };
         uint32_t GetIrradianceMapID() { return m_IrradianceMapID; };
         uint32_t GetPrefilteredMapID() { return m_PrefilteredMapID; };
+        uint32_t GetBRDFLUTID() { return m_BRDFLUTID; };
 
         uint32_t GetWidth() override { return m_Width; };
         uint32_t GetHeight() override { return m_Height; };
@@ -168,6 +170,7 @@ namespace Coffee {
         void EquirectToCubemap(float* data, int width, int height);
         void GenerateIrradianceMap();
         void GeneratePrefilteredMap();
+        void GenerateBRDFLUT();
 
         friend class cereal::access;
 
@@ -208,6 +211,7 @@ namespace Coffee {
         uint32_t m_CubeMapID;
         uint32_t m_IrradianceMapID;
         uint32_t m_PrefilteredMapID;
+        uint32_t m_BRDFLUTID;
         int m_Width, m_Height;
     };
 

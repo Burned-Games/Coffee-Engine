@@ -8,6 +8,7 @@
 #include "CoffeeEngine/Embedded/EquirectToCubemap.inl"
 #include "CoffeeEngine/Embedded/IrradianceConvolution.inl"
 #include "CoffeeEngine/Embedded/PreFilterConvolutionShader.inl"
+#include "CoffeeEngine/Embedded/BRDFLUTShader.inl"
 #include "CoffeeEngine/Scene/PrimitiveMesh.h"
 
 #include <cereal/archives/binary.hpp>
@@ -311,6 +312,11 @@ namespace Coffee {
         glBindTextureUnit(slot, m_PrefilteredMapID);
     }
 
+    void Cubemap::BindBRDFLUT(uint32_t slot)
+    {
+        glBindTextureUnit(slot, m_BRDFLUTID);
+    }
+
     void Cubemap::LoadFromFile(const std::filesystem::path& path)
     {
         m_FilePath = path;
@@ -354,6 +360,7 @@ namespace Coffee {
         EquirectToCubemap(data, m_Width, m_Height);
         GenerateIrradianceMap();
         GeneratePrefilteredMap();
+        GenerateBRDFLUT();
 
         stbi_image_free(data);
     }
@@ -554,6 +561,38 @@ namespace Coffee {
         glDeleteRenderbuffers(1, &rbo);
     }
 
+    void Cubemap::GenerateBRDFLUT()
+    {
+        glCreateTextures(GL_TEXTURE_2D, 1, &m_BRDFLUTID);
+        glTextureStorage2D(m_BRDFLUTID, 1, GL_RG16F, 512, 512);
+        glTextureParameteri(m_BRDFLUTID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTextureParameteri(m_BRDFLUTID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTextureParameteri(m_BRDFLUTID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(m_BRDFLUTID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        // Reuse the framebuffer for the irradiance map
+        uint32_t fbo, rbo;
+        glCreateFramebuffers(1, &fbo);
+        glCreateRenderbuffers(1, &rbo);
+        glNamedRenderbufferStorage(rbo, GL_DEPTH_COMPONENT24, 512, 512);
+        glNamedFramebufferRenderbuffer(fbo, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_BRDFLUTID, 0);
+        
+        static Ref<Shader> brdfShader = CreateRef<Shader>("BRDFLUT", BRDFLUTSource);
+        static Ref<Mesh> quad = PrimitiveMesh::CreateQuad();
+        
+        glViewport(0, 0, 512, 512);
+        brdfShader->Bind();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        quad->GetVertexArray()->Bind();
+        glDrawElements(GL_TRIANGLES, quad->GetVertexArray()->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, 0);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDeleteFramebuffers(1, &fbo);
+        glDeleteRenderbuffers(1, &rbo);
+    }
 
     Ref<Cubemap> Cubemap::Load(const std::filesystem::path& path)
     {
