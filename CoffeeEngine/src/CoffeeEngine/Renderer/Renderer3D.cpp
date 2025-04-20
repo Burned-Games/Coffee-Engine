@@ -42,6 +42,8 @@ namespace Coffee {
         s_SkyboxMesh = PrimitiveMesh::CreateCube({-1.0f, -1.0f, -1.0f});
 
         s_SkyboxShader = CreateRef<Shader>("assets/shaders/SkyboxShader.glsl");
+        s_SkyboxShader->Bind();
+        s_SkyboxShader->setInt("skybox", 0);
 
         s_RendererData.SceneRenderDataUniformBuffer = UniformBuffer::Create(sizeof(Renderer3DData::RenderData), 1);
 
@@ -113,6 +115,9 @@ namespace Coffee {
         
         forwardBuffer->GetColorTexture("EntityID")->Clear({-1.0f,0.0f,0.0f,0.0f}); //TODO: This should only be done in the editor
 
+        // Bind the irradiance map
+        s_EnvironmentMap->BindIrradianceMap(6);
+
         for(const auto& command : s_RendererData.renderQueue)
         {
             Material* material = command.material.get();
@@ -127,6 +132,9 @@ namespace Coffee {
             const Ref<Shader>& shader = material->GetShader();
 
             shader->Bind();
+
+            // Set the irradiance map, is 6 because the first 6 slots are used by the material
+            shader->setInt("irradianceMap", 6);
 
             if (command.animator)
                 AnimationSystem::SetBoneTransformations(shader, command.animator);
@@ -179,7 +187,6 @@ namespace Coffee {
 
         RendererAPI::SetDepthMask(false);
         s_EnvironmentMap->Bind(0);
-        //s_SkyboxShader->setInt("skybox", 0);
         s_SkyboxShader->Bind();
         RendererAPI::DrawIndexed(s_SkyboxMesh->GetVertexArray());
         RendererAPI::SetDepthMask(true);

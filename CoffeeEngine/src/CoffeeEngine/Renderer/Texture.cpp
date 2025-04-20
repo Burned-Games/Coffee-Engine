@@ -6,6 +6,7 @@
 #include "CoffeeEngine/IO/ResourceLoader.h"
 #include "CoffeeEngine/Renderer/Shader.h"
 #include "CoffeeEngine/Embedded/EquirectToCubemap.inl"
+#include "CoffeeEngine/Embedded/IrradianceConvolution.inl"
 #include "CoffeeEngine/Scene/PrimitiveMesh.h"
 
 #include <cereal/archives/binary.hpp>
@@ -266,42 +267,6 @@ namespace Coffee {
         glTextureParameterf(m_textureID, GL_TEXTURE_MAX_ANISOTROPY, 16.0f);
     }
 
-    Cubemap::Cubemap(const std::vector<std::filesystem::path>& paths) : Texture(ResourceType::Cubemap)
-    {
-        ZoneScoped;
-        glGenTextures(1, &m_textureID);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, m_textureID);
-
-        int width, height, nrChannels;
-        for (unsigned int i = 0; i < paths.size(); i++)
-        {
-            unsigned char* data = stbi_load(paths[i].string().c_str(), &width, &height, &nrChannels, 0);
-            if (data)
-            {
-                GLenum format;
-                if (nrChannels == 1)
-                    format = GL_RED;
-                else if (nrChannels == 3)
-                    format = GL_RGB;
-                else if (nrChannels == 4)
-                    format = GL_RGBA;
-
-                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-                stbi_image_free(data);
-            }
-            else
-            {
-                COFFEE_CORE_ERROR("Cubemap texture failed to load at path: {0}", paths[i].string());
-                stbi_image_free(data);
-            }
-        }
-
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    };
     Cubemap::Cubemap(const std::filesystem::path& path) : Texture(ResourceType::Cubemap)
     {
         ZoneScoped;
@@ -326,12 +291,18 @@ namespace Coffee {
     Cubemap::~Cubemap()
     {
         ZoneScoped;
-        glDeleteTextures(1, &m_textureID);
+        glDeleteTextures(1, &m_CubeMapID);
+        glDeleteTextures(1, &m_IrradianceMapID);
     }
 
     void Cubemap::Bind(uint32_t slot)
     {
-        glBindTexture(GL_TEXTURE_CUBE_MAP, m_textureID);
+        glBindTextureUnit(slot, m_CubeMapID);
+    }
+
+    void Cubemap::BindIrradianceMap(uint32_t slot)
+    {
+        glBindTextureUnit(slot, m_IrradianceMapID);
     }
 
     void Cubemap::LoadFromFile(const std::filesystem::path& path)
@@ -375,6 +346,7 @@ namespace Coffee {
         }
 
         EquirectToCubemap(data, m_Width, m_Height);
+        GenerateIrradianceMap();
 
         stbi_image_free(data);
     }
@@ -396,6 +368,7 @@ namespace Coffee {
         // Resolution of the cubemap faces
         int cubemapFaceSize = 512; // Adjust as needed
 
+        // TODO: rewrite this to reuse the framebuffer for the irradiance map
         uint32_t fbo, rbo;
         glCreateFramebuffers(1, &fbo);
         glCreateRenderbuffers(1, &rbo);
@@ -403,8 +376,8 @@ namespace Coffee {
         glNamedFramebufferRenderbuffer(fbo, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
 
         // Create the cubemap texture
-        glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_textureID);
-        glTextureStorage2D(m_textureID, 1, GL_RGB32F, cubemapFaceSize, cubemapFaceSize);
+        glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_CubeMapID);
+        glTextureStorage2D(m_CubeMapID, 1, GL_RGB32F, cubemapFaceSize, cubemapFaceSize);
 
         for(int i = 0; i < 6; ++i)
         {
@@ -412,11 +385,11 @@ namespace Coffee {
             //glTextureSubImage3D(m_textureID, 0, 0, 0, i, cubemapFaceSize, cubemapFaceSize, 1, GL_RGB, GL_FLOAT, nullptr);
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB32F, cubemapFaceSize, cubemapFaceSize, 0, GL_RGB, GL_FLOAT, nullptr);
         }
-        glTextureParameteri(m_textureID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTextureParameteri(m_textureID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTextureParameteri(m_textureID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTextureParameteri(m_textureID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTextureParameteri(m_textureID, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(m_CubeMapID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTextureParameteri(m_CubeMapID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTextureParameteri(m_CubeMapID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(m_CubeMapID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(m_CubeMapID, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
         glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
         glm::mat4 captureViews[] = 
@@ -442,7 +415,61 @@ namespace Coffee {
         for (uint32_t i = 0; i < 6; ++i)
         {
             shader->setMat4("view", captureViews[i]);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, m_textureID, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, m_CubeMapID, 0);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            cube->GetVertexArray()->Bind();
+            glDrawElements(GL_TRIANGLES, cube->GetVertexArray()->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, 0);
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        glDeleteTextures(1, &equirectTextureID);
+        glDeleteFramebuffers(1, &fbo);
+        glDeleteRenderbuffers(1, &rbo);
+    }
+
+    void Cubemap::GenerateIrradianceMap()
+    {
+        glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_IrradianceMapID);
+        glTextureStorage2D(m_IrradianceMapID, 1, GL_RGB32F, 32, 32);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        // TODO: rewrite this to reuse the framebuffer for the equirect map
+        uint32_t fbo, rbo;
+        glCreateFramebuffers(1, &fbo);
+        glCreateRenderbuffers(1, &rbo);
+        glNamedRenderbufferStorage(rbo, GL_DEPTH_COMPONENT24, 32, 32);
+        glNamedFramebufferRenderbuffer(fbo, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
+
+        glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+        glm::mat4 captureViews[] = 
+        {
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+        };
+
+        static Ref<Shader> irradianceShader = CreateRef<Shader>("IrradianceConvolution", irradianceConvolutionSource);
+        static Ref<Mesh> cube = PrimitiveMesh::CreateCube({-1.0f, -1.0f, -1.0f});
+
+        irradianceShader->Bind();
+        irradianceShader->setInt("environmentMap", 0);
+        irradianceShader->setMat4("projection", captureProjection);
+        glBindTextureUnit(0, m_CubeMapID);
+
+        glViewport(0, 0, 32, 32);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        for (uint32_t i = 0; i < 6; ++i)
+        {
+            irradianceShader->setMat4("view", captureViews[i]);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, m_IrradianceMapID, 0);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             cube->GetVertexArray()->Bind();

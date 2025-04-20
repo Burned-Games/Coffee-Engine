@@ -144,8 +144,11 @@ namespace Coffee {
         Cubemap(ImportData& importData);
         ~Cubemap();
 
-        void Bind(uint32_t slot) override;;
-        uint32_t GetID() override { return m_textureID; };
+        void Bind(uint32_t slot) override;
+        // Temporal, in the future i think it would be nice that the irradiance is a Cubemap object
+        void BindIrradianceMap(uint32_t slot);
+        uint32_t GetID() override { return m_CubeMapID; };
+        uint32_t GetIrradianceMapID() { return m_IrradianceMapID; };
 
         uint32_t GetWidth() override { return m_Width; };
         uint32_t GetHeight() override { return m_Height; };
@@ -155,12 +158,13 @@ namespace Coffee {
         static Ref<Cubemap> Create(const std::filesystem::path& path);
     private:
         void LoadFromFile(const std::filesystem::path& path);
-        void LoadStandardFromFile(const std::filesystem::path& path);
+        void LoadStandardFromFile(const std::filesystem::path& path) {}
         void LoadHDRFromFile(const std::filesystem::path& path);
-        void LoadStandardFromData(const std::vector<unsigned char>& data);
+        void LoadStandardFromData(const std::vector<unsigned char>& data) {}
         void LoadHDRFromData(const std::vector<float>& data);
 
         void EquirectToCubemap(float* data, int width, int height);
+        void GenerateIrradianceMap();
 
         friend class cereal::access;
 
@@ -198,7 +202,8 @@ namespace Coffee {
     private:
         TextureProperties m_Properties;
         std::vector<std::vector<std::vector<float>>> m_HDRData; // m_HDRData[faceIndex][mipLevel][pixelIndex]
-        uint32_t m_textureID;
+        uint32_t m_CubeMapID;
+        uint32_t m_IrradianceMapID;
         int m_Width, m_Height;
     };
 
