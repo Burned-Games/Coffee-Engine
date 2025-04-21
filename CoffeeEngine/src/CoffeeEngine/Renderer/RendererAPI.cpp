@@ -95,6 +95,19 @@ namespace Coffee {
 		}
 	}
 
+	void RendererAPI::SetCullFace(CullFace face)
+	{
+		ZoneScoped;
+
+		switch (face)
+		{
+			case CullFace::Front:         glCullFace(GL_FRONT); break;
+			case CullFace::Back:          glCullFace(GL_BACK); break;
+			case CullFace::FrontAndBack:  glCullFace(GL_FRONT_AND_BACK); break;
+			default: COFFEE_CORE_ASSERT(false, "Unknown cull face!"); break;
+		}
+	}
+
     void RendererAPI::DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount)
     {
         ZoneScoped;

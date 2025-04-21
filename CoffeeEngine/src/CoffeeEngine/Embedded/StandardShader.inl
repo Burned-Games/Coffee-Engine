@@ -35,7 +35,7 @@ layout (location = 2) out VertexData Output;
 uniform mat4 model;
 uniform mat3 normalMatrix;
 
-uniform mat4 lightSpaceMatrix[4];
+uniform mat4 lightSpaceMatrices[4];
 
 uniform bool animated;
 const int MAX_BONES = 100;
@@ -82,7 +82,7 @@ void main()
 
     for (int i = 0; i < 4; i++)
     {
-        Output.FragPosLightSpace[i] = lightSpaceMatrix[i] * vec4(Output.WorldPos, 1.0);
+        Output.FragPosLightSpace[i] = lightSpaceMatrices[i] * vec4(Output.WorldPos, 1.0);
     }
 
     gl_Position = projection * view * vec4(Output.WorldPos, 1.0);
@@ -167,6 +167,11 @@ struct Light
     float angle;
 
     int type;
+
+    // Shadows
+    bool shadow;
+    float shadowBias;
+    float shadowMaxDistance;
 };
 
 layout (std140, binding = 1) uniform RenderData
@@ -233,6 +238,10 @@ float ShadowCalculation(int lightIdx)
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     // transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
+
+    if (!lights[lightIdx].shadow)
+        return 0.0;
+    
     // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
     float closestDepth = texture(shadowMaps[lightIdx], projCoords.xy).r; 
     // get depth of current fragment from light's perspective
@@ -240,7 +249,7 @@ float ShadowCalculation(int lightIdx)
     // calculate bias (based on depth map resolution and slope)
     vec3 normal = normalize(VertexInput.Normal);
     vec3 lightDir = normalize(lights[lightIdx].position - VertexInput.WorldPos);
-    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    float bias = max(lights[lightIdx].shadowBias * (1.0 - dot(normal, lightDir)), 0.005);
     // check whether current frag pos is in shadow
     // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
     // PCF

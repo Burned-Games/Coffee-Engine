@@ -527,6 +527,11 @@
          float Angle = 45.0f; ///< The angle of the light.
  
          int type = static_cast<int>(Type::DirectionalLight); ///< The type of the light.
+
+         // Shadows
+         bool Shadow = false;
+         float ShadowBias = 0.005f;
+         float ShadowMaxDistance = 100.0f;
  
          LightComponent() = default;
          LightComponent(const LightComponent&) = default;

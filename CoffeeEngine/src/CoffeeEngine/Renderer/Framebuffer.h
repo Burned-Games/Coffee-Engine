@@ -106,10 +106,7 @@ namespace Coffee {
             }
         }
 
-        void AttachDepthTexture(const Ref<Texture2D>& texture)
-        {
-            m_DepthTexture = texture;
-        }
+        void AttachDepthTexture(const Ref<Texture2D>& texture);
 
         /**
          * @brief Gets the depth texture.

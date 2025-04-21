@@ -116,7 +116,7 @@ namespace Coffee {
             const auto& light = s_RendererData.RenderData.lights[i];
     
             // Check if the light is directional
-            if (light.type == LightComponent::Type::DirectionalLight)
+            if (light.type == LightComponent::Type::DirectionalLight and light.Shadow)
             {
                 auto& shadowMap = s_RendererData.DirectionalShadowMapTextures[directionalLightCount];
                 s_RendererData.ShadowMapFramebuffer->AttachDepthTexture(shadowMap);
@@ -126,16 +126,30 @@ namespace Coffee {
                 RendererAPI::SetViewport(0, 0, 4096, 4096);
                 RendererAPI::Clear();
 
-                // Set the light's view and projection matrices
-                float nearPlane = 0.1f, farPlane = 100.0f;
-                glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, nearPlane, farPlane);
-                glm::mat4 lightView = glm::lookAt(light.Position, light.Position + light.Direction, glm::vec3(0.0f, 1.0f, 0.0f));
+                // Adjust the orthographic projection bounds based on ShadowMaxDistance
+                float orthoBounds = light.ShadowMaxDistance * 0.5f;
+                float nearPlane = 0.1f;
+                float farPlane = light.ShadowMaxDistance;
+
+                glm::mat4 lightProjection = glm::ortho(
+                    -orthoBounds, orthoBounds, // left, right
+                    -orthoBounds, orthoBounds, // bottom, top
+                    nearPlane, farPlane        // near, far
+                );
+
+                glm::mat4 lightView = glm::lookAt(
+                    light.Position,
+                    light.Position + light.Direction,
+                    glm::vec3(0.0f, 1.0f, 0.0f)
+                );
 
                 glm::mat4 lightSpaceMatrix = lightProjection * lightView;
-                
+
                 static Ref<Shader> shadowShader = CreateRef<Shader>("ShadowShader", std::string(shadowShaderSource));
                 shadowShader->Bind();
                 shadowShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+
+                RendererAPI::SetCullFace(CullFace::Front);
     
                 for (const auto& command : s_RendererData.renderQueue)
                 {
@@ -151,6 +165,8 @@ namespace Coffee {
                     
                     RendererAPI::DrawIndexed(mesh->GetVertexArray());
                 }
+
+                RendererAPI::SetCullFace(CullFace::Back);
     
                 s_RendererData.ShadowMapFramebuffer->UnBind();
     
@@ -195,7 +211,25 @@ namespace Coffee {
             // Check if the light is directional
             if (light.type == LightComponent::Type::DirectionalLight)
             {
-                lightSpaceMatrices[i] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f) * glm::lookAt(light.Position, light.Position + light.Direction, glm::vec3(0.0f, 1.0f, 0.0f));
+                // Adjust the orthographic projection bounds based on ShadowMaxDistance
+                float orthoBounds = light.ShadowMaxDistance * 0.5f;
+                float nearPlane = 0.1f;
+                float farPlane = light.ShadowMaxDistance;
+
+                glm::mat4 lightProjection = glm::ortho(
+                    -orthoBounds, orthoBounds, // left, right
+                    -orthoBounds, orthoBounds, // bottom, top
+                    nearPlane, farPlane        // near, far
+                );
+
+                glm::mat4 lightView = glm::lookAt(
+                    light.Position,
+                    light.Position + light.Direction,
+                    glm::vec3(0.0f, 1.0f, 0.0f)
+                );
+
+                lightSpaceMatrices[directionalLightCount] = lightProjection * lightView;
+                
                 directionalLightCount++;
             }
             // Stop after processing the first 4 directional lights

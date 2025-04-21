@@ -412,6 +412,16 @@ namespace Coffee
                 ImGui::Text("Intensity");
                 ImGui::DragFloat("##Intensity", &lightComponent.Intensity, 0.1f);
 
+                if (lightComponent.type == LightComponent::Type::DirectionalLight)
+                {
+                    ImGui::Text ("Shadow");
+                    ImGui::Checkbox("##Shadow", &lightComponent.Shadow);
+                    ImGui::Text("Shadow Bias");
+                    ImGui::DragFloat("##Shadow Bias", &lightComponent.ShadowBias, 0.001f, 0.0f, 1.0f);
+                    ImGui::Text("Shadow Max Distance");
+                    ImGui::DragFloat("##Shadow Max Distance", &lightComponent.ShadowMaxDistance, 0.1f);
+                }
+
                 if (lightComponent.type == LightComponent::Type::PointLight ||
                     lightComponent.type == LightComponent::Type::SpotLight)
                 {
