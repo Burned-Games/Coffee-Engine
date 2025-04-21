@@ -27,12 +27,15 @@ struct VertexData
     vec3 WorldPos;
     vec3 camPos;
     mat3 TBN;
+    vec4 FragPosLightSpace[4];
 };
 
 layout (location = 2) out VertexData Output;
 
 uniform mat4 model;
 uniform mat3 normalMatrix;
+
+uniform mat4 lightSpaceMatrix[4];
 
 uniform bool animated;
 const int MAX_BONES = 100;
@@ -77,6 +80,11 @@ void main()
     Output.camPos = cameraPos;
     Output.TexCoords = aTexCoord;
 
+    for (int i = 0; i < 4; i++)
+    {
+        Output.FragPosLightSpace[i] = lightSpaceMatrix[i] * vec4(Output.WorldPos, 1.0);
+    }
+
     gl_Position = projection * view * vec4(Output.WorldPos, 1.0);
 
     // Tangent space matrix
@@ -107,6 +115,7 @@ struct VertexData
     vec3 WorldPos;
     vec3 camPos;
     mat3 TBN;
+    vec4 FragPosLightSpace[4];
 };
 
 layout (location = 2) in VertexData VertexInput;
@@ -166,6 +175,8 @@ layout (std140, binding = 1) uniform RenderData
     int lightCount;
 };
 
+uniform sampler2D shadowMaps[4];
+
 uniform bool showNormals;
 
 const float PI = 3.14159265359;
@@ -215,6 +226,42 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
     return ggx1 * ggx2;
 }
 
+float ShadowCalculation(int lightIdx)
+{
+    // perform perspective divide
+    vec4 fragPosLightSpace = VertexInput.FragPosLightSpace[lightIdx];
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // transform to [0,1] range
+    projCoords = projCoords * 0.5 + 0.5;
+    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+    float closestDepth = texture(shadowMaps[lightIdx], projCoords.xy).r; 
+    // get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
+    // calculate bias (based on depth map resolution and slope)
+    vec3 normal = normalize(VertexInput.Normal);
+    vec3 lightDir = normalize(lights[lightIdx].position - VertexInput.WorldPos);
+    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    // check whether current frag pos is in shadow
+    // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
+    // PCF
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(shadowMaps[lightIdx], 0);
+    for(int x = -1; x <= 1; ++x)
+    {
+        for(int y = -1; y <= 1; ++y)
+        {
+            float pcfDepth = texture(shadowMaps[lightIdx], projCoords.xy + vec2(x, y) * texelSize).r; 
+            shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
+        }    
+    }
+    shadow /= 9.0;
+    
+    // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
+    if(projCoords.z > 1.0)
+        shadow = 0.0;
+        
+    return shadow;
+}
 
 void main()
 {
@@ -252,6 +299,9 @@ void main()
 
             L = normalize(-lights[i].direction);
             radiance = lights[i].color * lights[i].intensity;
+
+            float shadow = ShadowCalculation(i);
+            radiance *= (1.0 - shadow);
         }
         else if(lights[i].type == 1)
         {

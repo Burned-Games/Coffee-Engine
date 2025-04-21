@@ -1,5 +1,6 @@
 #include "Renderer3D.h"
 #include "CoffeeEngine/Renderer/Material.h"
+#include "CoffeeEngine/Scene/Components.h"
 #include "CoffeeEngine/Scene/PrimitiveMesh.h"
 #include "CoffeeEngine/Renderer/Framebuffer.h"
 #include "CoffeeEngine/Renderer/Mesh.h"
@@ -12,6 +13,7 @@
 #include "CoffeeEngine/Embedded/ToneMappingShader.inl"
 #include "CoffeeEngine/Embedded/FinalPassShader.inl"
 #include "CoffeeEngine/Embedded/MissingShader.inl"
+#include "CoffeeEngine/Embedded/ShadowShader.inl"
 
 #include <cstdint>
 #include <glm/fwd.hpp>
@@ -44,6 +46,13 @@ namespace Coffee {
         s_SkyboxShader = CreateRef<Shader>("assets/shaders/SkyboxShader.glsl");
         s_SkyboxShader->Bind();
         s_SkyboxShader->setInt("skybox", 0);
+
+        // Shadow map
+        s_RendererData.ShadowMapFramebuffer = Framebuffer::Create(4096, 4096, {});
+        for (int i = 0; i < 4; i++)
+        {
+            s_RendererData.DirectionalShadowMapTextures[i] = Texture2D::Create(4096, 4096, ImageFormat::DEPTH24STENCIL8);
+        }
 
         s_RendererData.SceneRenderDataUniformBuffer = UniformBuffer::Create(sizeof(Renderer3DData::RenderData), 1);
 
@@ -98,6 +107,62 @@ namespace Coffee {
         s_Stats.DrawCalls++;
     }
 
+    void Renderer3D::ShadowPass(const RenderTarget& target)
+    {
+        int directionalLightCount = 0;
+    
+        for (int i = 0; i < s_RendererData.RenderData.lightCount; ++i)
+        {
+            const auto& light = s_RendererData.RenderData.lights[i];
+    
+            // Check if the light is directional
+            if (light.type == LightComponent::Type::DirectionalLight)
+            {
+                auto& shadowMap = s_RendererData.DirectionalShadowMapTextures[directionalLightCount];
+                s_RendererData.ShadowMapFramebuffer->AttachDepthTexture(shadowMap);
+    
+                s_RendererData.ShadowMapFramebuffer->Bind();
+    
+                RendererAPI::SetViewport(0, 0, 4096, 4096);
+                RendererAPI::Clear();
+
+                // Set the light's view and projection matrices
+                float nearPlane = 0.1f, farPlane = 100.0f;
+                glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, nearPlane, farPlane);
+                glm::mat4 lightView = glm::lookAt(light.Position, light.Position + light.Direction, glm::vec3(0.0f, 1.0f, 0.0f));
+
+                glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+                
+                static Ref<Shader> shadowShader = CreateRef<Shader>("ShadowShader", std::string(shadowShaderSource));
+                shadowShader->Bind();
+                shadowShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+    
+                for (const auto& command : s_RendererData.renderQueue)
+                {
+                    // Set the model matrix
+                    shadowShader->setMat4("model", command.transform);
+
+                    Mesh* mesh = command.mesh.get();
+                    
+                    if(mesh == nullptr)
+                    {
+                        mesh = s_RendererData.MissingMesh.get();
+                    }
+                    
+                    RendererAPI::DrawIndexed(mesh->GetVertexArray());
+                }
+    
+                s_RendererData.ShadowMapFramebuffer->UnBind();
+    
+                directionalLightCount++;
+    
+                // Stop after processing the first 4 directional lights
+                if (directionalLightCount >= Renderer3DData::MAX_DIRECTIONAL_SHADOWS)
+                    break;
+            }
+        }
+    }
+
     void Renderer3D::ForwardPass(const RenderTarget& target)
     {
         ZoneScoped;
@@ -120,6 +185,24 @@ namespace Coffee {
         s_EnvironmentMap->BindPrefilteredMap(7);
         s_EnvironmentMap->BindBRDFLUT(8);
 
+        // TEMPORAL: lightSpaceMatrix array for shadow mapping
+        glm::mat4 lightSpaceMatrices[Renderer3DData::MAX_DIRECTIONAL_SHADOWS];
+        int directionalLightCount = 0;
+        for (int i = 0; i < s_RendererData.RenderData.lightCount; ++i)
+        {
+            const auto& light = s_RendererData.RenderData.lights[i];
+
+            // Check if the light is directional
+            if (light.type == LightComponent::Type::DirectionalLight)
+            {
+                lightSpaceMatrices[i] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f) * glm::lookAt(light.Position, light.Position + light.Direction, glm::vec3(0.0f, 1.0f, 0.0f));
+                directionalLightCount++;
+            }
+            // Stop after processing the first 4 directional lights
+            if (directionalLightCount >= Renderer3DData::MAX_DIRECTIONAL_SHADOWS)
+                break;
+        } 
+
         for(const auto& command : s_RendererData.renderQueue)
         {
             Material* material = command.material.get();
@@ -139,6 +222,19 @@ namespace Coffee {
             shader->setInt("irradianceMap", 6);
             shader->setInt("prefilterMap", 7);
             shader->setInt("brdfLUT", 8);
+
+            // Set the light space matrices for shadow mapping
+            for (int i = 0; i < Renderer3DData::MAX_DIRECTIONAL_SHADOWS; ++i)
+            {
+                shader->setMat4("lightSpaceMatrices[" + std::to_string(i) + "]", lightSpaceMatrices[i]);
+            }
+
+            // Set shadow map textures
+            for (int i = 0; i < Renderer3DData::MAX_DIRECTIONAL_SHADOWS; ++i)
+            {
+                s_RendererData.DirectionalShadowMapTextures[i]->Bind(9 + i);
+                shader->setInt("shadowMaps[" + std::to_string(i) + "]", 9 + i);
+            }
 
             if (command.animator)
                 AnimationSystem::SetBoneTransformations(shader, command.animator);

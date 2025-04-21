@@ -53,6 +53,13 @@ namespace Coffee {
 		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     }
 
+	void RendererAPI::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+	{
+		ZoneScoped;
+
+		glViewport(x, y, width, height);
+	}
+
 	void RendererAPI::SetClearColor(const glm::vec4& color)
 	{
 	    ZoneScoped;

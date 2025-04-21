@@ -23,6 +23,8 @@ namespace Coffee {
          */
         static void Init();
 
+        static void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
+
         /**
          * @brief Sets the clear color for the renderer.
          * @param color The clear color as a glm::vec4.
