@@ -632,7 +632,7 @@ namespace Coffee
                         ImGui::BeginChild("##Roughness Child", {0, 0},
                                           ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
                         ImGui::Text("Roughness");
-                        ImGui::SliderFloat("##Roughness Slider", &materialProperties.roughness, 0.1f, 1.0f);
+                        ImGui::SliderFloat("##Roughness Slider", &materialProperties.roughness, 0.0f, 1.0f);
                         ImGui::Text("Texture");
                         DrawTextureWidget("##Roughness", materialTextures.roughness);
                         ImGui::EndChild();
