@@ -535,6 +535,11 @@
          float Angle = 45.0f; ///< The angle of the light.
  
          int type = static_cast<int>(Type::DirectionalLight); ///< The type of the light.
+
+         // Shadows
+         bool Shadow = false;
+         float ShadowBias = 0.005f;
+         float ShadowMaxDistance = 100.0f;
  
          LightComponent() = default;
          LightComponent(const LightComponent&) = default;
@@ -546,7 +551,31 @@
           */
          template<class Archive> void serialize(Archive& archive, std::uint32_t const version)
          {
-             archive(cereal::make_nvp("Color", Color), cereal::make_nvp("Direction", Direction), cereal::make_nvp("Position", Position), cereal::make_nvp("Range", Range), cereal::make_nvp("Attenuation", Attenuation), cereal::make_nvp("Intensity", Intensity), cereal::make_nvp("Angle", Angle), cereal::make_nvp("Type", type));
+             if (version >= 1)
+             {
+                 archive(cereal::make_nvp("Color", Color),
+                         cereal::make_nvp("Direction", Direction),
+                         cereal::make_nvp("Position", Position),
+                         cereal::make_nvp("Range", Range),
+                         cereal::make_nvp("Attenuation", Attenuation),
+                         cereal::make_nvp("Intensity", Intensity),
+                         cereal::make_nvp("Angle", Angle),
+                         cereal::make_nvp("Type", type),
+                         cereal::make_nvp("Shadow", Shadow),
+                         cereal::make_nvp("ShadowBias", ShadowBias),
+                         cereal::make_nvp("ShadowMaxDistance", ShadowMaxDistance));
+             }
+             else
+             {
+                archive(cereal::make_nvp("Color", Color),
+                        cereal::make_nvp("Direction", Direction),
+                        cereal::make_nvp("Position", Position),
+                        cereal::make_nvp("Range", Range),
+                        cereal::make_nvp("Attenuation", Attenuation),
+                        cereal::make_nvp("Intensity", Intensity),
+                        cereal::make_nvp("Angle", Angle),
+                        cereal::make_nvp("Type", type));
+             }
          }
      };
  
@@ -1344,7 +1373,7 @@
  CEREAL_CLASS_VERSION(Coffee::AnimatorComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::MeshComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::MaterialComponent, 0);
- CEREAL_CLASS_VERSION(Coffee::LightComponent, 0);
+ CEREAL_CLASS_VERSION(Coffee::LightComponent, 1);
  CEREAL_CLASS_VERSION(Coffee::AudioSourceComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::AudioListenerComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::AudioZoneComponent, 0);

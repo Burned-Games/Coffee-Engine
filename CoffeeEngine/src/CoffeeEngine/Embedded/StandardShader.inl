@@ -27,12 +27,15 @@ struct VertexData
     vec3 WorldPos;
     vec3 camPos;
     mat3 TBN;
+    vec4 FragPosLightSpace[4];
 };
 
 layout (location = 2) out VertexData Output;
 
 uniform mat4 model;
 uniform mat3 normalMatrix;
+
+uniform mat4 lightSpaceMatrices[4];
 
 uniform bool animated;
 const int MAX_BONES = 100;
@@ -77,6 +80,11 @@ void main()
     Output.camPos = cameraPos;
     Output.TexCoords = aTexCoord;
 
+    for (int i = 0; i < 4; i++)
+    {
+        Output.FragPosLightSpace[i] = lightSpaceMatrices[i] * vec4(Output.WorldPos, 1.0);
+    }
+
     gl_Position = projection * view * vec4(Output.WorldPos, 1.0);
 
     // Tangent space matrix
@@ -107,6 +115,7 @@ struct VertexData
     vec3 WorldPos;
     vec3 camPos;
     mat3 TBN;
+    vec4 FragPosLightSpace[4];
 };
 
 layout (location = 2) in VertexData VertexInput;
@@ -139,6 +148,10 @@ struct Material
 
 uniform Material material;
 
+uniform samplerCube irradianceMap;
+uniform samplerCube prefilterMap;
+uniform sampler2D brdfLUT;
+
 #define MAX_LIGHTS 32
 
 struct Light
@@ -154,6 +167,11 @@ struct Light
     float angle;
 
     int type;
+
+    // Shadows
+    bool shadow;
+    float shadowBias;
+    float shadowMaxDistance;
 };
 
 layout (std140, binding = 1) uniform RenderData
@@ -161,6 +179,8 @@ layout (std140, binding = 1) uniform RenderData
     Light lights[MAX_LIGHTS];
     int lightCount;
 };
+
+uniform sampler2D shadowMaps[4];
 
 uniform bool showNormals;
 
@@ -170,6 +190,11 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
+
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+} 
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
@@ -206,6 +231,46 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
     return ggx1 * ggx2;
 }
 
+float ShadowCalculation(int lightIdx)
+{
+    // perform perspective divide
+    vec4 fragPosLightSpace = VertexInput.FragPosLightSpace[lightIdx];
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // transform to [0,1] range
+    projCoords = projCoords * 0.5 + 0.5;
+
+    if (!lights[lightIdx].shadow)
+        return 0.0;
+    
+    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+    float closestDepth = texture(shadowMaps[lightIdx], projCoords.xy).r; 
+    // get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
+    // calculate bias (based on depth map resolution and slope)
+    vec3 normal = normalize(VertexInput.Normal);
+    vec3 lightDir = normalize(lights[lightIdx].position - VertexInput.WorldPos);
+    float bias = max(lights[lightIdx].shadowBias * (1.0 - dot(normal, lightDir)), 0.005);
+    // check whether current frag pos is in shadow
+    // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
+    // PCF
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(shadowMaps[lightIdx], 0);
+    for(int x = -1; x <= 1; ++x)
+    {
+        for(int y = -1; y <= 1; ++y)
+        {
+            float pcfDepth = texture(shadowMaps[lightIdx], projCoords.xy + vec2(x, y) * texelSize).r; 
+            shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
+        }    
+    }
+    shadow /= 9.0;
+    
+    // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
+    if(projCoords.z > 1.0)
+        shadow = 0.0;
+        
+    return shadow;
+}
 
 void main()
 {
@@ -225,6 +290,7 @@ void main()
 
     vec3 N = normalize(normal);
     vec3 V = normalize(VertexInput.camPos - VertexInput.WorldPos);
+    vec3 R = reflect(-V, N);
 
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metallic);
@@ -242,6 +308,9 @@ void main()
 
             L = normalize(-lights[i].direction);
             radiance = lights[i].color * lights[i].intensity;
+
+            float shadow = ShadowCalculation(i);
+            radiance *= (1.0 - shadow);
         }
         else if(lights[i].type == 1)
         {
@@ -276,7 +345,23 @@ void main()
         Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     }
 
-    vec3 ambient = vec3(0.03) * albedo * ao;
+    //vec3 ambient = vec3(0.03) * albedo * ao;
+    // ambient lighting (we now use IBL as the ambient term)
+    vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+    
+    vec3 kS = F;
+    vec3 kD = 1.0 - kS;
+    kD *= 1.0 - metallic;	  
+    
+    vec3 irradiance = texture(irradianceMap, N).rgb;
+    vec3 diffuse = irradiance * albedo;
+
+    const float MAX_REFLECTION_LOD = 4.0;
+    vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+    vec2 brdf = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+    vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+
+    vec3 ambient = (kD * diffuse + specular) * ao;
     vec3 color = ambient + Lo + emissive;
 
     FragColor = vec4(vec3(color), 1.0);

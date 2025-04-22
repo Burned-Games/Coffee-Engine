@@ -684,6 +684,16 @@ namespace Coffee
                 ImGui::Text("Intensity");
                 ImGui::DragFloat("##Intensity", &lightComponent.Intensity, 0.1f);
 
+                if (lightComponent.type == LightComponent::Type::DirectionalLight)
+                {
+                    ImGui::Text ("Shadow");
+                    ImGui::Checkbox("##Shadow", &lightComponent.Shadow);
+                    ImGui::Text("Shadow Bias");
+                    ImGui::DragFloat("##Shadow Bias", &lightComponent.ShadowBias, 0.001f, 0.0f, 1.0f);
+                    ImGui::Text("Shadow Max Distance");
+                    ImGui::DragFloat("##Shadow Max Distance", &lightComponent.ShadowMaxDistance, 0.1f);
+                }
+
                 if (lightComponent.type == LightComponent::Type::PointLight ||
                     lightComponent.type == LightComponent::Type::SpotLight)
                 {
@@ -904,7 +914,7 @@ namespace Coffee
                         ImGui::BeginChild("##Roughness Child", {0, 0},
                                           ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
                         ImGui::Text("Roughness");
-                        ImGui::SliderFloat("##Roughness Slider", &materialProperties.roughness, 0.1f, 1.0f);
+                        ImGui::SliderFloat("##Roughness Slider", &materialProperties.roughness, 0.0f, 1.0f);
                         ImGui::Text("Texture");
                         DrawTextureWidget("##Roughness", materialTextures.roughness);
                         ImGui::EndChild();
