@@ -72,7 +72,26 @@ namespace Coffee {
         template<typename T>
         T& GetComponent()
         {
-            COFFEE_CORE_ASSERT(HasComponent<T>(), "Entity does not have this component!");
+            static constexpr bool isTagComponent = std::is_same_v<T, TagComponent>;
+            std::string entityName = "Uknown";
+            std::string componentName = GetTypeName<T>();
+
+            if constexpr (!isTagComponent)
+            {
+                if (HasComponent<TagComponent>())
+                {
+                    entityName = GetComponent<TagComponent>().Tag;
+                }
+            }
+
+            COFFEE_CORE_ASSERT(HasComponent<T>(),
+                               "Entity (" + entityName + ") does not have component:" + componentName);
+
+            if (!HasComponent<T>())
+            {
+                COFFEE_CORE_WARN("Entity (" + entityName + ") does not have component:" + componentName);
+            }
+
             return m_Scene->m_Registry.get<T>(m_EntityHandle);
         }
 
@@ -254,6 +273,8 @@ namespace Coffee {
                 child.SetActive(active);
             }
         }
+
+        Scene* GetScene() { return m_Scene; }
 
     private:
         entt::entity m_EntityHandle{ entt::null };

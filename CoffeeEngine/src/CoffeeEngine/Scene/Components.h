@@ -52,6 +52,10 @@
  
  
  namespace Coffee {
+
+     template <typename T> std::string GetTypeName();
+     #define REGISTER_COMPONENT_TYPE(T) template <> inline std::string GetTypeName<T>(){return #T;}
+
      /**
       * @brief Component representing a tag.
       * @ingroup scene
@@ -1307,6 +1311,32 @@
          }
      };
 
+     struct HierarchyComponent;
+
+     REGISTER_COMPONENT_TYPE(Coffee::TagComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::TransformComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::CameraComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::AnimatorComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::MeshComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::MaterialComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::LightComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::AudioSourceComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::AudioListenerComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::AudioZoneComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::ScriptComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::RigidbodyComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::NavMeshComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::NavigationAgentComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::ParticlesSystemComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::UIComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::UIImageComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::UITextComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::UIToggleComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::UIButtonComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::UISliderComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::HierarchyComponent)
+     REGISTER_COMPONENT_TYPE(Coffee::SpriteComponent)
+
  } // namespace Coffee
  CEREAL_CLASS_VERSION(Coffee::TagComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::TransformComponent, 0);
@@ -1329,5 +1359,9 @@
  CEREAL_CLASS_VERSION(Coffee::UIToggleComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::UIButtonComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::UISliderComponent, 0);
+ CEREAL_CLASS_VERSION(Coffee::SpriteComponent, 0);
+
+
+
  
  /** @} */

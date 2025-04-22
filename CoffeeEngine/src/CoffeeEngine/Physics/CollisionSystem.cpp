@@ -32,6 +32,9 @@ namespace Coffee {
                 // CollisionInfo info = { entityA, entityB, contactManifold };
                 CollisionInfo info{entityA, entityB, contactManifold};
 
+                // Invalid scene – prevents project from closing and makes it hard to debug the crash
+                if (!entityA.GetScene() || !entityB.GetScene()) return; 
+
                 // Handle collision enter
                 if (s_ActiveCollisions.find(pair) == s_ActiveCollisions.end()) {
                     if (entityA.HasComponent<RigidbodyComponent>() && entityB.HasComponent<RigidbodyComponent>()) {
