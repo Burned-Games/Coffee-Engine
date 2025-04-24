@@ -832,9 +832,13 @@ namespace Coffee {
         const auto& fontGeometry = font->GetMSDFData()->FontGeometry;
         const auto& metrics = fontGeometry.getMetrics();
         Ref<Texture2D> fontAtlas = font->GetAtlasTexture();
-        
-        // TODO: Skip to the next batch if the font is different
-        batch.FontAtlasTexture = fontAtlas;
+
+        if (batch.FontAtlasTexture != fontAtlas)
+        {
+            NextBatch(mode);
+            batch = GetBatch(mode);
+            batch.FontAtlasTexture = fontAtlas;
+        }
 
         double x = 0.0;
 		double fsScale = textParams.Size / (metrics.ascenderY - metrics.descenderY);
