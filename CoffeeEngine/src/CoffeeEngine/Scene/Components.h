@@ -1160,7 +1160,7 @@
         template<class Archive> void save(Archive& archive, std::uint32_t const version) const
         {
             archive(cereal::make_nvp("Text", Text),
-                    cereal::make_nvp("FontPath", FontPath.generic_string()),
+                    cereal::make_nvp("FontPath", std::filesystem::relative(FontPath, Project::GetActive()->GetProjectDirectory()).generic_string()),
                     cereal::make_nvp("Color", Color),
                     cereal::make_nvp("Kerning", Kerning),
                     cereal::make_nvp("LineSpacing", LineSpacing),
@@ -1171,13 +1171,16 @@
 
         template<class Archive> void load(Archive& archive, std::uint32_t const version)
         {
+            std::string relativePath;
             archive(cereal::make_nvp("Text", Text),
-                    cereal::make_nvp("FontPath", FontPath.generic_string()),
+                    cereal::make_nvp("FontPath", relativePath),
                     cereal::make_nvp("Color", Color),
                     cereal::make_nvp("Kerning", Kerning),
                     cereal::make_nvp("LineSpacing", LineSpacing),
                     cereal::make_nvp("FontSize", FontSize),
                     cereal::make_nvp("Alignment", Alignment));
+
+            FontPath = Project::GetActive()->GetProjectDirectory() / relativePath;
             if (!FontPath.empty())
                 UIFont = CreateRef<Coffee::Font>(FontPath);
             else
