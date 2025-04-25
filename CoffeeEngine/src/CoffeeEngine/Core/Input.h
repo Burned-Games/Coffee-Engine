@@ -147,11 +147,11 @@ namespace Coffee {
 
         /**
          *
-         * @param leftPower Strength of the left (low frequency) motor
-         * @param rightPower Strength of the right (high frequency) motor
+         * @param lowFreqPower Strength of the left (low frequency) motor
+         * @param highFreqPower Strength of the right (high frequency) motor
          * @param duration Vibration duration
          */
-        static void SendRumble(float leftPower, float rightPower, float duration);
+        static void SendRumble(uint16_t lowFreqPower, uint16_t highFreqPower, uint32_t duration);
 
         static const char* GetKeyLabel(KeyCode key);
         static const char* GetMouseButtonLabel(MouseCode button);

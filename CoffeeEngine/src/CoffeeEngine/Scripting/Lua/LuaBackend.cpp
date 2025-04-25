@@ -473,8 +473,9 @@ namespace Coffee {
             return Input::GetBinding(action).AsButton();
         });
 
-        inputTable.set_function("send_rumble", [](const float leftPwr, const float rightPwr, float duration) {
-           Input::SendRumble(leftPwr, rightPwr, duration);
+        // Inputs are two floats from 0 to 1 and time >0 in milliseconds
+        inputTable.set_function("send_rumble", [](const float low_freq_pwr, const float high_freq_power, float duration) {
+           Input::SendRumble(glm::clamp<uint16_t>(low_freq_pwr*65535, 0, 65535), glm::clamp<uint16_t>(high_freq_power*65535,0,65535), glm::max<uint32_t>(duration, 0));
         });
 
         luaState["Input"] = inputTable;
