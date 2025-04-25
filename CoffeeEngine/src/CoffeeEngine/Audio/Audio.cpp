@@ -195,6 +195,13 @@ namespace Coffee
         }
     }
 
+    void Audio::SetBusVolume(const char* busName, float volume)
+    {
+        volume = std::max(0.0f, std::min(1.0f, volume));
+        std::string rtpcName = std::string(busName) + "Bus_Volume";
+        AK::SoundEngine::SetRTPCValue(rtpcName.c_str(), volume * 100.0f);
+    }
+
     void Audio::ProcessAudio()
     {
         AudioZone::Update();

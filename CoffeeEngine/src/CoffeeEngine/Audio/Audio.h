@@ -193,6 +193,13 @@ namespace Coffee {
          */
         static void StopAllEvents();
 
+        /**
+         * @brief Sets the volume of an audio bus.
+         * @param busName The name of the bus.
+         * @param volume The volume value (0.0 to 1.0).
+         */
+        static void SetBusVolume(const char* busName, float volume);
+
     private:
 
         /**
