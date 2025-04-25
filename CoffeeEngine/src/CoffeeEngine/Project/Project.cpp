@@ -65,6 +65,8 @@ namespace Coffee {
         cereal::JSONOutputArchive archive(projectFile);
 
         archive(cereal::make_nvp("Project", *s_ActiveProject));
+
+        Input::Save();
     }
 
 }
