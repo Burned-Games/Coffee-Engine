@@ -150,6 +150,9 @@ namespace Coffee {
         auto& uiTextComponent = registry.get<UITextComponent>(entity);
         auto& transformComponent = registry.get<TransformComponent>(entity);
 
+        if (uiTextComponent.Text.empty())
+            return;
+
         if (!uiTextComponent.UIFont)
             uiTextComponent.UIFont = Font::GetDefault();
 
