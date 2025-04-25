@@ -145,6 +145,14 @@ namespace Coffee {
 
         static std::unordered_map<std::string, InputBinding>& GetAllBindings();
 
+        /**
+         *
+         * @param leftPower Strength of the left (low frequency) motor
+         * @param rightPower Strength of the right (high frequency) motor
+         * @param duration Vibration duration
+         */
+        static void SendRumble(float leftPower, float rightPower, float duration);
+
         static const char* GetKeyLabel(KeyCode key);
         static const char* GetMouseButtonLabel(MouseCode button);
         static const char* GetButtonLabel(ButtonCode button);

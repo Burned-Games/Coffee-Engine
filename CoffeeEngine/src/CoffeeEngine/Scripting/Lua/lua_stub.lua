@@ -335,6 +335,10 @@ input = {
         -- Implementation here
         return 0
     end
+    send_rumble = function(left_power, right_power, duration)
+        -- Implementation here
+        return
+    end
 }
 
 -- Timer functions

@@ -473,6 +473,10 @@ namespace Coffee {
             return Input::GetBinding(action).AsButton();
         });
 
+        inputTable.set_function("send_rumble", [](const float leftPwr, const float rightPwr, float duration) {
+           Input::SendRumble(leftPwr, rightPwr, duration);
+        });
+
         luaState["Input"] = inputTable;
         # pragma endregion
 

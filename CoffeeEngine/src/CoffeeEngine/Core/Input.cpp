@@ -134,6 +134,12 @@ namespace Coffee {
         return m_BindingsMap;
     }
 
+    void Input::SendRumble(float leftPower, float rightPower, float duration)
+    {
+        if (auto g = m_Gamepads[0]->GetGamepad())
+            SDL_RumbleGamepad(g,leftPower, rightPower, duration);
+    }
+
     const char* Input::GetKeyLabel(KeyCode key)
     {
         auto label = SDL_GetScancodeName((SDL_Scancode)key);
