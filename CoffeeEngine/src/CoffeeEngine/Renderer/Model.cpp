@@ -308,19 +308,13 @@ namespace Coffee {
 
         m_Transform = aiMatrix4x4ToGLMMat4(node->mTransformation);
 
-        bool isAnimationNode = std::any_of(scene->mAnimations, scene->mAnimations + scene->mNumAnimations, [&](const aiAnimation* animation) {
-            return std::any_of(animation->mChannels, animation->mChannels + animation->mNumChannels, [&](const aiNodeAnim* channel) {
-                return channel->mNodeName.C_Str() == m_NodeName;
-            });
-        });
-
         bool isBone = std::any_of(scene->mMeshes, scene->mMeshes + scene->mNumMeshes, [&](const aiMesh* mesh) {
             return std::any_of(mesh->mBones, mesh->mBones + mesh->mNumBones, [&](const aiBone* bone) {
                 return bone->mName.C_Str() == m_NodeName;
             });
         });
 
-        if (isAnimationNode || isBone)
+        if (isBone)
             return;
 
         for(uint32_t i = 0; i < node->mNumMeshes; i++)
