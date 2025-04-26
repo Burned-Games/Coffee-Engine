@@ -114,6 +114,8 @@ namespace Coffee
         glm::vec3 direction = {0.0f, 1.0f, 0.0f};       // Default direction
         glm::vec3 directionRandom = {0.0f, 1.0f, 0.0f}; // Random direction range
 
+        glm::vec3 gravity = {0.0f, 0.0f, 0.0f}; //Gravity set
+
         // Color settings
         bool useColorRandom = false;                      // Whether to use random color
         glm::vec4 colorNormal = {1.0f, 1.0f, 1.0f, 1.0f}; // Default color
@@ -173,7 +175,7 @@ namespace Coffee
          */
         enum class ShapeType
         {
-            Sphere, // Sphere shape
+            Circle, // Circle shape
             Cone,   // Cone shape
             Box     // Box shape
         };
@@ -182,9 +184,9 @@ namespace Coffee
         glm::vec3 minSpread = {-0.1f, -0.1f, -0.1f}; // Minimum spread for emission
         glm::vec3 maxSpread = {0.1f, 0.1f, 0.1f};    // Maximum spread for emission
         bool useShape = true;                        // Whether to use a shape for emission
-        float shapeAngle = 45.0f;                    // Angle for cone shape
-        float shapeRadius = 1.0f;                    // Radius for sphere shape
-        float shapeRadiusThickness = 0.1f;           // Thickness for sphere shape
+        float shapeAngle = 2.0f;                    // Angle for cone shape
+        float shapeRadius = 1.0f;                    // Radius for circle shape
+        float shapeRadiusThickness = 0.1f;           // Thickness for circle shape
 
         // Velocity over lifetime settings
         bool useVelocityOverLifetime = false;          // Whether to use velocity over lifetime
@@ -193,6 +195,7 @@ namespace Coffee
         std::vector<CurvePoint> speedOverLifeTimeY = {{0.0f, 1.0f}, {1.0f, 0.5f}};       // Velocity curve for Y axis
         std::vector<CurvePoint> speedOverLifeTimeZ = {{0.0f, 1.0f}, {1.0f, 0.5f}};       // Velocity curve for Z axis
         std::vector<CurvePoint> speedOverLifeTimeGeneral = {{0.0f, 1.0f}, {1.0f, 0.5f}}; // General velocity curve
+        float velocityMultiplier = 1;   //Velocity over lifeTime multiplier
 
         // Size over lifetime settings
         bool useSizeOverLifetime = false;          // Whether to use size over lifetime
@@ -201,12 +204,14 @@ namespace Coffee
         std::vector<CurvePoint> sizeOverLifetimeY = {{0.0f, 1.0f}, {1.0f, 0.5f}};       // Size curve for Y axis
         std::vector<CurvePoint> sizeOverLifetimeZ = {{0.0f, 1.0f}, {1.0f, 0.5f}};       // Size curve for Z axis
         std::vector<CurvePoint> sizeOverLifetimeGeneral = {{0.0f, 1.0f}, {1.0f, 0.5f}}; // General size curve
+        float sizeMultiplier = 1;   //Size over lifeTime multiplier
 
         // Rotation over lifetime settings
         bool useRotationOverLifetime = false; // Whether to use rotation over lifetime
         std::vector<CurvePoint> rotationOverLifetimeX = {{0.0f, 1.0f}, {1.0f, 0.5f}}; // Rotation curve for X axis
         std::vector<CurvePoint> rotationOverLifetimeY = {{0.0f, 1.0f}, {1.0f, 0.5f}}; // Rotation curve for Y axis
         std::vector<CurvePoint> rotationOverLifetimeZ = {{0.0f, 1.0f}, {1.0f, 0.5f}}; // Rotation curve for Z axis
+        float rotationMultiplier = 1; //Rotation over lifeTime multiplier
 
         // Color over lifetime settings
         bool useColorOverLifetime = false; // Whether to use color over lifetime
@@ -242,6 +247,12 @@ namespace Coffee
          * @brief Generates a new particle.
          */
         void GenerateParticle();
+
+        glm::vec3 GetRandomPointByShape(ShapeType type);
+
+        glm::vec3 GetRandomPointInCircle();
+        glm::vec3 GetRandomPointInCone();
+        glm::vec3 GetRandomPointInBox();
 
       public:
         /**
@@ -375,6 +386,7 @@ namespace Coffee
            archive(cereal::make_nvp("VelocityOverLifeY", speedOverLifeTimeY));
            archive(cereal::make_nvp("VelocityOverLifeZ", speedOverLifeTimeZ));
            archive(cereal::make_nvp("VelocityOverLifeGeneral", speedOverLifeTimeGeneral));
+           archive(cereal::make_nvp("VelocityMultiplier", velocityMultiplier));
 
            // -------------------- Size over Lifetime --------------------
            archive(cereal::make_nvp("UseSizeOverLifetime", useSizeOverLifetime));
@@ -383,12 +395,15 @@ namespace Coffee
            archive(cereal::make_nvp("SizeOverLifeY", sizeOverLifetimeY));
            archive(cereal::make_nvp("SizeOverLifeZ", sizeOverLifetimeZ));
            archive(cereal::make_nvp("SizeOverLifeGeneral", sizeOverLifetimeGeneral));
+           archive(cereal::make_nvp("SizeMultiplier", sizeMultiplier));
+
 
            // -------------------- Rotation over Lifetime --------------------
            archive(cereal::make_nvp("UseRotationOverLifetime", useRotationOverLifetime));
            archive(cereal::make_nvp("RotationOverLifeX", rotationOverLifetimeX));
            archive(cereal::make_nvp("RotationOverLifeY", rotationOverLifetimeY));
            archive(cereal::make_nvp("RotationOverLifeZ", rotationOverLifetimeZ));
+           archive(cereal::make_nvp("RotationMultiplier", rotationMultiplier));
 
            // -------------------- Color over Lifetime --------------------
            archive(cereal::make_nvp("UseColorOverLifetime", useColorOverLifetime));
@@ -402,7 +417,6 @@ namespace Coffee
 
 
            // -------------------- Misc --------------------
-           archive(cereal::make_nvp("ElapsedTime", elapsedTime));
            archive(cereal::make_nvp("TextureUUID", particleTexture->GetUUID()));
 
 
@@ -535,7 +549,7 @@ template <class Archive> void load(Archive& archive, const std::uint32_t& versio
                 UUID textureUUID;
 
                 // -------------------- Misc --------------------
-                archive(cereal::make_nvp("ElapsedTime", elapsedTime));
+                //archive(cereal::make_nvp("ElapsedTime", elapsedTime));
                 archive(cereal::make_nvp("TextureUUID", textureUUID));
 
 
@@ -552,10 +566,15 @@ template <class Archive> void load(Archive& archive, const std::uint32_t& versio
                 archive(cereal::make_nvp("Bursts", bursts));
             
             }
-
+            if (version >= 3)
+            {
+                archive(cereal::make_nvp("VelocityMultiplier", velocityMultiplier));
+                archive(cereal::make_nvp("SizeMultiplier", sizeMultiplier));
+                archive(cereal::make_nvp("RotationMultiplier", rotationMultiplier));
+            }
            
   
         }
     };
 } // namespace Coffee
-CEREAL_CLASS_VERSION(Coffee::ParticleEmitter, 2);
+CEREAL_CLASS_VERSION(Coffee::ParticleEmitter, 3);

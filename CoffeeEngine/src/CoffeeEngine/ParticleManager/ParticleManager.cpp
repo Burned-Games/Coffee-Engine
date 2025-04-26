@@ -76,7 +76,7 @@ namespace Coffee
 
     void ParticleEmitter::InitParticle(Ref<Particle> particle)
     {
-        glm::vec3 startPos = glm::linearRand(minSpread, maxSpread);
+        glm::vec3 startPos = GetRandomPointByShape(shape);
         glm::vec4 startPosVec4 = glm::vec4(startPos.x, startPos.y, startPos.z, 0);
 
         glm::mat4 auxMatrix = transformComponentMatrix;
@@ -84,11 +84,24 @@ namespace Coffee
 
         particle->transformMatrix = auxMatrix;
 
+        if (shape != ShapeType::Cone)
+        {
+            glm::vec3 worldDirection = useDirectionRandom ? glm::linearRand(direction, directionRandom) : direction;
+            particle->direction = glm::vec3(transformComponentMatrix * glm::vec4(worldDirection, 0));
+        }
+        else
+        {
+            float cosAngle = cos(shapeAngle);
+            glm::vec3 direction;
+            do
+            {
+                direction = glm::normalize(glm::vec3(glm::linearRand(-1.0f, 1.0f),
+                                                     glm::linearRand(0.0f, 1.0f), 
+                                                     glm::linearRand(-1.0f, 1.0f)));
+            } while (glm::dot(direction, glm::vec3(0, 1, 0)) < cosAngle); 
+            particle->direction = glm::vec3(transformComponentMatrix * glm::vec4(direction,0));
 
-        //Relative to Transform Component rotation
-        glm::vec3 worldDirection = useDirectionRandom ? glm::linearRand(direction, directionRandom) : direction;
-        particle->direction = glm::vec3(transformComponentMatrix * glm::vec4(worldDirection, 0));
-
+        }
 
 
         particle->color = useColorRandom ? glm::linearRand(colorNormal, colorRandom) : colorNormal;
@@ -191,11 +204,14 @@ namespace Coffee
             else
             {
                 glm::vec3 newRotation;
-                newRotation.x = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeX), -1, 1);
+                newRotation.x = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeX),
+                                                 -rotationMultiplier, rotationMultiplier);
 
-                newRotation.y = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeY), -1, 1);
+                newRotation.y = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeY),
+                                                 -rotationMultiplier, rotationMultiplier);
 
-                newRotation.z = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeZ), -1, 1);
+                newRotation.z = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeZ),
+                                                 -rotationMultiplier, rotationMultiplier);
 
 
                 glm::mat4 localRotationX = glm::rotate(glm::mat4(1.0f), glm::radians(newRotation.x * particle->startRotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -231,39 +247,46 @@ namespace Coffee
         {
             if (velocityOverLifeTimeSeparateAxes)
             {
-                newVelocity.x = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeX), -1, 1);
+                newVelocity.x = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeX),
+                                                 -velocityMultiplier, velocityMultiplier);
                 
-                newVelocity.z = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeY), -1, 1);
+                newVelocity.z = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeY),
+                                                 -velocityMultiplier, velocityMultiplier);
                 
-                newVelocity.y = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeZ), -1, 1);
+                newVelocity.y = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeZ),
+                                                 -velocityMultiplier, velocityMultiplier);
                 
             }
             else
             {
                 
-                float uniformSize = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeGeneral),
-                                                 -1, 1);
-                newVelocity = glm::vec3(uniformSize);
+                float uniformSpeed = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife,speedOverLifeTimeGeneral),
+                                                    -velocityMultiplier, velocityMultiplier);
+                newVelocity = glm::vec3(uniformSpeed);
             }
         }
-
+        
         if (useSizeOverLifetime)
         {
             glm::vec3 newSize;
             if (sizeOverLifeTimeSeparateAxes)
             {
 
-                newSize.x = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeX), -1, 1);
+                newSize.x = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeX),
+                                                         -sizeMultiplier, sizeMultiplier);
 
-                newSize.z = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeY), -1, 1);
+                newSize.z = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeY),
+                                                         -sizeMultiplier, sizeMultiplier);
 
-                newSize.y = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeZ), -1, 1);
+                newSize.y = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeZ),
+                                                         -sizeMultiplier, sizeMultiplier);
 
 
             }
             else
             {
-                float uniformSize = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeGeneral), -1, 1);
+                float uniformSize = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeGeneral),
+                                                 -sizeMultiplier, sizeMultiplier);
                 newSize = glm::vec3(uniformSize);
             }
             particle->SetSize(newSize * particle->startSize);
@@ -277,6 +300,7 @@ namespace Coffee
             particle->color = glm::vec4(newColor.x, newColor.y, newColor.z, newColor.w);
         }
 
+        newVelocity += gravity * (particle->lifetime - particle->startLifetime);
 
         if (simulationSpace == SimulationSpace::Local)
         {
@@ -337,11 +361,48 @@ namespace Coffee
 
     void ParticleEmitter::DrawDebug()
     {
+        glm::vec4 colorDebug = glm::vec4(0.0f, 0.5f, 1.0f, 1.0f);
+
         glm::vec3 auxTransformPosition = glm::vec3(transformComponentMatrix[3]);
         glm::vec3 direction = glm::normalize(glm::vec3(transformComponentMatrix[1]));
+        glm::mat3 rotationMatrix;
+        glm::quat rotation90X;
+        glm::quat rotation;
+        float distance;
+        float dispersionRadius;
 
+        switch (shape)
+        {
+        case Coffee::ParticleEmitter::ShapeType::Circle:
+            rotationMatrix = glm::mat3(transformComponentMatrix);
+            rotation90X = glm::angleAxis(glm::radians(90.0f), glm::vec3(1, 0, 0));
+            rotation = glm::quat_cast(rotationMatrix) * rotation90X;
+            
+            Renderer2D::DrawCircle(auxTransformPosition, shapeRadius, rotation, colorDebug);
+            Renderer2D::DrawCircle(auxTransformPosition, shapeRadiusThickness, rotation, colorDebug);
+            break;
+        case Coffee::ParticleEmitter::ShapeType::Cone:
 
-        Renderer2D::DrawBox(minSpread + auxTransformPosition, maxSpread + auxTransformPosition, glm::vec4(1.0f), 1.0f);
+            rotationMatrix = glm::mat3(transformComponentMatrix);
+            rotation90X = glm::angleAxis(glm::radians(90.0f), glm::vec3(1, 0, 0));
+            rotation = glm::quat_cast(rotationMatrix) * rotation90X;
+
+            distance = 3.0f;
+            dispersionRadius = tan(shapeAngle / 2.0f) * distance;
+
+            Renderer2D::DrawCircle(auxTransformPosition, shapeRadius, rotation, colorDebug);
+            Renderer2D::DrawCircle(auxTransformPosition + (rotation * glm::vec3(0, 0, -distance)), dispersionRadius,
+                                   rotation,
+                                   colorDebug);
+
+            break;
+        case Coffee::ParticleEmitter::ShapeType::Box:
+            Renderer2D::DrawBox(minSpread + auxTransformPosition, maxSpread + auxTransformPosition, colorDebug);
+            break;
+        default:
+            break;
+        }
+       
         Renderer2D::DrawArrow(transformComponentMatrix[3], direction, 1.5f);
 
     }
@@ -357,5 +418,52 @@ namespace Coffee
             }
         }
     }
+
+
+    glm::vec3 ParticleEmitter::GetRandomPointInCircle() {
+
+        //float minRadius = shapeRadius * (1.0f - shapeRadiusThickness);
+        float randomRadius = glm::mix(shapeRadiusThickness, shapeRadius, static_cast<float>(rand()) / RAND_MAX);
+        float angle = glm::linearRand(0.0f, glm::two_pi<float>());
+
+        float x = randomRadius * cos(angle);
+        float z = randomRadius * sin(angle);
+
+        return glm::mat3(transformComponentMatrix) * glm::vec3(x, 0.0f, z);
+    }
+
+    glm::vec3 ParticleEmitter::GetRandomPointInCone()
+    {
+
+        // float minRadius = shapeRadius * (1.0f - shapeRadiusThickness);
+        float randomRadius = glm::mix(0.0f, shapeRadius, static_cast<float>(rand()) / RAND_MAX);
+        float angle = glm::linearRand(0.0f, glm::two_pi<float>());
+
+        float x = randomRadius * cos(angle);
+        float z = randomRadius * sin(angle);
+
+        return glm::mat3(transformComponentMatrix) * glm::vec3(x, 0.0f, z);
+    }
+
+
+    glm::vec3 ParticleEmitter::GetRandomPointInBox() {
+        return glm::linearRand(minSpread, maxSpread);
+    }
+
+    glm::vec3 ParticleEmitter::GetRandomPointByShape(ShapeType type) {
+        switch (type)
+        {
+        case Coffee::ParticleEmitter::ShapeType::Circle:
+            return GetRandomPointInCircle();
+        case Coffee::ParticleEmitter::ShapeType::Cone:
+            return GetRandomPointInCone();
+        case Coffee::ParticleEmitter::ShapeType::Box:
+            return GetRandomPointInBox();
+        default:
+            return glm::vec3(0, 0, 0);
+        }
+
+    }
+
 
 } // namespace Coffee
