@@ -1,5 +1,6 @@
 #pragma once
 #include <entt/entity/registry.hpp>
+#include <unordered_map>
 #include "UIAnchor.h"
 
 namespace Coffee {
@@ -64,6 +65,14 @@ namespace Coffee {
 
     private:
         /**
+         * @brief Checks if the transform of an entity has changed.
+         * @param entity The entity to check.
+         * @param newTransform The new transform to compare with the previous one.
+         * @return True if the transform has changed, false otherwise.
+         */
+        static bool HasTransformChanged(entt::entity entity, const AnchoredTransform& newTransform);
+
+        /**
          * @brief Sorts the UI elements in the registry based on their layers and hierarchy.
          * @param registry The entity registry containing UI elements.
          */
@@ -119,6 +128,7 @@ namespace Coffee {
     private:
         static bool s_NeedsSorting;
         static std::vector<UIRenderItem> s_SortedUIItems;
+        static std::unordered_map<entt::entity, AnchoredTransform> s_LastTransforms;
     };
 
 } // Coffee
