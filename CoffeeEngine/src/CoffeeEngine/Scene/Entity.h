@@ -76,6 +76,12 @@ namespace Coffee {
             return m_Scene->m_Registry.get<T>(m_EntityHandle);
         }
 
+        template<typename T>
+        T* TryGetComponent()
+        {
+            return m_Scene->m_Registry.try_get<T>(m_EntityHandle);
+        }
+
         /**
          * @brief Check if the entity has a component.
          * @tparam T The component type.

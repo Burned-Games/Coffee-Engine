@@ -7,6 +7,8 @@ namespace Coffee {
     float InputBinding::AsAxis(bool digital) const
     {
         float value = Input::GetAxisRaw(Axis);
+        if (invertedAxis)
+            value = -value;
 
         value += (Input::IsKeyPressed(KeyPos) || Input::GetButtonRaw(ButtonPos));
         value -= (Input::IsKeyPressed(KeyNeg) || Input::GetButtonRaw(ButtonNeg));

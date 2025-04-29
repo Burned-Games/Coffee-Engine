@@ -141,13 +141,18 @@ namespace Coffee {
     public:
         Cubemap() = default;
         Cubemap(const std::filesystem::path& path);
-        // This way of loading a cubemap is deprecated because is not compatible with the serialization system and the resource management.
-        Cubemap(const std::vector<std::filesystem::path>& paths);
         Cubemap(ImportData& importData);
         ~Cubemap();
 
-        void Bind(uint32_t slot) override;;
-        uint32_t GetID() override { return m_textureID; };
+        void Bind(uint32_t slot) override;
+        // Temporal, in the future i think it would be nice that the irradiance is a Cubemap object
+        void BindIrradianceMap(uint32_t slot);
+        void BindPrefilteredMap(uint32_t slot);
+        void BindBRDFLUT(uint32_t slot);
+        uint32_t GetID() override { return m_CubeMapID; };
+        uint32_t GetIrradianceMapID() { return m_IrradianceMapID; };
+        uint32_t GetPrefilteredMapID() { return m_PrefilteredMapID; };
+        uint32_t GetBRDFLUTID() { return m_BRDFLUTID; };
 
         uint32_t GetWidth() override { return m_Width; };
         uint32_t GetHeight() override { return m_Height; };
@@ -157,12 +162,17 @@ namespace Coffee {
         static Ref<Cubemap> Create(const std::filesystem::path& path);
     private:
         void LoadFromFile(const std::filesystem::path& path);
-        void LoadStandardFromFile(const std::filesystem::path& path);
+        void LoadStandardFromFile(const std::filesystem::path& path) {}
         void LoadHDRFromFile(const std::filesystem::path& path);
-        void LoadStandardFromData(const std::vector<unsigned char>& data);
+        void LoadStandardFromData(const std::vector<unsigned char>& data) {}
         void LoadHDRFromData(const std::vector<float>& data);
 
-        friend class cereal::access;
+        void EquirectToCubemap(float* data, int width, int height);
+        void GenerateIrradianceMap();
+        void GeneratePrefilteredMap();
+        void GenerateBRDFLUT();
+
+/*         friend class cereal::access;
 
         template<class Archive>
         void save(Archive& archive) const
@@ -179,7 +189,7 @@ namespace Coffee {
         template <class Archive>
         static void load_and_construct(Archive& data, cereal::construct<Cubemap>& construct)
         {
-            construct();
+             construct();
 
             data(construct->m_Properties, construct->m_Data, construct->m_HDRData, construct->m_Width, construct->m_Height,
                  cereal::base_class<Texture>(construct.ptr()));
@@ -192,14 +202,16 @@ namespace Coffee {
             else
             {
                 construct->LoadHDRFromData(construct->m_HDRData);
-            }
-        }
+            } 
+        } */
 
     private:
         TextureProperties m_Properties;
-        std::vector<unsigned char> m_Data;
-        std::vector<float> m_HDRData;
-        uint32_t m_textureID;
+        std::vector<std::vector<std::vector<float>>> m_HDRData; // m_HDRData[faceIndex][mipLevel][pixelIndex]
+        uint32_t m_CubeMapID;
+        uint32_t m_IrradianceMapID;
+        uint32_t m_PrefilteredMapID;
+        uint32_t m_BRDFLUTID;
         int m_Width, m_Height;
     };
 

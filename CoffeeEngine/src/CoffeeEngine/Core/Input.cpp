@@ -1,13 +1,13 @@
 #include "CoffeeEngine/Core/Input.h"
 
+#include "CoffeeEngine/Core/Application.h"
+#include "CoffeeEngine/Core/Window.h"
 #include "CoffeeEngine/Events/ControllerEvent.h"
 #include "CoffeeEngine/Events/Event.h"
 #include "CoffeeEngine/Events/KeyEvent.h"
 #include "CoffeeEngine/Events/MouseEvent.h"
 #include "CoffeeEngine/Project/Project.h"
-#include "SDL3/SDL_keyboard.h"
 #include "SDL3/SDL_mouse.h"
-#include "imgui_internal.h"
 
 #include <SDL3/SDL_init.h>
 
@@ -97,6 +97,13 @@ namespace Coffee {
         // return SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON_MASK(button);
     }
 
+    void Input::SetMouseGrabbed(bool grabbed)
+    {
+        // TODO: Think if the window should be passed as parameter
+        Window& window = Application::Get().GetWindow();
+        SDL_SetWindowRelativeMouseMode((SDL_Window*)window.GetNativeWindow(), grabbed);
+    }
+
     const glm::vec2& Input::GetMousePosition()
     {
         return m_MousePosition;
@@ -113,6 +120,13 @@ namespace Coffee {
     const float Input::GetMouseY()
     {
         return GetMousePosition().y;
+    }
+
+    glm::vec2 Input::GetMouseDelta()
+    {
+        glm::vec2 ret;
+        SDL_GetRelativeMouseState(&ret.x, &ret.y);
+        return ret;
     }
 
     bool Input::GetButtonRaw(const ButtonCode button)
@@ -132,6 +146,21 @@ namespace Coffee {
     std::unordered_map<std::string, InputBinding>& Input::GetAllBindings()
     {
         return m_BindingsMap;
+    }
+
+    void Input::SendRumble(uint16_t lowFreqPower, uint16_t highFreqPower, uint32_t duration)
+    {
+        if (auto g = m_Gamepads[0]->GetGamepad())
+        {
+            if (!SDL_RumbleGamepad(g,lowFreqPower, highFreqPower, duration))
+            {
+                COFFEE_WARN("Rumble failed: {0}", SDL_GetError());
+            }
+            else
+            {
+                COFFEE_INFO("Rumble enabled for {0} milliseconds, with leftPower {1} and rightPower {2}", duration, lowFreqPower, highFreqPower);
+            }
+        }
     }
 
     const char* Input::GetKeyLabel(KeyCode key)

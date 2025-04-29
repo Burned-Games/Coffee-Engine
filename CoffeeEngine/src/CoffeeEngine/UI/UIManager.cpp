@@ -10,6 +10,7 @@ namespace Coffee {
     glm::vec2 UIManager::WindowSize;
     bool UIManager::s_NeedsSorting = true;
     std::vector<UIManager::UIRenderItem> UIManager::s_SortedUIItems;
+    std::unordered_map<entt::entity, UIManager::AnchoredTransform> UIManager::s_LastTransforms;
 
     void UIManager::UpdateUI(entt::registry& registry)
     {
@@ -132,8 +133,11 @@ namespace Coffee {
 
         auto anchored = CalculateAnchoredTransform(registry, entity, uiImageComponent.Anchor, WindowSize);
 
-        transformComponent.SetLocalPosition(glm::vec3(anchored.Position, 0.0f));
-        transformComponent.SetLocalScale(glm::vec3(anchored.Size.x, anchored.Size.y, 1.0f));
+        if (HasTransformChanged(entity, anchored))
+        {
+            transformComponent.SetLocalPosition(glm::vec3(anchored.Position, 0.0f));
+            transformComponent.SetLocalScale(glm::vec3(anchored.Size.x, anchored.Size.y, 1.0f));
+        }
 
         float rotation = transformComponent.GetLocalRotation().z;
 
@@ -142,7 +146,7 @@ namespace Coffee {
         worldTransform = glm::rotate(worldTransform, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
         worldTransform = glm::scale(worldTransform, glm::vec3(anchored.Size.x, -anchored.Size.y, 1.0f));
 
-        Renderer2D::DrawQuad(worldTransform, uiImageComponent.Texture, 1.0f, uiImageComponent.Color, Renderer2D::RenderMode::Screen, (uint32_t)entity);
+        Renderer2D::DrawQuad(worldTransform, uiImageComponent.Texture, 1.0f, uiImageComponent.Color, Renderer2D::RenderMode::Screen, (uint32_t)entity, uiImageComponent.UVRect);
     }
 
     void UIManager::RenderUIText(entt::registry& registry, entt::entity entity)
@@ -150,13 +154,19 @@ namespace Coffee {
         auto& uiTextComponent = registry.get<UITextComponent>(entity);
         auto& transformComponent = registry.get<TransformComponent>(entity);
 
+        if (uiTextComponent.Text.empty())
+            return;
+
         if (!uiTextComponent.UIFont)
             uiTextComponent.UIFont = Font::GetDefault();
 
         auto anchored = CalculateAnchoredTransform(registry, entity, uiTextComponent.Anchor, WindowSize);
 
-        transformComponent.SetLocalPosition(glm::vec3(anchored.Position, 0.0f));
-        transformComponent.SetLocalScale(glm::vec3(1.0f));
+        if (HasTransformChanged(entity, anchored))
+        {
+            transformComponent.SetLocalPosition(glm::vec3(anchored.Position, 0.0f));
+            transformComponent.SetLocalScale(glm::vec3(1.0f));
+        }
 
         float rotation = transformComponent.GetLocalRotation().z;
 
@@ -181,8 +191,11 @@ namespace Coffee {
 
         auto anchored = CalculateAnchoredTransform(registry, entity, toggleComponent.Anchor, WindowSize);
 
-        transformComponent.SetLocalPosition(glm::vec3(anchored.Position, 0.0f));
-        transformComponent.SetLocalScale(glm::vec3(anchored.Size.x, anchored.Size.y, 1.0f));
+        if (HasTransformChanged(entity, anchored))
+        {
+            transformComponent.SetLocalPosition(glm::vec3(anchored.Position, 0.0f));
+            transformComponent.SetLocalScale(glm::vec3(anchored.Size.x, anchored.Size.y, 1.0f));
+        }
 
         float rotation = transformComponent.GetLocalRotation().z;
         glm::mat4 worldTransform = glm::mat4(1.0f);
@@ -203,8 +216,11 @@ namespace Coffee {
 
         auto anchored = CalculateAnchoredTransform(registry, entity, button.Anchor, WindowSize);
 
-        transform.SetLocalPosition(glm::vec3(anchored.Position, 0.0f));
-        transform.SetLocalScale(glm::vec3(anchored.Size.x, anchored.Size.y, 1.0f));
+        if (HasTransformChanged(entity, anchored))
+        {
+            transform.SetLocalPosition(glm::vec3(anchored.Position, 0.0f));
+            transform.SetLocalScale(glm::vec3(anchored.Size.x, anchored.Size.y, 1.0f));
+        }
 
         float rotation = transform.GetLocalRotation().z;
         glm::mat4 worldTransform = glm::mat4(1.0f);
@@ -215,9 +231,11 @@ namespace Coffee {
         Ref<Texture2D> currentTexture = nullptr;
         glm::vec4 currentColor{1.0f};
 
-        button.CurrentState = button.Interactable ? UIButtonComponent::State::Normal : UIButtonComponent::State::Disabled;
+        UIButtonComponent::State state = button.CurrentState;
 
-        switch (button.CurrentState)
+        state = button.Interactable ? button.CurrentState : UIButtonComponent::State::Disabled;
+
+        switch (state)
         {
             case UIButtonComponent::State::Normal:
                 currentTexture = button.NormalTexture;
@@ -248,8 +266,11 @@ namespace Coffee {
 
         auto anchored = CalculateAnchoredTransform(registry, entity, sliderComponent.Anchor, WindowSize);
 
-        transformComponent.SetLocalPosition(glm::vec3(anchored.Position, 0.0f));
-        transformComponent.SetLocalScale(glm::vec3(anchored.Size.x, anchored.Size.y, 1.0f));
+        if (HasTransformChanged(entity, anchored))
+        {
+            transformComponent.SetLocalPosition(glm::vec3(anchored.Position, 0.0f));
+            transformComponent.SetLocalScale(glm::vec3(anchored.Size.x, anchored.Size.y, 1.0f));
+        }
 
         float rotation = transformComponent.GetLocalRotation().z;
 
@@ -393,6 +414,27 @@ namespace Coffee {
         }
 
         return result;
+    }
+
+    bool UIManager::HasTransformChanged(entt::entity entity, const AnchoredTransform& newTransform)
+    {
+        auto it = s_LastTransforms.find(entity);
+        if (it == s_LastTransforms.end())
+        {
+            s_LastTransforms[entity] = newTransform;
+            return true;
+        }
+
+        const auto& lastTransform = it->second;
+        bool changed = !glm::epsilonEqual(lastTransform.Position.x, newTransform.Position.x, 0.001f) ||
+                      !glm::epsilonEqual(lastTransform.Position.y, newTransform.Position.y, 0.001f) ||
+                      !glm::epsilonEqual(lastTransform.Size.x, newTransform.Size.x, 0.001f) ||
+                      !glm::epsilonEqual(lastTransform.Size.y, newTransform.Size.y, 0.001f);
+
+        if (changed)
+            s_LastTransforms[entity] = newTransform;
+
+        return changed;
     }
 
 } // Coffee

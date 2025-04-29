@@ -49,7 +49,16 @@ namespace Coffee {
 		glCullFace(GL_BACK);
 
 		glDepthFunc(GL_LEQUAL);
+
+		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     }
+
+	void RendererAPI::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+	{
+		ZoneScoped;
+
+		glViewport(x, y, width, height);
+	}
 
 	void RendererAPI::SetClearColor(const glm::vec4& color)
 	{
@@ -83,6 +92,19 @@ namespace Coffee {
 		else
 		{
 			glDisable(GL_CULL_FACE);
+		}
+	}
+
+	void RendererAPI::SetCullFace(CullFace face)
+	{
+		ZoneScoped;
+
+		switch (face)
+		{
+			case CullFace::Front:         glCullFace(GL_FRONT); break;
+			case CullFace::Back:          glCullFace(GL_BACK); break;
+			case CullFace::FrontAndBack:  glCullFace(GL_FRONT_AND_BACK); break;
+			default: COFFEE_CORE_ASSERT(false, "Unknown cull face!"); break;
 		}
 	}
 

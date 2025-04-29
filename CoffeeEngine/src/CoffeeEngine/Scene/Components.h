@@ -530,6 +530,11 @@
          float Angle = 45.0f; ///< The angle of the light.
  
          int type = static_cast<int>(Type::DirectionalLight); ///< The type of the light.
+
+         // Shadows
+         bool Shadow = false;
+         float ShadowBias = 0.005f;
+         float ShadowMaxDistance = 100.0f;
  
          LightComponent() = default;
          LightComponent(const LightComponent&) = default;
@@ -541,7 +546,31 @@
           */
          template<class Archive> void serialize(Archive& archive, std::uint32_t const version)
          {
-             archive(cereal::make_nvp("Color", Color), cereal::make_nvp("Direction", Direction), cereal::make_nvp("Position", Position), cereal::make_nvp("Range", Range), cereal::make_nvp("Attenuation", Attenuation), cereal::make_nvp("Intensity", Intensity), cereal::make_nvp("Angle", Angle), cereal::make_nvp("Type", type));
+             if (version >= 1)
+             {
+                 archive(cereal::make_nvp("Color", Color),
+                         cereal::make_nvp("Direction", Direction),
+                         cereal::make_nvp("Position", Position),
+                         cereal::make_nvp("Range", Range),
+                         cereal::make_nvp("Attenuation", Attenuation),
+                         cereal::make_nvp("Intensity", Intensity),
+                         cereal::make_nvp("Angle", Angle),
+                         cereal::make_nvp("Type", type),
+                         cereal::make_nvp("Shadow", Shadow),
+                         cereal::make_nvp("ShadowBias", ShadowBias),
+                         cereal::make_nvp("ShadowMaxDistance", ShadowMaxDistance));
+             }
+             else
+             {
+                archive(cereal::make_nvp("Color", Color),
+                        cereal::make_nvp("Direction", Direction),
+                        cereal::make_nvp("Position", Position),
+                        cereal::make_nvp("Range", Range),
+                        cereal::make_nvp("Attenuation", Attenuation),
+                        cereal::make_nvp("Intensity", Intensity),
+                        cereal::make_nvp("Angle", Angle),
+                        cereal::make_nvp("Type", type));
+             }
          }
      };
  
@@ -1081,6 +1110,7 @@
     {
         Ref<Texture2D> Texture; ///< The texture of the image.
         glm::vec4 Color = { 1.0f, 1.0f, 1.0f, 1.0f }; ///< The color.
+        glm::vec4 UVRect = { 0.0f, 0.0f, 1.0f, 1.0f }; ///< The UV rectangle.
 
         UIImageComponent() { Texture = Texture2D::Load("assets/textures/UVMap-Grid.jpg"); }
 
@@ -1088,7 +1118,9 @@
 
         template<class Archive> void save(Archive& archive, std::uint32_t const version) const
         {
-            archive(cereal::make_nvp("TextureUUID", Texture ? Texture->GetUUID() : UUID(0)));
+            archive(cereal::make_nvp("TextureUUID", Texture ? Texture->GetUUID() : UUID(0)),
+                    cereal::make_nvp("Color", Color),
+                    cereal::make_nvp("UVRect", UVRect));
             UIComponent::save(archive, version);
         }
 
@@ -1096,6 +1128,11 @@
         {
             UUID textureUUID;
             archive(cereal::make_nvp("TextureUUID", textureUUID));
+            if (version >= 1)
+            {
+                archive(cereal::make_nvp("Color", Color),
+                        cereal::make_nvp("UVRect", UVRect));
+            }
             if (textureUUID != UUID(0))
                 Texture = ResourceLoader::GetResource<Texture2D>(textureUUID);
             UIComponent::load(archive, version);
@@ -1117,7 +1154,7 @@
         template<class Archive> void save(Archive& archive, std::uint32_t const version) const
         {
             archive(cereal::make_nvp("Text", Text),
-                    cereal::make_nvp("FontPath", FontPath.generic_string()),
+                    cereal::make_nvp("FontPath", std::filesystem::relative(FontPath, Project::GetActive()->GetProjectDirectory()).generic_string()),
                     cereal::make_nvp("Color", Color),
                     cereal::make_nvp("Kerning", Kerning),
                     cereal::make_nvp("LineSpacing", LineSpacing),
@@ -1127,14 +1164,19 @@
 
         template<class Archive> void load(Archive& archive, std::uint32_t const version)
         {
+            std::string relativePath;
             archive(cereal::make_nvp("Text", Text),
-                    cereal::make_nvp("FontPath", FontPath.generic_string()),
+                    cereal::make_nvp("FontPath", relativePath),
                     cereal::make_nvp("Color", Color),
                     cereal::make_nvp("Kerning", Kerning),
                     cereal::make_nvp("LineSpacing", LineSpacing),
                     cereal::make_nvp("FontSize", FontSize));
-            if (!FontPath.empty())
+
+            if (!relativePath.empty())
+            {
+                FontPath = Project::GetActive()->GetProjectDirectory() / relativePath;
                 UIFont = CreateRef<Coffee::Font>(FontPath);
+            }
             else
                 UIFont = Font::GetDefault();
             UIComponent::load(archive, version);
@@ -1302,7 +1344,7 @@
  CEREAL_CLASS_VERSION(Coffee::AnimatorComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::MeshComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::MaterialComponent, 0);
- CEREAL_CLASS_VERSION(Coffee::LightComponent, 0);
+ CEREAL_CLASS_VERSION(Coffee::LightComponent, 1);
  CEREAL_CLASS_VERSION(Coffee::AudioSourceComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::AudioListenerComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::AudioZoneComponent, 0);
@@ -1312,7 +1354,7 @@
  CEREAL_CLASS_VERSION(Coffee::NavigationAgentComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::ParticlesSystemComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::UIComponent, 0);
- CEREAL_CLASS_VERSION(Coffee::UIImageComponent, 0);
+ CEREAL_CLASS_VERSION(Coffee::UIImageComponent, 1);
  CEREAL_CLASS_VERSION(Coffee::UITextComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::UIToggleComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::UIButtonComponent, 0);

@@ -102,6 +102,15 @@ namespace Coffee {
          * @return True if the mouse button is pressed, false otherwise.
          */
         static bool IsMouseButtonPressed(const MouseCode button);
+
+        /**
+            * Sets the mouse cursor to be grabbed or ungrabbed.
+            * When grabbed, the mouse cursor is confined to the window and hidden.
+            * When ungrabbed, the mouse cursor is free to move outside the window.
+            * @param grabbed True to grab the mouse cursor, false to ungrab it.
+            */
+        static void SetMouseGrabbed(bool grabbed);
+
         /**
          * Retrieves the current position of the mouse.
          *
@@ -121,6 +130,8 @@ namespace Coffee {
          */
 
         static const float GetMouseY();
+
+        static glm::vec2 GetMouseDelta();
         /**
          * @brief Checks if a specific button is currently pressed on a given controller.
          *
@@ -144,6 +155,14 @@ namespace Coffee {
         static InputBinding& GetBinding(const std::string& actionName);
 
         static std::unordered_map<std::string, InputBinding>& GetAllBindings();
+
+        /**
+         *
+         * @param lowFreqPower Strength of the left (low frequency) motor
+         * @param highFreqPower Strength of the right (high frequency) motor
+         * @param duration Vibration duration
+         */
+        static void SendRumble(uint16_t lowFreqPower, uint16_t highFreqPower, uint32_t duration);
 
         static const char* GetKeyLabel(KeyCode key);
         static const char* GetMouseButtonLabel(MouseCode button);
