@@ -23,19 +23,53 @@ namespace Coffee {
     // Not implemented yet!!
     struct MaterialRenderSettings
     {
-        bool wireframe = false;
-        bool depthTest = true;
-        bool depthWrite = true;
-        bool faceCulling = true;
+        // Transparency
+        enum TransparencyMode
+        {
+            Disabled = 0,
+            Alpha,
+            AlphaCutoff
+        } transparencyMode = TransparencyMode::Disabled; ///< The transparency mode.
 
-        private:
-            friend class cereal::access;
+        float alphaCutoff = 0.5f; ///< The alpha cutoff value for the transparency mode.
 
-            template<class Archive>
-            void serialize(Archive& archive)
-            {
-                archive(wireframe, depthTest, depthWrite, faceCulling);
-            }
+        // Blend mode
+        enum BlendMode
+        {
+            Mix = 0,
+            Add,
+            Subtract,
+            Multiply
+        } blendMode = BlendMode::Mix; ///< The blend mode for the transparency.
+
+        // Culling
+        enum CullMode
+        {
+            Front = 0,
+            Back,
+            None
+        } cullMode = CullMode::Back; ///< The culling mode for the material.
+
+        // Depth
+/*         enum DepthMode
+        {
+            Read = 0,
+            Write,
+            None
+        } depthMode = DepthMode::Write; ///< The depth mode for the material. */
+        bool depthTest = true; ///< Whether to enable depth testing.
+
+        // Wireframe
+        bool wireframe = false; ///< Whether to render the material in wireframe mode.
+        
+    private:
+        friend class cereal::access;
+
+        template<class Archive>
+        void serialize(Archive& archive)
+        {
+            archive(transparencyMode, alphaCutoff, blendMode, cullMode, depthTest, wireframe);
+        }
     };
 
     /**
@@ -173,6 +207,7 @@ namespace Coffee {
 
         MaterialTextures& GetMaterialTextures() { return m_MaterialTextures; }
         MaterialProperties& GetMaterialProperties() { return m_MaterialProperties; }
+        MaterialRenderSettings& GetMaterialRenderSettings() { return m_MaterialRenderSettings; }
 
         //TODO: Remove the materialTextures parameter and make a function that set the materialTextures and the shader too
         static Ref<Material> Create(const std::string& name = "", MaterialTextures* materialTextures = nullptr);

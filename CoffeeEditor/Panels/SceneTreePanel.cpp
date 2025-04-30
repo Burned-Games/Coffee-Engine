@@ -884,6 +884,34 @@ namespace Coffee
                 {
                     MaterialTextures& materialTextures = materialComponent.material->GetMaterialTextures();
                     MaterialProperties& materialProperties = materialComponent.material->GetMaterialProperties();
+                    MaterialRenderSettings& materialRenderSettings = materialComponent.material->GetMaterialRenderSettings();
+
+                    if (ImGui::TreeNode("Render Settings"))
+                    {
+                        ImGui::BeginChild("##RenderSettings Child", {0, 0},
+                                          ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+
+                        ImGui::Text("Transparency");
+                        ImGui::SameLine();
+                        ImGui::Combo("##Transparency", (int*)&materialRenderSettings.transparencyMode,
+                                     "Disabled\0Alpha\0AlphaCutoff\0");
+                        
+                        ImGui::Text("Cull Mode");
+                        ImGui::SameLine();
+                        ImGui::Combo("##CullMode", (int*)&materialRenderSettings.cullMode,
+                                     "Front\0Back\0None\0");
+
+                        ImGui::Text("Depth Test");
+                        ImGui::SameLine();
+                        ImGui::Checkbox("##DepthTest", &materialRenderSettings.depthTest);
+
+                        ImGui::Text("Wireframe");
+                        ImGui::SameLine();
+                        ImGui::Checkbox("##Wireframe", &materialRenderSettings.wireframe);
+
+                        ImGui::EndChild();
+                        ImGui::TreePop();
+                    }
 
                     if (ImGui::TreeNode("Albedo"))
                     {

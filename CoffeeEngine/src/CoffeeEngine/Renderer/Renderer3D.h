@@ -55,7 +55,8 @@ namespace Coffee {
         static constexpr int MAX_DIRECTIONAL_SHADOWS = 4;
         Ref<Texture2D> DirectionalShadowMapTextures[4];
 
-        std::vector<RenderCommand> renderQueue; ///< Render queue.
+        std::vector<RenderCommand> opaqueRenderQueue; ///< Opaque render queue.
+        std::vector<RenderCommand> transparentRenderQueue; ///< Transparent render queue.
     };
 
     /**
@@ -122,6 +123,7 @@ namespace Coffee {
         static void ShadowPass(const RenderTarget& target);
         static void ForwardPass(const RenderTarget& target);
         static void SkyboxPass(const RenderTarget& target);
+        static void TransparentPass(const RenderTarget& target);
         static void PostProcessingPass(const RenderTarget& target);
 
         /**

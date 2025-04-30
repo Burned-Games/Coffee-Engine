@@ -138,6 +138,9 @@ namespace Coffee {
         m_Shader->setInt("material.hasRoughness", m_MaterialTextureFlags.hasRoughness);
         m_Shader->setInt("material.hasAO", m_MaterialTextureFlags.hasAO);
         m_Shader->setInt("material.hasEmissive", m_MaterialTextureFlags.hasEmissive);
+
+        m_Shader->setInt("material.transparencyMode", m_MaterialRenderSettings.transparencyMode);
+        m_Shader->setFloat("material.alphaCutoff", m_MaterialRenderSettings.alphaCutoff);
     }
 
     Ref<Material> Material::Create(const std::string& name, MaterialTextures* materialTextures)
