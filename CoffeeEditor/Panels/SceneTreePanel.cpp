@@ -858,7 +858,7 @@ namespace Coffee
                 if (ImGui::BeginPopup("AlbedoColorPopup"))
                 {
                     ImGui::ColorPicker4((label + "Picker").c_str(), glm::value_ptr(color),
-                                        ImGuiColorEditFlags_NoInputs);
+                                        ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview);
                     ImGui::EndPopup();
                 }
             };
@@ -895,6 +895,13 @@ namespace Coffee
                         ImGui::SameLine();
                         ImGui::Combo("##Transparency", (int*)&materialRenderSettings.transparencyMode,
                                      "Disabled\0Alpha\0AlphaCutoff\0");
+
+                        if (materialRenderSettings.transparencyMode == MaterialRenderSettings::TransparencyMode::AlphaCutoff)
+                        {
+                            ImGui::Text("Alpha Cutoff");
+                            ImGui::SameLine();
+                            ImGui::SliderFloat("##AlphaCutoff", &materialRenderSettings.alphaCutoff, 0.0f, 1.0f);
+                        }
                         
                         ImGui::Text("Cull Mode");
                         ImGui::SameLine();

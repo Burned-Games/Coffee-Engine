@@ -407,6 +407,8 @@ namespace Coffee {
             return distA > distB;
         });
 
+        RendererAPI::SetDepthMask(false);
+
         for (const auto& command : s_RendererData.transparentRenderQueue)
         {
             Material* material = command.material.get();
@@ -468,15 +470,6 @@ namespace Coffee {
                         break;
                 }
     
-                if (settings.depthTest)
-                {
-                    RendererAPI::SetDepthMask(true);
-                }
-                else
-                {
-                    RendererAPI::SetDepthMask(false);
-                }
-    
                 if (settings.wireframe)
                 {
                     RendererAPI::SetPolygonMode(PolygonMode::Line);
@@ -488,6 +481,8 @@ namespace Coffee {
 
             RendererAPI::DrawIndexed(mesh->GetVertexArray());
         }
+
+        RendererAPI::SetDepthMask(true);
 
         forwardBuffer->UnBind();
 
