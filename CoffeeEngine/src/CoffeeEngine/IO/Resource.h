@@ -34,6 +34,7 @@ namespace Coffee {
         Skeleton, ///< Skeleton resource type
         Animation, ///< Animation resource type
         AnimationController, ///< AnimationController resource type
+        Prefab, ///< Prefab resource type
     };
 
     /**
@@ -66,6 +67,8 @@ namespace Coffee {
          * @return The file path of the resource.
          */
         const std::filesystem::path& GetPath() { COFFEE_CORE_ASSERT(m_FilePath.empty(), "This Texture does not exist on disk!"); return m_FilePath; }
+
+        void SetPath(const std::filesystem::path& path) { m_FilePath = path; }
 
         /**
          * @brief Sets the name of the mesh.

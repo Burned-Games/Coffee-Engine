@@ -21,6 +21,8 @@ namespace Coffee {
         Entity GetSelectedEntity() const { return m_SelectionContext; };
         void SetSelectedEntity(Entity entity) { m_SelectionContext = entity; };
 
+        void CreatePrefab(Entity entity);
+
     private:
         void DrawEntityNode(Entity entity);
         void DrawComponents(Entity entity);
@@ -28,6 +30,9 @@ namespace Coffee {
         //UI functions for scenetree menus
         void ShowCreateEntityMenu();
         bool ResizeColliderToFitMeshAABB(Entity entity, RigidbodyComponent& rbComponent);
+
+        void DrawTransform(TransformComponent& transformComponent);
+        void DrawUITransform(TransformComponent& transformComponent, RectAnchor& anchor, Entity entity);
 
     private:
         Ref<Scene> m_Context;

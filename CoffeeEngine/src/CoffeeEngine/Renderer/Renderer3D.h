@@ -51,6 +51,10 @@ namespace Coffee {
         Ref<Material> DefaultMaterial; ///< Default material.
         Ref<Mesh> MissingMesh; ///< Missing mesh.
 
+        Ref<Framebuffer> ShadowMapFramebuffer;
+        static constexpr int MAX_DIRECTIONAL_SHADOWS = 4;
+        Ref<Texture2D> DirectionalShadowMapTextures[4];
+
         std::vector<RenderCommand> renderQueue; ///< Render queue.
     };
 
@@ -115,7 +119,7 @@ namespace Coffee {
         
         //static void DepthPrePass(const RenderTarget& target);
         //static void SSAOPass(const RenderTarget& target);
-        //static void ShadowPass(const RenderTarget& target);
+        static void ShadowPass(const RenderTarget& target);
         static void ForwardPass(const RenderTarget& target);
         static void SkyboxPass(const RenderTarget& target);
         static void PostProcessingPass(const RenderTarget& target);

@@ -185,7 +185,8 @@ namespace Coffee {
 
                     Entity hoveredEntity = entityID == 16777215 ? Entity() : Entity((entt::entity)entityID, SceneManager::GetActiveScene().get());
 
-                    m_SceneTreePanel.SetSelectedEntity(hoveredEntity);
+                    if (hoveredEntity.IsValid())
+                        m_SceneTreePanel.SetSelectedEntity(hoveredEntity);
                 }
             }
         }
@@ -243,7 +244,7 @@ namespace Coffee {
                 if (ImGui::MenuItem(ICON_LC_FILE_PLUS_2 " New Scene", "Ctrl+N")) { NewScene(); }
                 if (ImGui::MenuItem(ICON_LC_FOLDER_OPEN " Open Scene...", "Ctrl+O")) { OpenScene(); }
                 if (ImGui::MenuItem(ICON_LC_SAVE " Save Scene", "Ctrl+S")) { SaveScene(); }
-                if (ImGui::MenuItem(ICON_LC_SAVE " Save Scene As...", "Ctrl+Shift+S")) { SaveSceneAs(); }
+                //if (ImGui::MenuItem(ICON_LC_SAVE " Save Scene As...", "Ctrl+Shift+S")) { SaveSceneAs(); }
                 if (ImGui::MenuItem(ICON_LC_X " Exit")) { Application::Get().Close(); }
                 ImGui::EndMenu();
             }
@@ -384,62 +385,104 @@ namespace Coffee {
 
         if(selectedEntity and m_GizmoType != -1 and SceneManager::GetSceneState() == SceneManager::SceneState::Edit)
         {
-            ImGuizmo::SetGizmoSizeClipSpace(0.2);
-
-            // Customize ImGuizmo style to be more similar to Godot
-
-            auto& style = ImGuizmo::GetStyle();
-
-            //style.TranslationLineThickness = 3.0f;
-            //style.TranslationLineArrowSize = 10.0f;
-            //style.RotationLineThickness = 4.0f;
-            //style.RotationOuterLineThickness = 4.0f;
-            //style.ScaleLineThickness = 4.0f;
-            //style.ScaleLineCircleSize = 6.0f;
-
-            // Set colors
-            style.Colors[ImGuizmo::DIRECTION_X] = ImVec4(0.918f, 0.196f, 0.310f, 1.0f);
-            style.Colors[ImGuizmo::DIRECTION_Y] = ImVec4(0.153f, 0.525f, 0.918f, 1.0f);
-            style.Colors[ImGuizmo::DIRECTION_Z] = ImVec4(0.502f, 0.800f, 0.051f, 1.0f);
-            style.Colors[ImGuizmo::PLANE_X] = ImVec4(0.918f, 0.196f, 0.310f, 1.0f);
-            style.Colors[ImGuizmo::PLANE_Y] = ImVec4(0.153f, 0.525f, 0.918f, 1.0f);
-            style.Colors[ImGuizmo::PLANE_Z] = ImVec4(0.502f, 0.800f, 0.051f, 1.0f);
-            style.Colors[ImGuizmo::SELECTION] = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
-
-            ImGuizmo::SetOrthographic(false);
-            ImGuizmo::SetDrawlist();
-
-            ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
-
-            const glm::mat4& cameraProjection = m_EditorCamera.GetProjection();
-            glm::mat4 cameraView = m_EditorCamera.GetViewMatrix();
-
-            auto& transformComponent = selectedEntity.GetComponent<TransformComponent>();
-            glm::mat4 transform = transformComponent.GetWorldTransform();
-
-            ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection),
-                                (ImGuizmo::OPERATION)m_GizmoType, ImGuizmo::LOCAL,
-                         glm::value_ptr(transform));
-
-            if (ImGuizmo::IsUsing())
+            if (selectedEntity.HasComponent<UIImageComponent>())
             {
-              /*TODO: Revisit this bc this should work using the SetWorldTransform
-                but for this in the SetWorldTransform we should update the local
-                transform too and for this we need the transform of the parent.*/
+                auto& transformComponent = selectedEntity.GetComponent<TransformComponent>();
 
-                glm::mat4 localTransform = transform;
+                ImGuizmo::SetOrthographic(true);
+                ImGuizmo::SetDrawlist();
+                ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
 
-                auto& parentEntity = selectedEntity.GetComponent<HierarchyComponent>().m_Parent;
-                if(parentEntity != entt::null)
+                glm::mat4 transform = transformComponent.GetWorldTransform();
+
+                glm::mat4 cameraProjection = glm::ortho(-m_ViewportSize.x / 2.0f, m_ViewportSize.x / 2.0f,
+                                        m_ViewportSize.y / 2.0f, -m_ViewportSize.y / 2.0f,
+                                        -1.0f, 1.0f);
+
+                glm::mat4 cameraView = glm::mat4(1.0f);
+
+                ImGuizmo::SetGizmoSizeClipSpace(0.15f);
+
+                if (m_GizmoType == ImGuizmo::OPERATION::ROTATE)
+                    m_GizmoType = ImGuizmo::OPERATION::ROTATE_Z;
+
+                ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection),
+                     (ImGuizmo::OPERATION)m_GizmoType, ImGuizmo::LOCAL,
+                     glm::value_ptr(transform));
+
+                if (ImGuizmo::IsUsing())
                 {
-                    Entity e{parentEntity, SceneManager::GetActiveScene().get()};
-                    glm::mat4 parentGlobalTransform = e.GetComponent<TransformComponent>().GetWorldTransform();
-                    glm::mat4 inverseParentGlobalTransform = glm::inverse(parentGlobalTransform);
-                    localTransform = inverseParentGlobalTransform * transform;
-                }
+                    glm::vec3 translation, scale;
+                    glm::quat rotation;
+                    ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(transform),
+                                                         glm::value_ptr(translation),
+                                                         glm::value_ptr(rotation),
+                                                         glm::value_ptr(scale));
 
-                // Update the local transform component
-                transformComponent.SetLocalTransform(localTransform);
+                    transformComponent.SetLocalPosition(glm::vec3(translation.x, translation.y, 0.f));
+                    transformComponent.SetLocalRotation(glm::vec3(0.f, 0.f, rotation.z));
+                    transformComponent.SetLocalScale(glm::vec3(scale.x, scale.y, 1.f));
+                }
+            }
+            else
+            {
+                ImGuizmo::SetGizmoSizeClipSpace(0.2);
+
+                // Customize ImGuizmo style to be more similar to Godot
+
+                auto& style = ImGuizmo::GetStyle();
+
+                //style.TranslationLineThickness = 3.0f;
+                //style.TranslationLineArrowSize = 10.0f;
+                //style.RotationLineThickness = 4.0f;
+                //style.RotationOuterLineThickness = 4.0f;
+                //style.ScaleLineThickness = 4.0f;
+                //style.ScaleLineCircleSize = 6.0f;
+
+                // Set colors
+                style.Colors[ImGuizmo::DIRECTION_X] = ImVec4(0.918f, 0.196f, 0.310f, 1.0f);
+                style.Colors[ImGuizmo::DIRECTION_Y] = ImVec4(0.153f, 0.525f, 0.918f, 1.0f);
+                style.Colors[ImGuizmo::DIRECTION_Z] = ImVec4(0.502f, 0.800f, 0.051f, 1.0f);
+                style.Colors[ImGuizmo::PLANE_X] = ImVec4(0.918f, 0.196f, 0.310f, 1.0f);
+                style.Colors[ImGuizmo::PLANE_Y] = ImVec4(0.153f, 0.525f, 0.918f, 1.0f);
+                style.Colors[ImGuizmo::PLANE_Z] = ImVec4(0.502f, 0.800f, 0.051f, 1.0f);
+                style.Colors[ImGuizmo::SELECTION] = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
+
+                ImGuizmo::SetOrthographic(false);
+                ImGuizmo::SetDrawlist();
+
+                ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
+
+                const glm::mat4& cameraProjection = m_EditorCamera.GetProjection();
+                glm::mat4 cameraView = m_EditorCamera.GetViewMatrix();
+
+                auto& transformComponent = selectedEntity.GetComponent<TransformComponent>();
+                glm::mat4 transform = transformComponent.GetWorldTransform();
+
+                ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection),
+                                    (ImGuizmo::OPERATION)m_GizmoType, ImGuizmo::LOCAL,
+                             glm::value_ptr(transform));
+
+                if (ImGuizmo::IsUsing())
+                {
+                  /*TODO: Revisit this bc this should work using the SetWorldTransform
+                    but for this in the SetWorldTransform we should update the local
+                    transform too and for this we need the transform of the parent.*/
+
+                    glm::mat4 localTransform = transform;
+
+                    auto& parentEntity = selectedEntity.GetComponent<HierarchyComponent>().m_Parent;
+                    if(parentEntity != entt::null)
+                    {
+                        Entity e{parentEntity, SceneManager::GetActiveScene().get()};
+                        glm::mat4 parentGlobalTransform = e.GetComponent<TransformComponent>().GetWorldTransform();
+                        glm::mat4 inverseParentGlobalTransform = glm::inverse(parentGlobalTransform);
+                        localTransform = inverseParentGlobalTransform * transform;
+                    }
+
+                    // Update the local transform component
+                    transformComponent.SetLocalTransform(localTransform);
+                }
             }
         }
         else

@@ -171,7 +171,13 @@ namespace Coffee {
             .template get<AudioZoneComponent>(archive)
             .template get<ParticlesSystemComponent>(archive)
             .template get<ActiveComponent>(archive)
-            .template get<StaticComponent>(archive);
+            .template get<StaticComponent>(archive)
+            .template get<SpriteComponent>(archive)
+            .template get<UIImageComponent>(archive)
+            .template get<UITextComponent>(archive)
+            .template get<UIToggleComponent>(archive)
+            .template get<UIButtonComponent>(archive)
+            .template get<UISliderComponent>(archive);
          }
 
         /**
@@ -183,35 +189,72 @@ namespace Coffee {
         {
             HierarchyComponent::LoadingScene = true;
 
-            entt::snapshot_loader{m_Registry}
-            .get<entt::entity>(archive)
-            .template get<TagComponent>(archive)
-            .template get<TransformComponent>(archive)
-            .template get<HierarchyComponent>(archive)
-            .template get<CameraComponent>(archive)
-            .template get<MeshComponent>(archive)
-            .template get<MaterialComponent>(archive)
-            .template get<LightComponent>(archive)
-            .template get<RigidbodyComponent>(archive)
-            .template get<ScriptComponent>(archive)
-            .template get<NavMeshComponent>(archive)
-            .template get<NavigationAgentComponent>(archive)
-            .template get<AnimatorComponent>(archive)
-            .template get<AudioSourceComponent>(archive)
-            .template get<AudioListenerComponent>(archive)
-            .template get<AudioZoneComponent>(archive)
-            .template get<ParticlesSystemComponent>(archive)
-            .template get<ActiveComponent>(archive)
-            .template get<StaticComponent>(archive);
+            if (version == 0)
+            {
+                entt::snapshot_loader{m_Registry}
+                    .get<entt::entity>(archive)
+                    .template get<TagComponent>(archive)
+                    .template get<TransformComponent>(archive)
+                    .template get<HierarchyComponent>(archive)
+                    .template get<CameraComponent>(archive)
+                    .template get<MeshComponent>(archive)
+                    .template get<MaterialComponent>(archive)
+                    .template get<LightComponent>(archive)
+                    .template get<RigidbodyComponent>(archive)
+                    .template get<ScriptComponent>(archive)
+                    .template get<NavMeshComponent>(archive)
+                    .template get<NavigationAgentComponent>(archive)
+                    .template get<AnimatorComponent>(archive)
+                    .template get<AudioSourceComponent>(archive)
+                    .template get<AudioListenerComponent>(archive)
+                    .template get<AudioZoneComponent>(archive)
+                    .template get<ParticlesSystemComponent>(archive)
+                    .template get<ActiveComponent>(archive)
+                    .template get<StaticComponent>(archive);
+            }
+            else if (version == 1)
+            {
+                entt::snapshot_loader{m_Registry}
+                    .get<entt::entity>(archive)
+                    .template get<TagComponent>(archive)
+                    .template get<TransformComponent>(archive)
+                    .template get<HierarchyComponent>(archive)
+                    .template get<CameraComponent>(archive)
+                    .template get<MeshComponent>(archive)
+                    .template get<MaterialComponent>(archive)
+                    .template get<LightComponent>(archive)
+                    .template get<RigidbodyComponent>(archive)
+                    .template get<ScriptComponent>(archive)
+                    .template get<NavMeshComponent>(archive)
+                    .template get<NavigationAgentComponent>(archive)
+                    .template get<AnimatorComponent>(archive)
+                    .template get<AudioSourceComponent>(archive)
+                    .template get<AudioListenerComponent>(archive)
+                    .template get<AudioZoneComponent>(archive)
+                    .template get<ParticlesSystemComponent>(archive)
+                    .template get<ActiveComponent>(archive)
+                    .template get<StaticComponent>(archive)
+                    .template get<SpriteComponent>(archive)
+                    .template get<UIImageComponent>(archive)
+                    .template get<UITextComponent>(archive)
+                    .template get<UIToggleComponent>(archive)
+                    .template get<UIButtonComponent>(archive)
+                    .template get<UISliderComponent>(archive);
+            }
 
-             HierarchyComponent::LoadingScene = false;
+            HierarchyComponent::LoadingScene = false;
 
             AssignAnimatorsToMeshes(AnimationSystem::GetAnimators());
         }
 
     private:
         // NOTE: this macro should be modified when adding new components
-        #define ALL_COMPONENTS TagComponent, TransformComponent, HierarchyComponent, CameraComponent, MeshComponent, MaterialComponent, LightComponent, RigidbodyComponent, ScriptComponent, AudioSourceComponent, AudioListenerComponent, AudioZoneComponent, ParticlesSystemComponent, AnimatorComponent
+        #define ALL_COMPONENTS \
+            TagComponent, TransformComponent, HierarchyComponent, CameraComponent, \
+            MeshComponent, MaterialComponent, LightComponent, RigidbodyComponent, \
+            ScriptComponent, AudioSourceComponent, AudioListenerComponent, AudioZoneComponent, \
+            ParticlesSystemComponent, AnimatorComponent, ActiveComponent, StaticComponent, SpriteComponent, \
+            UIComponent, UIImageComponent, UITextComponent, UIToggleComponent, UIButtonComponent, UISliderComponent
 
         entt::registry m_Registry;
         Scope<SceneTree> m_SceneTree;
@@ -236,4 +279,5 @@ namespace Coffee {
     void AddModelToTheSceneTree(Scene* scene, Ref<Model> model, AnimatorComponent* animatorComponent = nullptr);
 
     /** @} */ // end of scene group
-}
+} // namespace Coffee
+CEREAL_CLASS_VERSION(Coffee::Scene, 1);

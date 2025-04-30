@@ -1,13 +1,15 @@
 #include "CoffeeEngine/Core/Input.h"
 
+#include "CoffeeEngine/Core/Application.h"
+#include "CoffeeEngine/Core/Window.h"
 #include "CoffeeEngine/Events/ControllerEvent.h"
 #include "CoffeeEngine/Events/Event.h"
 #include "CoffeeEngine/Events/KeyEvent.h"
 #include "CoffeeEngine/Events/MouseEvent.h"
 #include "CoffeeEngine/Project/Project.h"
-#include "SDL3/SDL_keyboard.h"
+#include "Platform/Windows/WindowsSystemInfo.h"
 #include "SDL3/SDL_mouse.h"
-#include "imgui_internal.h"
+#include "SystemInfo.h"
 
 #include <SDL3/SDL_init.h>
 
@@ -32,6 +34,10 @@ namespace Coffee {
     Timer Input::m_RebindTimer(5.0,false,true,[](){Input::ResetRebindState();});
     RebindState Input::m_RebindState = RebindState::None;
     std::string Input::m_RebindActionName = "";
+
+    // Current frame's timestamp
+    // Direct call to SDL because I didn't find any functions for it within the engine's API
+    long Input::m_Timestamp = Input::OnFrameUpdate();
 
     void Input::Init()
     {
@@ -97,6 +103,13 @@ namespace Coffee {
         // return SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON_MASK(button);
     }
 
+    void Input::SetMouseGrabbed(bool grabbed)
+    {
+        // TODO: Think if the window should be passed as parameter
+        Window& window = Application::Get().GetWindow();
+        SDL_SetWindowRelativeMouseMode((SDL_Window*)window.GetNativeWindow(), grabbed);
+    }
+
     const glm::vec2& Input::GetMousePosition()
     {
         return m_MousePosition;
@@ -113,6 +126,13 @@ namespace Coffee {
     const float Input::GetMouseY()
     {
         return GetMousePosition().y;
+    }
+
+    glm::vec2 Input::GetMouseDelta()
+    {
+        glm::vec2 ret;
+        SDL_GetRelativeMouseState(&ret.x, &ret.y);
+        return ret;
     }
 
     bool Input::GetButtonRaw(const ButtonCode button)
@@ -132,6 +152,17 @@ namespace Coffee {
     std::unordered_map<std::string, InputBinding>& Input::GetAllBindings()
     {
         return m_BindingsMap;
+    }
+
+    void Input::SendRumble(uint16_t lowFreqPower, uint16_t highFreqPower, uint32_t duration)
+    {
+        if (auto g = m_Gamepads[0]->GetGamepad())
+        {
+            if (!SDL_RumbleGamepad(g,lowFreqPower, highFreqPower, duration))
+            {
+                COFFEE_WARN("Rumble failed: {0}", SDL_GetError());
+            }
+        }
     }
 
     const char* Input::GetKeyLabel(KeyCode key)
@@ -343,8 +374,8 @@ namespace Coffee {
     }
 
     void Input::OnEvent(Event& e)
-    {   
-        if(e.Handled)
+    {
+        if (e.Handled)
             return;
 
         // TODO change this code for an event dispatcher
@@ -410,6 +441,7 @@ namespace Coffee {
             }
         }
     }
+    long Input::OnFrameUpdate() { return m_Timestamp = SDL_GetTicks(); }
 
     void Input::GenerateDefaultMappingFile()
     {

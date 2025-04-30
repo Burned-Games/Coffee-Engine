@@ -33,6 +33,10 @@ namespace Coffee {
         {
             return ResourceType::Shader;
         }
+        else if(extension == ".prefab")
+        {
+            return ResourceType::Prefab;
+        }
 
         return ResourceType::Unknown;
     }
@@ -53,6 +57,8 @@ namespace Coffee {
             return "Shader";
         case ResourceType::Material:
             return "Material";
+        case ResourceType::Prefab:
+            return "Prefab";
         default:
             return "Unknown";
         }

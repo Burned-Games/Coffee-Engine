@@ -70,7 +70,8 @@ namespace Coffee
         {
             particleMesh = Coffee::PrimitiveMesh::CreatePlane(glm::vec2(1,1));
         }
-        particleMaterial = CreateRef<Material>("Default Particle Material");
+        particleTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+
     }
 
     void ParticleEmitter::InitParticle(Ref<Particle> particle)
@@ -91,9 +92,7 @@ namespace Coffee
 
 
         particle->color = useColorRandom ? glm::linearRand(colorNormal, colorRandom) : colorNormal;
-        if (particleMaterial)
-            particleMaterial->GetMaterialProperties().color = particle->color;
-
+        particle->current_texture = particleTexture;
         particle->lifetime = useRandomLifeTime ? glm::linearRand(startLifeTimeMin, startLifeTimeMax) : startLifeTime;
         particle->startLifetime = particle->lifetime;
 
@@ -130,6 +129,24 @@ namespace Coffee
                 GenerateParticle();
                 accumulatedParticles -= 1.0f;
             }
+
+
+            for (int i = 0; i < bursts.size(); i++)
+            {
+                Ref<BurstParticleEmitter> burst = bursts[i];
+
+                if (burst->initialTime <= elapsedTime)
+                {
+                    burst->intervalTimer += deltaTime;
+
+                    if (burst->intervalTimer > burst->interval)
+                    {
+                        Emit(burst->count);
+                        burst->intervalTimer = 0;
+                    }
+                }
+            }
+
         }
 
         for (size_t i = 0; i < activeParticles.size();)
@@ -195,8 +212,8 @@ namespace Coffee
            
 
             //Fix for the rotation primitive plane
-            glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-            billboardTransform = billboardTransform * rotationMatrix;
+            //glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+            //billboardTransform = billboardTransform * rotationMatrix;
             //End fix
 
             particle->transformMatrix = billboardTransform;
@@ -311,13 +328,11 @@ namespace Coffee
 
     void ParticleEmitter::DrawParticles(Ref<Particle> p)
     {  
-        RenderCommand renderCommand;
-        renderCommand.transform = p->GetWorldTransform();
-        renderCommand.mesh = ParticleEmitter::particleMesh;
-        renderCommand.material = particleMaterial;
-        renderCommand.animator = nullptr;
-
-       Renderer3D::Submit(renderCommand); 
+        if (p->current_texture)
+        {
+            Renderer2D::DrawQuad(p->GetWorldTransform(), p->current_texture, 1, p->color,
+                                 Renderer2D::RenderMode::World);
+        }
     }
 
     void ParticleEmitter::DrawDebug()
