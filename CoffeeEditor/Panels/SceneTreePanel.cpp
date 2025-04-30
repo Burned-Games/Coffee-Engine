@@ -2536,6 +2536,15 @@ namespace Coffee
                     ImGui::Combo("##RenderAlignment", reinterpret_cast<int*>(&emitter->renderAlignment), renderModes,
                                  IM_ARRAYSIZE(renderModes));
 
+                    // Simulation Space Mode selection
+                    const char* simulationModes[] = {"Local", "World"};
+                    ImGui::Text("Simulation Space");
+                    ImGui::SameLine();
+                    ImGui::Combo("##SimulationSpace", reinterpret_cast<int*>(&emitter->simulationSpace),
+                                 simulationModes, IM_ARRAYSIZE(simulationModes));
+
+
+
                     // Material selection
                     ImGui::Text("Material");
                     auto DrawTextureWidget = [&](const std::string& label, Ref<Texture2D>& texture) {

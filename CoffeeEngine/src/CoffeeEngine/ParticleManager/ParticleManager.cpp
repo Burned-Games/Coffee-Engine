@@ -71,7 +71,6 @@ namespace Coffee
             particleMesh = Coffee::PrimitiveMesh::CreatePlane(glm::vec2(1,1));
         }
         particleTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
-
     }
 
     void ParticleEmitter::InitParticle(Ref<Particle> particle)
@@ -304,8 +303,9 @@ namespace Coffee
 
         if (simulationSpace == SimulationSpace::Local)
         {
-            particle->SetPosition(particle->GetPosition() +
-                                  particle->direction * deltaTime * newVelocity * particle->startSpeed);
+
+            glm::vec3 emissorPosition = transformComponentMatrix[3];
+            particle->SetPosition(emissorPosition + particle->direction * deltaTime * newVelocity * particle->startSpeed);
         }
         else
         {
