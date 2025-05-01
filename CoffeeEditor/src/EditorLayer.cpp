@@ -15,6 +15,7 @@
 #include "CoffeeEngine/Project/Project.h"
 #include "CoffeeEngine/Renderer/EditorCamera.h"
 #include "CoffeeEngine/Renderer/Framebuffer.h"
+#include "CoffeeEngine/Renderer/Material.h"
 #include "CoffeeEngine/Renderer/RenderTarget.h"
 #include "CoffeeEngine/Renderer/Renderer.h"
 #include "CoffeeEngine/Renderer/Renderer2D.h"
@@ -702,12 +703,14 @@ namespace Coffee {
         Renderer2D::DrawLine({0.0f, -1000.0f, 0.0f}, {0.0f, 1000.0f, 0.0f}, {0.502f, 0.800f, 0.051f, 1.0f}, 2);
         Renderer2D::DrawLine({0.0f, 0.0f, -1000.0f}, {0.0f, 0.0f, 1000.0f}, {0.153f, 0.525f, 0.918f, 1.0f}, 2);
 
-        static Ref<Mesh> gridPlaneDown = PrimitiveMesh::CreatePlane({1000.0f, 1000.0f});
-        static Ref<Mesh> gridPlaneUp = PrimitiveMesh::CreatePlane({1000.0f, -1000.0f}); // FIXME this is a hack to avoid the grid not beeing rendered due to backface culling
+        static Ref<Mesh> gridPlane = PrimitiveMesh::CreatePlane({1000.0f, 1000.0f});
         static Ref<Shader> gridShader = Shader::Create("assets/shaders/SimpleGridShader.glsl");
+        static Ref<Material> gridShaderMaterial = ShaderMaterial::Create("GridShaderMaterial", gridShader);
+        MaterialRenderSettings& gridMaterialRenderSettings = gridShaderMaterial->GetRenderSettings();
+        gridMaterialRenderSettings.cullMode = MaterialRenderSettings::CullMode::None;
+        gridMaterialRenderSettings.transparencyMode = MaterialRenderSettings::TransparencyMode::Alpha;
 
-        Renderer3D::Submit(gridShader, gridPlaneUp->GetVertexArray());
-        Renderer3D::Submit(gridShader, gridPlaneDown->GetVertexArray());
+        Renderer3D::Submit(RenderCommand{.mesh = gridPlane, .material = gridShaderMaterial});
     }
 
     void EditorLayer::ResizeViewport(float width, float height)

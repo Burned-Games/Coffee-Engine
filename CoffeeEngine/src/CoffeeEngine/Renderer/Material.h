@@ -104,6 +104,33 @@ namespace Coffee {
         MaterialRenderSettings m_RenderSettings; ///< The render settings for the material.
     };
 
+    class ShaderMaterial : public Material
+    {
+    public:
+        ShaderMaterial() : Material(ResourceType::ShaderMaterial) {}
+
+        ShaderMaterial(const std::string& name, Ref<Shader> shader) : Material(name, shader) {}
+
+        void Use() override;
+
+        static Ref<ShaderMaterial> Create(const std::string& name = "", Ref<Shader> shader = nullptr);
+    private:
+        friend class cereal::access;
+
+        template<class Archive>
+        void save(Archive& archive) const
+        {
+            archive(cereal::base_class<Material>(this));
+        }
+
+        template<class Archive>
+        void load(Archive& archive)
+        {
+            archive(cereal::base_class<Material>(this));
+        }
+    private:
+    };
+
     /**
      * @brief Structure representing the properties of a PBRMaterial.
      */

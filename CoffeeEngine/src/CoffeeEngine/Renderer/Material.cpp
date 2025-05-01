@@ -10,6 +10,18 @@
 
 namespace Coffee {
 
+    void ShaderMaterial::Use()
+    {
+        ZoneScoped;
+
+        m_Shader->Bind();
+    }
+
+    Ref<ShaderMaterial> ShaderMaterial::Create(const std::string& name, Ref<Shader> shader)
+    {
+        return CreateRef<ShaderMaterial>(name, shader);
+    }
+
     Ref<Texture2D> PBRMaterial::s_MissingTexture;
     Ref<Shader> PBRMaterial::s_StandardShader;
 

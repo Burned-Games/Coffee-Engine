@@ -23,10 +23,10 @@ namespace Coffee {
 
     struct RenderCommand
     {
-        glm::mat4 transform;
+        glm::mat4 transform = glm::mat4(1.0f);
         Ref<Mesh> mesh;
         Ref<Material> material;
-        uint32_t entityID;
+        uint32_t entityID = 4294967295;
         AnimatorComponent* animator;
     };
 

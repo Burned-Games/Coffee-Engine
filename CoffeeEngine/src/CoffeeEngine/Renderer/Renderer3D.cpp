@@ -57,7 +57,8 @@ namespace Coffee {
         s_RendererData.SceneRenderDataUniformBuffer = UniformBuffer::Create(sizeof(Renderer3DData::RenderData), 1);
 
         Ref<Shader> missingShader = CreateRef<Shader>("MissingShader", std::string(missingShaderSource));
-        s_RendererData.DefaultMaterial = nullptr;/* CreateRef<Material>("Missing Material", missingShader); //TODO: Port it to use the Material::Create and use ShaderMaterial */
+        s_RendererData.DefaultMaterial = ShaderMaterial::Create("Missing Material", missingShader);
+        //s_RendererData.DefaultMaterial = nullptr;/* CreateRef<Material>("Missing Material", missingShader); //TODO: Port it to use the Material::Create and use ShaderMaterial */
 
         // TODO: This is a hack to get the missing mesh add it to the PrimitiveMesh class
         Ref<Model> m = Model::Load("assets/models/MissingMesh.glb");
@@ -393,6 +394,7 @@ namespace Coffee {
 
         const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
         forwardBuffer->Bind();
+        forwardBuffer->SetDrawBuffers({0, 1}); //TODO: This should only be done in the editor
 
         // Bind the irradiance map
         s_EnvironmentMap->BindIrradianceMap(6);
