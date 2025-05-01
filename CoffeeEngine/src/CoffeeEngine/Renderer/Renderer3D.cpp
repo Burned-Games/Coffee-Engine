@@ -57,7 +57,7 @@ namespace Coffee {
         s_RendererData.SceneRenderDataUniformBuffer = UniformBuffer::Create(sizeof(Renderer3DData::RenderData), 1);
 
         Ref<Shader> missingShader = CreateRef<Shader>("MissingShader", std::string(missingShaderSource));
-        s_RendererData.DefaultMaterial = CreateRef<Material>("Missing Material", missingShader); //TODO: Port it to use the Material::Create
+        s_RendererData.DefaultMaterial = nullptr;/* CreateRef<Material>("Missing Material", missingShader); //TODO: Port it to use the Material::Create and use ShaderMaterial */
 
         // TODO: This is a hack to get the missing mesh add it to the PrimitiveMesh class
         Ref<Model> m = Model::Load("assets/models/MissingMesh.glb");
@@ -87,7 +87,7 @@ namespace Coffee {
             return;
         }
 
-        const auto& settings = command.material->GetMaterialRenderSettings();
+        const auto& settings = command.material->GetRenderSettings();
 
         if (settings.transparencyMode == MaterialRenderSettings::TransparencyMode::Disabled)
         {
@@ -317,7 +317,7 @@ namespace Coffee {
             }
 
             // Apply material settings
-            const MaterialRenderSettings& settings = material->GetMaterialRenderSettings();
+            const MaterialRenderSettings& settings = material->GetRenderSettings();
             switch (settings.cullMode)
             {
                 case MaterialRenderSettings::CullMode::Front:
@@ -456,7 +456,7 @@ namespace Coffee {
             }
 
                 // Apply material settings
-                const MaterialRenderSettings& settings = material->GetMaterialRenderSettings();
+                const MaterialRenderSettings& settings = material->GetRenderSettings();
                 switch (settings.cullMode)
                 {
                     case MaterialRenderSettings::CullMode::Front:

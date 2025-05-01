@@ -250,19 +250,19 @@ namespace Coffee {
                 s_ModelMaterialsUUIDs[referenceName] = materialUUID;
             }
 
-            MaterialTextures matTextures = LoadMaterialTextures(material);
+            PBRMaterialTextures matTextures = LoadMaterialTextures(material);
 
-            MaterialImportData materialImportData;
+            PBRMaterialImportData materialImportData;
             materialImportData.name = referenceName;
             materialImportData.materialTextures = &matTextures;
             materialImportData.uuid = materialUUID;
-            materialImportData.cachedPath = CacheManager::GetCachedFilePath(materialUUID, ResourceType::Material);
+            materialImportData.cachedPath = CacheManager::GetCachedFilePath(materialUUID, ResourceType::PBRMaterial);
             
-            meshMaterial = ResourceLoader::LoadEmbedded<Material>(materialImportData);
+            meshMaterial = ResourceLoader::LoadEmbedded<PBRMaterial>(materialImportData);
         }
         else
         {
-            meshMaterial = Material::Create();
+            meshMaterial = PBRMaterial::Create();
         }
 
         AABB aabb(
@@ -371,9 +371,9 @@ namespace Coffee {
         return Texture2D::Load(texturePath);
     }
 
-    MaterialTextures Model::LoadMaterialTextures(aiMaterial* material)
+    PBRMaterialTextures Model::LoadMaterialTextures(aiMaterial* material)
     {
-        MaterialTextures matTextures;
+        PBRMaterialTextures matTextures;
 
         matTextures.albedo = LoadTexture2D(material, aiTextureType_DIFFUSE);
         matTextures.normal = LoadTexture2D(material, aiTextureType_NORMALS);

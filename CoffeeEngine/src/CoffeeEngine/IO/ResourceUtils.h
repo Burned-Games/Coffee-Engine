@@ -12,6 +12,7 @@ namespace Coffee {
     class Model;
     class Mesh;
     class Material;
+    class PBRMaterial;
 
     inline ResourceType GetResourceTypeFromExtension(const std::filesystem::path& path)
     {
@@ -57,6 +58,8 @@ namespace Coffee {
             return "Shader";
         case ResourceType::Material:
             return "Material";
+        case ResourceType::PBRMaterial:
+            return "PBRMaterial";
         case ResourceType::Prefab:
             return "Prefab";
         default:
@@ -80,6 +83,8 @@ namespace Coffee {
             return ".shader";
         case ResourceType::Material:
             return ".material";
+        case ResourceType::PBRMaterial:
+            return ".pbrmaterial";
         default:
             return ".unknown";
         }
@@ -133,6 +138,10 @@ namespace Coffee {
         else if constexpr (std::is_same<T, Material>::value)
         {
             return ResourceType::Material;
+        }
+        else if constexpr (std::is_same<T, PBRMaterial>::value)
+        {
+            return ResourceType::PBRMaterial;
         }
         else if constexpr (std::is_same<T, Shader>::value)
         {

@@ -79,9 +79,9 @@ namespace Coffee {
                     Load<Shader>(*importData);
                     break;
                 }
-                case ResourceType::Material:
+                case ResourceType::PBRMaterial:
                 {
-                    Load<Material>(*importData);
+                    Load<PBRMaterial>(*importData);
                     break;
                 }
                 default:
@@ -230,9 +230,9 @@ namespace Coffee {
                 Load<Shader>(*importData);
                 break;
             }
-            case ResourceType::Material:
+            case ResourceType::PBRMaterial:
             {
-                Load<Material>(*importData);
+                Load<PBRMaterial>(*importData);
                 break;
             }
             default:

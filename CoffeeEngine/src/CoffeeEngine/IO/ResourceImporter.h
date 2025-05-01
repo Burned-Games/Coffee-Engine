@@ -28,7 +28,7 @@ namespace Coffee {
     struct Vertex;
 
     class Material;
-    struct MaterialTextures;
+    struct PBRMaterialTextures;
     class Texture;
     class Texture2D;
 

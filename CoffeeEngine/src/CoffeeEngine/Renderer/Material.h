@@ -20,68 +20,100 @@ namespace Coffee {
      * @{
      */
 
-    // Not implemented yet!!
-    struct MaterialRenderSettings
+     struct MaterialRenderSettings
+     {
+         // Transparency
+         enum TransparencyMode
+         {
+             Disabled = 0,
+             Alpha,
+             AlphaCutoff
+         } transparencyMode = TransparencyMode::Disabled; ///< The transparency mode.
+ 
+         float alphaCutoff = 0.5f; ///< The alpha cutoff value for the transparency mode.
+ 
+         // Blend mode
+         enum BlendMode
+         {
+             Mix = 0,
+             Add,
+             Subtract,
+             Multiply
+         } blendMode = BlendMode::Mix; ///< The blend mode for the transparency.
+ 
+         // Culling
+         enum CullMode
+         {
+             Front = 0,
+             Back,
+             None
+         } cullMode = CullMode::Back; ///< The culling mode for the PBRMaterial.
+ 
+         // Depth
+ /*         enum DepthMode
+         {
+             Read = 0,
+             Write,
+             None
+         } depthMode = DepthMode::Write; ///< The depth mode for the PBRMaterial. */
+         bool depthTest = true; ///< Whether to enable depth testing.
+ 
+         // Wireframe
+         bool wireframe = false; ///< Whether to render the PBRMaterial in wireframe mode.
+         
+     private:
+         friend class cereal::access;
+ 
+         template<class Archive>
+         void serialize(Archive& archive)
+         {
+             archive(transparencyMode, alphaCutoff, blendMode, cullMode, depthTest, wireframe);
+         }
+     };
+
+    class Material : public Resource
     {
-        // Transparency
-        enum TransparencyMode
-        {
-            Disabled = 0,
-            Alpha,
-            AlphaCutoff
-        } transparencyMode = TransparencyMode::Disabled; ///< The transparency mode.
+    public:
+        Material() : Resource(ResourceType::Material) {}
 
-        float alphaCutoff = 0.5f; ///< The alpha cutoff value for the transparency mode.
+        Material(ResourceType type) : Resource(type) {}
 
-        // Blend mode
-        enum BlendMode
-        {
-            Mix = 0,
-            Add,
-            Subtract,
-            Multiply
-        } blendMode = BlendMode::Mix; ///< The blend mode for the transparency.
+        Material(const std::string& name, ResourceType type) : Resource(type) { m_Name = name; }
 
-        // Culling
-        enum CullMode
-        {
-            Front = 0,
-            Back,
-            None
-        } cullMode = CullMode::Back; ///< The culling mode for the material.
+        Material(const std::string& name, Ref<Shader> shader) : Resource(ResourceType::Material), m_Shader(shader) { m_Name = name; }
 
-        // Depth
-/*         enum DepthMode
-        {
-            Read = 0,
-            Write,
-            None
-        } depthMode = DepthMode::Write; ///< The depth mode for the material. */
-        bool depthTest = true; ///< Whether to enable depth testing.
+        Ref<Shader> GetShader() { return m_Shader; }
+        MaterialRenderSettings& GetRenderSettings() { return m_RenderSettings; }
 
-        // Wireframe
-        bool wireframe = false; ///< Whether to render the material in wireframe mode.
-        
+        virtual void Use() = 0;
     private:
         friend class cereal::access;
 
         template<class Archive>
-        void serialize(Archive& archive)
+        void save(Archive& archive) const
         {
-            archive(transparencyMode, alphaCutoff, blendMode, cullMode, depthTest, wireframe);
+            archive(cereal::base_class<Resource>(this), m_RenderSettings);
         }
+        template<class Archive>
+        void load(Archive& archive)
+        {
+            archive(cereal::base_class<Resource>(this), m_RenderSettings);
+        }
+    protected:
+        Ref<Shader> m_Shader; ///< The shader used by the material.
+        MaterialRenderSettings m_RenderSettings; ///< The render settings for the material.
     };
 
     /**
-     * @brief Structure representing the properties of a material.
+     * @brief Structure representing the properties of a PBRMaterial.
      */
-    struct MaterialProperties
+    struct PBRMaterialProperties
     {
-        glm::vec4 color = glm::vec4(1.0f); ///< The color of the material.
-        float metallic = 0.0f; ///< The metallic value of the material.
-        float roughness = 1.0f; ///< The roughness value of the material.
-        float ao = 1.0f; ///< The ambient occlusion value of the material.
-        glm::vec3 emissive = glm::vec3(0.0f); ///< The emissive value of the material.
+        glm::vec4 color = glm::vec4(1.0f); ///< The color of the PBRMaterial.
+        float metallic = 0.0f; ///< The metallic value of the PBRMaterial.
+        float roughness = 1.0f; ///< The roughness value of the PBRMaterial.
+        float ao = 1.0f; ///< The ambient occlusion value of the PBRMaterial.
+        glm::vec3 emissive = glm::vec3(0.0f); ///< The emissive value of the PBRMaterial.
 
         private:
             friend class cereal::access;
@@ -94,9 +126,9 @@ namespace Coffee {
     };
 
     /**
-     * @brief Structure representing the textures used in a material.
+     * @brief Structure representing the textures used in a PBRMaterial.
      */
-    struct MaterialTextures // Temporal
+    struct PBRMaterialTextures // Temporal
     {
         Ref<Texture2D> albedo; ///< The albedo texture.
         Ref<Texture2D> normal; ///< The normal map texture.
@@ -136,14 +168,14 @@ namespace Coffee {
             }
     };
 
-    struct MaterialTextureFlags
+    struct PBRMaterialTextureFlags
     {
-        bool hasAlbedo = false; ///< Whether the material has an albedo texture.
-        bool hasNormal = false; ///< Whether the material has a normal map texture.
-        bool hasMetallic = false; ///< Whether the material has a metallic texture.
-        bool hasRoughness = false; ///< Whether the material has a roughness texture.
-        bool hasAO = false; ///< Whether the material has an ambient occlusion texture.
-        bool hasEmissive = false; ///< Whether the material has an emissive texture.
+        bool hasAlbedo = false; ///< Whether the PBRMaterial has an albedo texture.
+        bool hasNormal = false; ///< Whether the PBRMaterial has a normal map texture.
+        bool hasMetallic = false; ///< Whether the PBRMaterial has a metallic texture.
+        bool hasRoughness = false; ///< Whether the PBRMaterial has a roughness texture.
+        bool hasAO = false; ///< Whether the PBRMaterial has an ambient occlusion texture.
+        bool hasEmissive = false; ///< Whether the PBRMaterial has an emissive texture.
 
         private:
             friend class cereal::access;
@@ -156,107 +188,82 @@ namespace Coffee {
     };
 
     /**
-     * @brief Class representing a material.
+     * @brief Class representing a PBRMaterial.
      */
-    class Material : public Resource
+    class PBRMaterial : public Material
     {
     public:
 
-        Material();
+        PBRMaterial();
         /**
-         * @brief Default constructor for the Material class.
+         * @brief Default destructor for the PBRMaterial class.
          */
-        Material(const std::string& name);
-
-        /**
-         * @brief Constructs a Material with the specified shader.
-         * @param shader The shader to be used with the material.
-         */
-        Material(const std::string& name, Ref<Shader> shader);
+         ~PBRMaterial() = default;
 
         /**
-         * @brief Constructs a Material from a file path.
-         * @param path The file path to the material definition.
-         * @note This constructor is for future use when the material YAML exists.
+         * @brief Default constructor for the PBRPBRMaterial class.
          */
-        Material(std::filesystem::path& path);
+        PBRMaterial(const std::string& name);
 
         /**
-         * @brief Constructs a Material with the specified textures.
-         * @param materialTextures The textures to be used with the material.
+         * @brief Constructs a PBRMaterial with the specified shader.
+         * @param shader The shader to be used with the PBRMaterial.
          */
-        Material(const std::string& name, MaterialTextures& materialTextures);
-
-        Material(ImportData& importData);
+        PBRMaterial(const std::string& name, Ref<Shader> shader);
 
         /**
-         * @brief Default destructor for the Material class.
+         * @brief Constructs a PBRMaterial with the specified textures.
+         * @param PBRMaterialTextures The textures to be used with the PBRMaterial.
          */
-        ~Material() = default;
+        PBRMaterial(const std::string& name, PBRMaterialTextures& PBRMaterialTextures);
 
-        /**
-         * @brief Uses the material by binding its shader and textures.
-         */
-        void Use();
+        PBRMaterial(ImportData& importData);
 
-        /**
-         * @brief Gets the shader associated with the material.
-         * @return A reference to the shader.
-         */
-        Ref<Shader> GetShader() { return m_Shader; }
+        void Use() override;
 
-        MaterialTextures& GetMaterialTextures() { return m_MaterialTextures; }
-        MaterialProperties& GetMaterialProperties() { return m_MaterialProperties; }
-        MaterialRenderSettings& GetMaterialRenderSettings() { return m_MaterialRenderSettings; }
+        PBRMaterialTextures& GetTextures() { return m_Textures; }
+        PBRMaterialProperties& GetProperties() { return m_Properties; }
 
-        //TODO: Remove the materialTextures parameter and make a function that set the materialTextures and the shader too
-        static Ref<Material> Create(const std::string& name = "", MaterialTextures* materialTextures = nullptr);
+        //TODO: Remove the PBRMaterialTextures parameter and make a function that set the PBRMaterialTextures and the shader too
+        static Ref<PBRMaterial> Create(const std::string& name = "", PBRMaterialTextures* PBRMaterialTextures = nullptr);
 
-        private:
+    private:
         
         friend class cereal::access;
 
         template<class Archive>
         void save(Archive& archive) const
         {
-            archive(m_MaterialTextures, m_MaterialTextureFlags, m_MaterialProperties, m_MaterialRenderSettings, cereal::base_class<Resource>(this));
+            archive(m_Textures, m_TextureFlags, m_Properties, m_RenderSettings, cereal::base_class<Material>(this));
         }
 
         template<class Archive>
         void load(Archive& archive)
         {
-            archive(m_MaterialTextures, m_MaterialTextureFlags, m_MaterialProperties, m_MaterialRenderSettings, cereal::base_class<Resource>(this));
+            archive(m_Textures, m_TextureFlags, m_Properties, m_RenderSettings, cereal::base_class<Material>(this));
         }
 
         template<class Archive>
-        static void load_and_construct(Archive& archive, cereal::construct<Material>& construct)
+        static void load_and_construct(Archive& archive, cereal::construct<PBRMaterial>& construct)
         {
-            MaterialTextures materialTextures;
-            MaterialTextureFlags materialTextureFlags;
-            MaterialProperties materialProperties;
-            MaterialRenderSettings materialRenderSettings;
-            Resource baseClass;
+            PBRMaterialTextures PBRMaterialTextures;
+            PBRMaterialTextureFlags PBRMaterialTextureFlags;
+            PBRMaterialProperties PBRMaterialProperties;
 
-            archive(materialTextures, materialTextureFlags, materialProperties, materialRenderSettings, cereal::base_class<Resource>(&baseClass));
+            archive(PBRMaterialTextures, PBRMaterialTextureFlags, PBRMaterialProperties, cereal::base_class<Material>(construct.ptr()));
 
-            construct(baseClass.GetName(), materialTextures);
-            construct->m_MaterialTextureFlags = materialTextureFlags;
-            construct->m_MaterialProperties = materialProperties;
-            construct->m_MaterialRenderSettings = materialRenderSettings;
-            construct->m_Name = baseClass.GetName();
-            construct->m_FilePath = baseClass.GetPath();
-            construct->m_Type = baseClass.GetType();
-            construct->m_UUID = baseClass.GetUUID();
+            // TODO: TEST THE GETNAME PART PLEASE!!
+            construct(construct.ptr()->GetName(), PBRMaterialTextures);
+            construct->m_TextureFlags = PBRMaterialTextureFlags;
+            construct->m_Properties = PBRMaterialProperties;
         }
 
     private:
-        MaterialTextures m_MaterialTextures; ///< The textures used in the material.
-        MaterialTextureFlags m_MaterialTextureFlags; ///< The flags for the textures used in the material.
-        MaterialProperties m_MaterialProperties; ///< The properties of the material.
-        MaterialRenderSettings m_MaterialRenderSettings; ///< The render settings of the material.
-        Ref<Shader> m_Shader; ///< The shader used with the material.
+        PBRMaterialTextures m_Textures; ///< The textures used in the PBRMaterial.
+        PBRMaterialTextureFlags m_TextureFlags; ///< The flags for the textures used in the PBRMaterial.
+        PBRMaterialProperties m_Properties; ///< The properties of the PBRMaterial.
         static Ref<Texture2D> s_MissingTexture; ///< The texture to use when a texture is missing.
-        static Ref<Shader> s_StandardShader; ///< The standard shader to use with the material. (When the material be a base class of PBRMaterial and ShaderMaterial this should be moved to PBRMaterial)
+        static Ref<Shader> s_StandardShader; ///< The standard shader to use with the PBRMaterial. (When the Material be a base class of PBRMaterial and ShaderMaterial this should be moved to PBRMaterial)
     };
 
     /** @} */
@@ -264,3 +271,5 @@ namespace Coffee {
 
 CEREAL_REGISTER_TYPE(Coffee::Material);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Coffee::Resource, Coffee::Material);
+CEREAL_REGISTER_TYPE(Coffee::PBRMaterial);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Coffee::Material, Coffee::PBRMaterial);
