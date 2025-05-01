@@ -123,8 +123,6 @@ namespace Coffee {
             // if one of the parents iterated through is equal to the entity being re-parented, abort
             if (h->m_Parent == entity)
             {
-                auto tag = registry.try_get<TagComponent>(h->m_Parent);
-                COFFEE_CORE_WARN("Tried to re-parent {} to its own child. This is not allowed", tag ? tag->Tag : "an entity");
                 return;
             }
             // Get next parent up the chain and keep iterating
