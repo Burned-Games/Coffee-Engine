@@ -20,8 +20,6 @@ namespace Coffee {
      */
     struct HierarchyComponent
     {
-        static bool LoadingScene;
-
         /**
          * @brief Constructor with parent entity.
          * @param parent The parent entity.
@@ -38,7 +36,7 @@ namespace Coffee {
          * @param registry The entity registry.
          * @param entity The entity.
          */
-        static void OnConstruct(entt::registry& registry, entt::entity entity);
+        static void OnConstruct(Scene* scene, entt::registry& registry, entt::entity entity);
 
         /**
          * @brief Called when the component is destroyed.

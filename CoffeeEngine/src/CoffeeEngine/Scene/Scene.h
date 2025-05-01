@@ -124,6 +124,8 @@ namespace Coffee {
         const std::filesystem::path& GetFilePath() const { return m_FilePath; }
         void SetFilePath(const std::filesystem::path& path) { m_FilePath = path; }
 
+        bool IsLoading() const { return m_IsLoading; }
+
         /**
          * @brief Update the positions of the audio components.
          */
@@ -187,7 +189,7 @@ namespace Coffee {
          */
         template <class Archive> void load(Archive& archive, std::uint32_t const version)
         {
-            HierarchyComponent::LoadingScene = true;
+            m_IsLoading = true;
 
             if (version == 0)
             {
@@ -242,9 +244,9 @@ namespace Coffee {
                     .template get<UISliderComponent>(archive);
             }
 
-            HierarchyComponent::LoadingScene = false;
-
             AssignAnimatorsToMeshes(AnimationSystem::GetAnimators());
+
+            m_IsLoading = false;
         }
 
     private:
@@ -264,6 +266,7 @@ namespace Coffee {
         // Temporal: Scenes should be Resources and the Base Resource class already has a path variable.
         std::filesystem::path m_FilePath;
 
+        bool m_IsLoading = false;
 
         friend class Entity;
         friend class SceneTree;

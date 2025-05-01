@@ -8,8 +8,6 @@
 
 namespace Coffee {
 
-    bool HierarchyComponent::LoadingScene = false;
-
     HierarchyComponent::HierarchyComponent(entt::entity parent)
     {
         m_Parent = parent;
@@ -25,9 +23,9 @@ namespace Coffee {
         m_Prev = entt::null;
     }
 
-    void HierarchyComponent::OnConstruct(entt::registry& registry, entt::entity entity)
+    void HierarchyComponent::OnConstruct(Scene* scene, entt::registry& registry, entt::entity entity)
     {
-        if (LoadingScene) return;
+        if (scene and scene->IsLoading()) return;
 
         auto& hierarchy = registry.get<HierarchyComponent>(entity);
 
@@ -142,7 +140,7 @@ namespace Coffee {
         if (parent != entt::null) {
 
             hierarchyComponent->m_Parent = parent;
-            HierarchyComponent::OnConstruct(registry, entity);
+            HierarchyComponent::OnConstruct(nullptr, registry, entity);
     
             // Mark the entity and its children as dirty
             auto& transformComponent = registry.get<TransformComponent>(entity);
@@ -246,7 +244,7 @@ namespace Coffee {
     SceneTree::SceneTree(Scene* scene) : m_Context(scene)
     {
         auto& registry = m_Context->m_Registry;
-        registry.on_construct<HierarchyComponent>().connect<&HierarchyComponent::OnConstruct>();
+        registry.on_construct<HierarchyComponent>().connect<&HierarchyComponent::OnConstruct>(m_Context);
         registry.on_update<HierarchyComponent>().connect<&HierarchyComponent::OnUpdate>();
         registry.on_destroy<HierarchyComponent>().connect<&HierarchyComponent::OnDestroy>();
     }
