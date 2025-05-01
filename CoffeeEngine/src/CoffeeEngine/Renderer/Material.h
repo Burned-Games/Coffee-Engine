@@ -111,6 +111,8 @@ namespace Coffee {
 
         ShaderMaterial(const std::string& name, Ref<Shader> shader) : Material(name, shader) {}
 
+        ShaderMaterial(ImportData& importData);
+
         void Use() override;
 
         static Ref<ShaderMaterial> Create(const std::string& name = "", Ref<Shader> shader = nullptr);
@@ -120,13 +122,15 @@ namespace Coffee {
         template<class Archive>
         void save(Archive& archive) const
         {
-            archive(cereal::base_class<Material>(this));
+            archive(m_Shader->GetPath(), cereal::base_class<Material>(this));
         }
 
         template<class Archive>
         void load(Archive& archive)
         {
-            archive(cereal::base_class<Material>(this));
+            std::string shaderPath;
+            archive(shaderPath, cereal::base_class<Material>(this));
+            m_Shader = Shader::Create(shaderPath);
         }
     private:
     };

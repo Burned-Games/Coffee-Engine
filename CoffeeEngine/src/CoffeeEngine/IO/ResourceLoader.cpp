@@ -84,6 +84,11 @@ namespace Coffee {
                     Load<PBRMaterial>(*importData);
                     break;
                 }
+                case ResourceType::ShaderMaterial:
+                {
+                    Load<ShaderMaterial>(*importData);
+                    break;
+                }
                 default:
                 {
                     COFFEE_CORE_ERROR("ResourceLoader::LoadResources: Unsupported resource type {0}", ResourceTypeToString(importData->type));
@@ -233,6 +238,11 @@ namespace Coffee {
             case ResourceType::PBRMaterial:
             {
                 Load<PBRMaterial>(*importData);
+                break;
+            }
+            case ResourceType::ShaderMaterial:
+            {
+                Load<ShaderMaterial>(*importData);
                 break;
             }
             default:

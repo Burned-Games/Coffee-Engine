@@ -1,5 +1,6 @@
 #include "Material.h"
 #include "CoffeeEngine/Core/Base.h"
+#include "CoffeeEngine/IO/ImportData/ImportData.h"
 #include "CoffeeEngine/IO/ImportData/MaterialImportData.h"
 #include "CoffeeEngine/IO/Resource.h"
 #include "CoffeeEngine/IO/ResourceLoader.h"
@@ -9,6 +10,25 @@
 #include <tracy/Tracy.hpp>
 
 namespace Coffee {
+
+    ShaderMaterial::ShaderMaterial(ImportData& importData)
+        : Material(ResourceType::ShaderMaterial)
+    {
+        ZoneScoped;
+
+/*         ShaderMaterialImportData& shaderMaterialImportData = dynamic_cast<ShaderMaterialImportData&>(importData);
+
+        m_Name = shaderMaterialImportData.name;
+        m_UUID = shaderMaterialImportData.uuid;
+        m_FilePath = shaderMaterialImportData.cachedPath;
+
+        m_Shader = Shader::Create(shaderMaterialImportData.shaderPath); */
+
+        m_UUID = importData.uuid;
+        m_Name = importData.originalPath.stem().string();
+        m_Shader = Shader::Create(importData.originalPath);
+        m_FilePath = importData.cachedPath;
+    }
 
     void ShaderMaterial::Use()
     {
