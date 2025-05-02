@@ -96,6 +96,18 @@ namespace Coffee {
          */
         UUID GetUUID() const { return m_UUID; }
 
+        /**
+         * @brief Sets the embedded status of the resource.
+         * @param isEmbedded The embedded status to set.
+         */
+        void SetEmbedded(bool isEmbedded) { m_isEmbedded = isEmbedded; }
+
+        /**
+         * @brief Checks if the resource is embedded.
+         * @return True if the resource is embedded, false otherwise.
+         */
+        bool IsEmbedded() const { return m_isEmbedded; }
+
     private:
         friend class cereal::access;
 
@@ -127,6 +139,7 @@ namespace Coffee {
         std::filesystem::path m_FilePath; ///< The file path of the resource.
         ResourceType m_Type; ///< The type of the resource.
         UUID m_UUID; ///< The UUID of the resource.
+        bool m_isEmbedded = false; ///< Flag indicating if the resource is embedded. // TODO: Revise if this is the right place for this
     };
 
 }

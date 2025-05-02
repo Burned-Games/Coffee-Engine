@@ -178,7 +178,7 @@ namespace Coffee {
         importData.name = name;
         importData.materialTextures = materialTextures;
         importData.uuid = UUID();
-        importData.cachedPath = CacheManager::GetCachedFilePath(importData.uuid, ResourceType::Material);
+        importData.cachedPath = CacheManager::GetCachedFilePath(importData.uuid, ResourceType::PBRMaterial);
 
         return ResourceLoader::LoadEmbedded<PBRMaterial>(importData);
     }

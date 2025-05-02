@@ -897,10 +897,12 @@ namespace Coffee
                         if (ImGui::MenuItem(ICON_LC_BOX "PBRMaterial"))
                         {
                             materialComponent.material = PBRMaterial::Create();
+                            materialComponent.material->SetEmbedded(true);
                         }
                         if (ImGui::MenuItem(ICON_LC_SQUARE_CHART_GANTT "ShaderMaterial"))
                         {
                             materialComponent.material = ShaderMaterial::Create();
+                            materialComponent.material->SetEmbedded(true);
                         }
                         ImGui::Separator();
                         if (ImGui::MenuItem(ICON_LC_FOLDER "Quick Load...", NULL, false, false))

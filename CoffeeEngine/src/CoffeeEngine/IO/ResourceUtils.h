@@ -140,10 +140,6 @@ namespace Coffee {
         {
             return ResourceType::Mesh;
         }
-        else if constexpr (std::is_same<T, Material>::value)
-        {
-            return ResourceType::Material;
-        }
         else if constexpr (std::is_same<T, PBRMaterial>::value)
         {
             return ResourceType::PBRMaterial;
@@ -151,6 +147,10 @@ namespace Coffee {
         else if constexpr (std::is_same<T, ShaderMaterial>::value)
         {
             return ResourceType::ShaderMaterial;
+        }
+        else if constexpr (std::is_same<T, Material>::value)
+        {
+            return ResourceType::Material;
         }
         else if constexpr (std::is_same<T, Shader>::value)
         {

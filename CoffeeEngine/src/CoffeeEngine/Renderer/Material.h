@@ -7,6 +7,7 @@
 #include "CoffeeEngine/Renderer/Texture.h"
 #include "CoffeeEngine/IO/ResourceLoader.h"
 #include "CoffeeEngine/IO/Serialization/GLMSerialization.h"
+#include <cereal/cereal.hpp>
 #include <cereal/types/polymorphic.hpp>
 #include <filesystem>
 #include <glm/fwd.hpp>
@@ -67,7 +68,14 @@ namespace Coffee {
          template<class Archive>
          void serialize(Archive& archive)
          {
-             archive(transparencyMode, alphaCutoff, blendMode, cullMode, depthTest, wireframe);
+            archive(
+                cereal::make_nvp("TransparencyMode", transparencyMode),
+                cereal::make_nvp("AlphaCutoff", alphaCutoff),
+                cereal::make_nvp("BlendMode", blendMode),
+                cereal::make_nvp("CullMode", cullMode),
+                cereal::make_nvp("DepthTest", depthTest),
+                cereal::make_nvp("Wireframe", wireframe)
+            );
          }
      };
 
@@ -92,12 +100,15 @@ namespace Coffee {
         template<class Archive>
         void save(Archive& archive) const
         {
-            archive(cereal::base_class<Resource>(this), m_RenderSettings);
+            std::string shaderPath = m_Shader ? m_Shader->GetPath() : "";
+            archive(cereal::base_class<Resource>(this), cereal::make_nvp("Shader Path", shaderPath), cereal::make_nvp("Render Settings", m_RenderSettings));
         }
         template<class Archive>
         void load(Archive& archive)
         {
-            archive(cereal::base_class<Resource>(this), m_RenderSettings);
+            std::string shaderPath;
+            archive(cereal::base_class<Resource>(this), cereal::make_nvp("Shader Path", shaderPath), cereal::make_nvp("Render Settings", m_RenderSettings));
+            if (!shaderPath.empty()) m_Shader = Shader::Create(shaderPath);
         }
     protected:
         Ref<Shader> m_Shader; ///< The shader used by the material.
@@ -124,15 +135,13 @@ namespace Coffee {
         template<class Archive>
         void save(Archive& archive) const
         {
-            archive(m_Shader->GetPath(), cereal::base_class<Material>(this));
+            archive(cereal::base_class<Material>(this));
         }
 
         template<class Archive>
         void load(Archive& archive)
         {
-            std::string shaderPath;
-            archive(shaderPath, cereal::base_class<Material>(this));
-            m_Shader = Shader::Create(shaderPath);
+            archive(cereal::base_class<Material>(this));
         }
     private:
     };
@@ -154,7 +163,13 @@ namespace Coffee {
             template<class Archive>
             void serialize(Archive& archive)
             {
-                archive(color, metallic, roughness, ao, emissive);
+                archive(
+                    cereal::make_nvp("Color", color),
+                    cereal::make_nvp("Metallic", metallic),
+                    cereal::make_nvp("Roughness", roughness),
+                    cereal::make_nvp("AO", ao),
+                    cereal::make_nvp("Emissive", emissive)
+                );
             }
     };
 
@@ -176,21 +191,28 @@ namespace Coffee {
             template<class Archive>
             void save(Archive& archive) const
             {
-                UUID albedoUUID = albedo ? albedo->GetUUID() : UUID::null;
-                UUID normalUUID = normal ? normal->GetUUID() : UUID::null;
-                UUID metallicUUID = metallic ? metallic->GetUUID() : UUID::null;
-                UUID roughnessUUID = roughness ? roughness->GetUUID() : UUID::null;
-                UUID aoUUID = ao ? ao->GetUUID() : UUID::null;
-                UUID emissiveUUID = emissive ? emissive->GetUUID() : UUID::null;
-
-                archive(albedoUUID, normalUUID, metallicUUID, roughnessUUID, aoUUID, emissiveUUID);
+                archive(
+                    cereal::make_nvp("AlbedoUUID", albedo ? albedo->GetUUID() : UUID::null),
+                    cereal::make_nvp("NormalUUID", normal ? normal->GetUUID() : UUID::null),
+                    cereal::make_nvp("MetallicUUID", metallic ? metallic->GetUUID() : UUID::null),
+                    cereal::make_nvp("RoughnessUUID", roughness ? roughness->GetUUID() : UUID::null),
+                    cereal::make_nvp("AOUUID", ao ? ao->GetUUID() : UUID::null),
+                    cereal::make_nvp("EmissiveUUID", emissive ? emissive->GetUUID() : UUID::null)
+                );
             }
 
             template<class Archive>
             void load(Archive& archive)
             {
                 UUID albedoUUID, normalUUID, metallicUUID, roughnessUUID, aoUUID, emissiveUUID;
-                archive(albedoUUID, normalUUID, metallicUUID, roughnessUUID, aoUUID, emissiveUUID);
+                archive(
+                    cereal::make_nvp("AlbedoUUID", albedoUUID),
+                    cereal::make_nvp("NormalUUID", normalUUID),
+                    cereal::make_nvp("MetallicUUID", metallicUUID),
+                    cereal::make_nvp("RoughnessUUID", roughnessUUID),
+                    cereal::make_nvp("AOUUID", aoUUID),
+                    cereal::make_nvp("EmissiveUUID", emissiveUUID)
+                );
 
                 albedo = ResourceLoader::GetResource<Texture2D>(albedoUUID);
                 normal = ResourceLoader::GetResource<Texture2D>(normalUUID);
@@ -216,7 +238,14 @@ namespace Coffee {
             template<class Archive>
             void serialize(Archive& archive)
             {
-                archive(hasAlbedo, hasNormal, hasMetallic, hasRoughness, hasAO, hasEmissive);
+                archive(
+                    cereal::make_nvp("HasAlbedo", hasAlbedo),
+                    cereal::make_nvp("HasNormal", hasNormal),
+                    cereal::make_nvp("HasMetallic", hasMetallic),
+                    cereal::make_nvp("HasRoughness", hasRoughness),
+                    cereal::make_nvp("HasAO", hasAO),
+                    cereal::make_nvp("HasEmissive", hasEmissive)
+                );
             }
     };
 
@@ -267,13 +296,23 @@ namespace Coffee {
         template<class Archive>
         void save(Archive& archive) const
         {
-            archive(m_Textures, m_TextureFlags, m_Properties, m_RenderSettings, cereal::base_class<Material>(this));
+            archive(
+                cereal::make_nvp("Textures", m_Textures),
+                cereal::make_nvp("TextureFlags", m_TextureFlags),
+                cereal::make_nvp("Properties", m_Properties),
+                cereal::base_class<Material>(this)
+            );
         }
-
+        
         template<class Archive>
         void load(Archive& archive)
         {
-            archive(m_Textures, m_TextureFlags, m_Properties, m_RenderSettings, cereal::base_class<Material>(this));
+            archive(
+                cereal::make_nvp("Textures", m_Textures),
+                cereal::make_nvp("TextureFlags", m_TextureFlags),
+                cereal::make_nvp("Properties", m_Properties),
+                cereal::base_class<Material>(this)
+            );
         }
 
         template<class Archive>
@@ -282,13 +321,17 @@ namespace Coffee {
             PBRMaterialTextures PBRMaterialTextures;
             PBRMaterialTextureFlags PBRMaterialTextureFlags;
             PBRMaterialProperties PBRMaterialProperties;
+            PBRMaterial tmpMaterial;
 
-            archive(PBRMaterialTextures, PBRMaterialTextureFlags, PBRMaterialProperties, cereal::base_class<Material>(construct.ptr()));
+            archive(PBRMaterialTextures, PBRMaterialTextureFlags, PBRMaterialProperties, cereal::base_class<Material>(&tmpMaterial));
 
-            // TODO: TEST THE GETNAME PART PLEASE!!
-            construct(construct.ptr()->GetName(), PBRMaterialTextures);
+            construct(tmpMaterial.GetName(), PBRMaterialTextures);
             construct->m_TextureFlags = PBRMaterialTextureFlags;
             construct->m_Properties = PBRMaterialProperties;
+            construct->m_Name = tmpMaterial.GetName();
+            construct->m_FilePath = tmpMaterial.GetPath();
+            construct->m_Type = tmpMaterial.GetType();
+            construct->m_UUID = tmpMaterial.GetUUID();
         }
 
     private:
