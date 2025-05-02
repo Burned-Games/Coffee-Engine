@@ -119,7 +119,7 @@ namespace Coffee {
         template <class Archive> void save(Archive& archive, std::uint32_t const version) const
         {
             int typeInt = static_cast<int>(m_Type);
-            archive(m_Name, m_FilePath, typeInt, m_UUID);
+            archive(m_Name, m_FilePath, typeInt, m_UUID, m_isEmbedded);
         }
 
         /**
@@ -130,7 +130,7 @@ namespace Coffee {
         template <class Archive> void load(Archive& archive, std::uint32_t const version)
         {
             int typeInt;
-            archive(m_Name, m_FilePath, typeInt, m_UUID);
+            archive(m_Name, m_FilePath, typeInt, m_UUID, m_isEmbedded);
             m_Type = static_cast<ResourceType>(typeInt);
         }
 

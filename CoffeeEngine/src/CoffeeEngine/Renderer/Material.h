@@ -6,7 +6,9 @@
 #include "CoffeeEngine/Renderer/Shader.h"
 #include "CoffeeEngine/Renderer/Texture.h"
 #include "CoffeeEngine/IO/ResourceLoader.h"
+#include "CoffeeEngine/Project/Project.h"
 #include "CoffeeEngine/IO/Serialization/GLMSerialization.h"
+#include "CoffeeEngine/IO/Serialization/FilesystemPathSerialization.h"
 #include <cereal/cereal.hpp>
 #include <cereal/types/polymorphic.hpp>
 #include <filesystem>
@@ -101,6 +103,12 @@ namespace Coffee {
         void save(Archive& archive) const
         {
             std::string shaderPath = m_Shader ? m_Shader->GetPath() : "";
+            
+            if (Project::GetActive())
+                shaderPath = std::filesystem::relative(m_Shader->GetPath(), Project::GetActive()->GetProjectDirectory());
+            else
+                COFFEE_CORE_ERROR("Material::save: Project is not active, shader path is not relative to the project directory!");
+
             archive(cereal::base_class<Resource>(this), cereal::make_nvp("Shader Path", shaderPath), cereal::make_nvp("Render Settings", m_RenderSettings));
         }
         template<class Archive>
@@ -108,7 +116,13 @@ namespace Coffee {
         {
             std::string shaderPath;
             archive(cereal::base_class<Resource>(this), cereal::make_nvp("Shader Path", shaderPath), cereal::make_nvp("Render Settings", m_RenderSettings));
-            if (!shaderPath.empty()) m_Shader = Shader::Create(shaderPath);
+
+            if (Project::GetActive())
+                shaderPath = Project::GetActive()->GetProjectDirectory() / shaderPath;
+            else
+                COFFEE_CORE_ERROR("Material::load: Project is not active, shader path is not relative to the project directory!");
+
+            if (!shaderPath.empty() and std::filesystem::is_regular_file(shaderPath)) m_Shader = Shader::Create(shaderPath);
         }
     protected:
         Ref<Shader> m_Shader; ///< The shader used by the material.
