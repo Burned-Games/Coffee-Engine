@@ -102,14 +102,14 @@ namespace Coffee {
         template<class Archive>
         void save(Archive& archive) const
         {
-            std::string shaderPath = m_Shader ? m_Shader->GetPath() : "";
+            std::filesystem::path shaderPath = m_Shader ? m_Shader->GetPath() : "";
             
             if (Project::GetActive())
                 shaderPath = std::filesystem::relative(m_Shader->GetPath(), Project::GetActive()->GetProjectDirectory());
             else
                 COFFEE_CORE_ERROR("Material::save: Project is not active, shader path is not relative to the project directory!");
 
-            archive(cereal::base_class<Resource>(this), cereal::make_nvp("Shader Path", shaderPath), cereal::make_nvp("Render Settings", m_RenderSettings));
+            archive(cereal::base_class<Resource>(this), cereal::make_nvp("Shader Path", shaderPath.generic_string()), cereal::make_nvp("Render Settings", m_RenderSettings));
         }
         template<class Archive>
         void load(Archive& archive)
