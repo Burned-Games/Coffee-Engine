@@ -3,6 +3,7 @@
 #include "CoffeeEngine/Core/Base.h"
 #include "CoffeeEngine/Core/FileDialog.h"
 #include "CoffeeEngine/IO/Resource.h"
+#include "CoffeeEngine/IO/ResourceRegistry.h"
 #include "CoffeeEngine/Renderer/Camera.h"
 #include "CoffeeEngine/Renderer/Material.h"
 #include "CoffeeEngine/Renderer/Model.h"
@@ -27,6 +28,8 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 #include <glm/fwd.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
@@ -863,14 +866,266 @@ namespace Coffee
                 }
             };
 
+            static bool ShowShaderQuickLoad = false;
+
             auto& materialComponent = entity.GetComponent<MaterialComponent>();
             bool isCollapsingHeaderOpen = true;
-            if (!materialComponent.material)
+            if (ImGui::CollapsingHeader("Material", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
-                if (ImGui::CollapsingHeader("Material (Missing)", &isCollapsingHeaderOpen,
-                                            ImGuiTreeNodeFlags_DefaultOpen))
+                // Check if the material is valid
+                if (!materialComponent.material)
                 {
-                    ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Material is missing or invalid!");
+                    // If the material is not valid render a button to choose a new one
+
+                    static bool MaterialSelectorOpen = false;
+
+                    ImGui::Text("Material");
+                    ImGui::SameLine();
+                    if (ImGui::Button("<Empty>", {64, 32}))
+                    {
+                        MaterialSelectorOpen = true;
+                    }
+
+                    if (MaterialSelectorOpen)
+                    {
+                        ImGui::OpenPopup("MaterialPopup");
+                        MaterialSelectorOpen = false;
+                    }
+
+                    if (ImGui::BeginPopup("MaterialPopup"))
+                    {
+                        if (ImGui::MenuItem(ICON_LC_BOX "PBRMaterial"))
+                        {
+                            materialComponent.material = PBRMaterial::Create();
+                        }
+                        if (ImGui::MenuItem(ICON_LC_SQUARE_CHART_GANTT "ShaderMaterial"))
+                        {
+                            materialComponent.material = ShaderMaterial::Create();
+                        }
+                        ImGui::Separator();
+                        if (ImGui::MenuItem(ICON_LC_FOLDER "Quick Load...", NULL, false, false))
+                        {
+                        }
+                        {
+                        }
+                        if (ImGui::MenuItem(ICON_LC_FOLDER "Load...", NULL, false, false))
+                        {
+                            /*std::string path = FileDialog::OpenFile({}).string();
+                            if (!path.empty())
+                            {
+                            }
+                            */
+                        }
+                        ImGui::EndPopup();
+                    }
+
+                    if (!isCollapsingHeaderOpen)
+                    {
+                        entity.RemoveComponent<MaterialComponent>();
+                    }
+                    return;
+                }
+
+                if (materialComponent.material->GetType() == ResourceType::PBRMaterial)
+                {
+                    PBRMaterial& pbrMaterial = *std::static_pointer_cast<PBRMaterial>(materialComponent.material);
+
+                    PBRMaterialTextures& materialTextures = pbrMaterial.GetTextures();
+                    PBRMaterialProperties& materialProperties = pbrMaterial.GetProperties();
+                    MaterialRenderSettings& materialRenderSettings = pbrMaterial.GetRenderSettings();
+
+                    if (ImGui::TreeNode("Render Settings"))
+                    {
+                        ImGui::BeginChild("##RenderSettings Child", {0, 0},
+                                            ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+
+                        ImGui::Text("Transparency");
+                        ImGui::SameLine();
+                        ImGui::Combo("##Transparency", (int*)&materialRenderSettings.transparencyMode,
+                                        "Disabled\0Alpha\0AlphaCutoff\0");
+
+                        if (materialRenderSettings.transparencyMode == MaterialRenderSettings::TransparencyMode::AlphaCutoff)
+                        {
+                            ImGui::Text("Alpha Cutoff");
+                            ImGui::SameLine();
+                            ImGui::SliderFloat("##AlphaCutoff", &materialRenderSettings.alphaCutoff, 0.0f, 1.0f);
+                        }
+                        
+                        ImGui::Text("Cull Mode");
+                        ImGui::SameLine();
+                        ImGui::Combo("##CullMode", (int*)&materialRenderSettings.cullMode,
+                                        "Front\0Back\0None\0");
+
+                        ImGui::Text("Depth Test");
+                        ImGui::SameLine();
+                        ImGui::Checkbox("##DepthTest", &materialRenderSettings.depthTest);
+
+                        ImGui::Text("Wireframe");
+                        ImGui::SameLine();
+                        ImGui::Checkbox("##Wireframe", &materialRenderSettings.wireframe);
+
+                        ImGui::EndChild();
+                        ImGui::TreePop();
+                    }
+
+                    if (ImGui::TreeNode("Albedo"))
+                    {
+                        ImGui::BeginChild("##Albedo Child", {0, 0},
+                                            ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+
+                        ImGui::Text("Color");
+                        DrawCustomColorEdit4("##Albedo Color", materialProperties.color);
+
+                        ImGui::Text("Texture");
+                        DrawTextureWidget("##Albedo", materialTextures.albedo);
+
+                        ImGui::EndChild();
+                        ImGui::TreePop();
+                    }
+                    if (ImGui::TreeNode("Metallic"))
+                    {
+                        ImGui::BeginChild("##Metallic Child", {0, 0},
+                                            ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+                        ImGui::Text("Metallic");
+                        ImGui::SliderFloat("##Metallic Slider", &materialProperties.metallic, 0.0f, 1.0f);
+                        ImGui::Text("Texture");
+                        DrawTextureWidget("##Metallic", materialTextures.metallic);
+                        ImGui::EndChild();
+                        ImGui::TreePop();
+                    }
+                    if (ImGui::TreeNode("Roughness"))
+                    {
+                        ImGui::BeginChild("##Roughness Child", {0, 0},
+                                            ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+                        ImGui::Text("Roughness");
+                        ImGui::SliderFloat("##Roughness Slider", &materialProperties.roughness, 0.0f, 1.0f);
+                        ImGui::Text("Texture");
+                        DrawTextureWidget("##Roughness", materialTextures.roughness);
+                        ImGui::EndChild();
+                        ImGui::TreePop();
+                    }
+                    if (ImGui::TreeNode("Emission"))
+                    {
+                        ImGui::BeginChild("##Emission Child", {0, 0},
+                                            ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+                        // FIXME: Emissive color variable is local and do not affect the materialProperties.emissive!!
+                        glm::vec4& emissiveColor = reinterpret_cast<glm::vec4&>(materialProperties.emissive);
+                        emissiveColor.a = 1.0f;
+                        DrawCustomColorEdit4("Color", emissiveColor);
+                        ImGui::Text("Texture");
+                        DrawTextureWidget("##Emissive", materialTextures.emissive);
+                        ImGui::EndChild();
+                        ImGui::TreePop();
+                    }
+                    if (ImGui::TreeNode("Normal Map"))
+                    {
+                        ImGui::BeginChild("##Normal Child", {0, 0},
+                                            ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+                        ImGui::Text("Texture");
+                        DrawTextureWidget("##Normal", materialTextures.normal);
+                        ImGui::EndChild();
+                        ImGui::TreePop();
+                    }
+                    if (ImGui::TreeNode("Ambient Occlusion"))
+                    {
+                        ImGui::BeginChild("##AO Child", {0, 0}, ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+                        ImGui::Text("AO");
+                        ImGui::SliderFloat("##AO Slider", &materialProperties.ao, 0.0f, 1.0f);
+                        ImGui::Text("Texture");
+                        DrawTextureWidget("##AO", materialTextures.ao);
+                        ImGui::EndChild();
+                        ImGui::TreePop();
+                    }
+
+                    if (!isCollapsingHeaderOpen)
+                    {
+                        entity.RemoveComponent<MaterialComponent>();
+                    }
+                }
+                else if (materialComponent.material->GetType() == ResourceType::ShaderMaterial)
+                {
+                    ShaderMaterial& shaderMaterial = *std::static_pointer_cast<ShaderMaterial>(materialComponent.material);
+                    ImGui::Text("Shader");
+                    ImGui::SameLine();
+                    std::string shaderName = shaderMaterial.GetShader() ? shaderMaterial.GetShader()->GetName() : "<Empty>";
+                    
+                    static bool LoadShaderPopupOpen = false;
+
+                    if (ImGui::Button(shaderName.c_str(), {64, 32}))
+                    {
+                        if (!shaderMaterial.GetShader())
+                        {
+                            LoadShaderPopupOpen = true;
+                        }
+                        else 
+                        {
+                            SDL_OpenURL(("file://" + std::filesystem::absolute(shaderMaterial.GetShader()->GetPath()).string()).c_str());
+                        }
+                    }
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                    {
+                        LoadShaderPopupOpen = true;
+                    }
+
+                    if (LoadShaderPopupOpen)
+                    {
+                        ImGui::OpenPopup("LoadShaderPopup");
+                        LoadShaderPopupOpen = false;
+                    }
+
+                    if(ImGui::BeginPopup("LoadShaderPopup"))
+                    {
+                        if (ImGui::MenuItem(ICON_LC_SQUARE_CHART_GANTT "New Shader..."))
+                        {
+                            std::string path = FileDialog::SaveFile({}).string();
+                            if (!path.empty())
+                            {
+                                std::ofstream scriptFile(path);
+                                std::ifstream defaultShaderFile("assets/shaders/DefaultCustomShader.glsl");
+                                if (scriptFile.is_open() and defaultShaderFile.is_open())
+                                {
+                                    scriptFile << defaultShaderFile.rdbuf();
+                                    scriptFile.close();
+                                    defaultShaderFile.close();
+                                }
+                                Ref<Shader> shader = Shader::Create(path);
+                                shaderMaterial.SetShader(shader);
+                            }
+                        }
+                        ImGui::Separator();
+                        if (ImGui::MenuItem(ICON_LC_FOLDER "Quick Load..."))
+                        {
+                            ShowShaderQuickLoad = true;
+                        }
+                        if (ImGui::MenuItem(ICON_LC_FOLDER "Load..."))
+                        {
+                            std::string path = FileDialog::OpenFile({}).string();
+                            if (!path.empty())
+                            {
+                                Ref<Shader> shader = Shader::Create(path);
+                                shaderMaterial.SetShader(shader);
+                            }
+                        }
+                        ImGui::EndPopup();
+                    }
+
+                    if (ImGui::BeginDragDropTarget())
+                    {
+                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("RESOURCE"))
+                        {
+                            const Ref<Resource>& resource = *(Ref<Resource>*)payload->Data;
+                            if (resource->GetType() == ResourceType::Shader)
+                            {
+                                const Ref<Shader>& t = std::static_pointer_cast<Shader>(resource);
+                                shaderMaterial.SetShader(t);
+                            }
+                        }
+                        ImGui::EndDragDropTarget();
+                    }
+                    if (ImGui::Button("Recompile"))
+                    {
+                        if (shaderMaterial.GetShader()) shaderMaterial.GetShader()->Recompile();
+                    }
 
                     if (!isCollapsingHeaderOpen)
                     {
@@ -878,127 +1133,35 @@ namespace Coffee
                     }
                 }
             }
-            else
-            {
-                if (ImGui::CollapsingHeader("Material", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
-                {
-                    if (materialComponent.material->GetType() == ResourceType::PBRMaterial)
-                    {
-                        PBRMaterial& pbrMaterial = *std::static_pointer_cast<PBRMaterial>(materialComponent.material);
 
-                        PBRMaterialTextures& materialTextures = pbrMaterial.GetTextures();
-                        PBRMaterialProperties& materialProperties = pbrMaterial.GetProperties();
-                        MaterialRenderSettings& materialRenderSettings = pbrMaterial.GetRenderSettings();
-    
-                        if (ImGui::TreeNode("Render Settings"))
+            if (ShowShaderQuickLoad)
+            {
+                ImGui::OpenPopup("ShaderQuickLoad");
+                ShowShaderQuickLoad = false;
+            }
+            if (ImGui::BeginPopupModal("ShaderQuickLoad"))
+            {
+                ImGui::Text("Quick Load");
+                ImGui::Separator();
+                auto& registry = ResourceRegistry::GetResourceRegistry();
+                for (auto& shader : registry)
+                {
+                    if (shader.second->GetType() == ResourceType::Shader)
+                    {
+                        const Ref<Shader>& t = std::static_pointer_cast<Shader>(shader.second);
+                        if (ImGui::Selectable(t->GetName().c_str()))
                         {
-                            ImGui::BeginChild("##RenderSettings Child", {0, 0},
-                                              ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
-    
-                            ImGui::Text("Transparency");
-                            ImGui::SameLine();
-                            ImGui::Combo("##Transparency", (int*)&materialRenderSettings.transparencyMode,
-                                         "Disabled\0Alpha\0AlphaCutoff\0");
-    
-                            if (materialRenderSettings.transparencyMode == MaterialRenderSettings::TransparencyMode::AlphaCutoff)
-                            {
-                                ImGui::Text("Alpha Cutoff");
-                                ImGui::SameLine();
-                                ImGui::SliderFloat("##AlphaCutoff", &materialRenderSettings.alphaCutoff, 0.0f, 1.0f);
-                            }
-                            
-                            ImGui::Text("Cull Mode");
-                            ImGui::SameLine();
-                            ImGui::Combo("##CullMode", (int*)&materialRenderSettings.cullMode,
-                                         "Front\0Back\0None\0");
-    
-                            ImGui::Text("Depth Test");
-                            ImGui::SameLine();
-                            ImGui::Checkbox("##DepthTest", &materialRenderSettings.depthTest);
-    
-                            ImGui::Text("Wireframe");
-                            ImGui::SameLine();
-                            ImGui::Checkbox("##Wireframe", &materialRenderSettings.wireframe);
-    
-                            ImGui::EndChild();
-                            ImGui::TreePop();
-                        }
-    
-                        if (ImGui::TreeNode("Albedo"))
-                        {
-                            ImGui::BeginChild("##Albedo Child", {0, 0},
-                                              ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
-    
-                            ImGui::Text("Color");
-                            DrawCustomColorEdit4("##Albedo Color", materialProperties.color);
-    
-                            ImGui::Text("Texture");
-                            DrawTextureWidget("##Albedo", materialTextures.albedo);
-    
-                            ImGui::EndChild();
-                            ImGui::TreePop();
-                        }
-                        if (ImGui::TreeNode("Metallic"))
-                        {
-                            ImGui::BeginChild("##Metallic Child", {0, 0},
-                                              ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
-                            ImGui::Text("Metallic");
-                            ImGui::SliderFloat("##Metallic Slider", &materialProperties.metallic, 0.0f, 1.0f);
-                            ImGui::Text("Texture");
-                            DrawTextureWidget("##Metallic", materialTextures.metallic);
-                            ImGui::EndChild();
-                            ImGui::TreePop();
-                        }
-                        if (ImGui::TreeNode("Roughness"))
-                        {
-                            ImGui::BeginChild("##Roughness Child", {0, 0},
-                                              ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
-                            ImGui::Text("Roughness");
-                            ImGui::SliderFloat("##Roughness Slider", &materialProperties.roughness, 0.0f, 1.0f);
-                            ImGui::Text("Texture");
-                            DrawTextureWidget("##Roughness", materialTextures.roughness);
-                            ImGui::EndChild();
-                            ImGui::TreePop();
-                        }
-                        if (ImGui::TreeNode("Emission"))
-                        {
-                            ImGui::BeginChild("##Emission Child", {0, 0},
-                                              ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
-                            // FIXME: Emissive color variable is local and do not affect the materialProperties.emissive!!
-                            glm::vec4& emissiveColor = reinterpret_cast<glm::vec4&>(materialProperties.emissive);
-                            emissiveColor.a = 1.0f;
-                            DrawCustomColorEdit4("Color", emissiveColor);
-                            ImGui::Text("Texture");
-                            DrawTextureWidget("##Emissive", materialTextures.emissive);
-                            ImGui::EndChild();
-                            ImGui::TreePop();
-                        }
-                        if (ImGui::TreeNode("Normal Map"))
-                        {
-                            ImGui::BeginChild("##Normal Child", {0, 0},
-                                              ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
-                            ImGui::Text("Texture");
-                            DrawTextureWidget("##Normal", materialTextures.normal);
-                            ImGui::EndChild();
-                            ImGui::TreePop();
-                        }
-                        if (ImGui::TreeNode("Ambient Occlusion"))
-                        {
-                            ImGui::BeginChild("##AO Child", {0, 0}, ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
-                            ImGui::Text("AO");
-                            ImGui::SliderFloat("##AO Slider", &materialProperties.ao, 0.0f, 1.0f);
-                            ImGui::Text("Texture");
-                            DrawTextureWidget("##AO", materialTextures.ao);
-                            ImGui::EndChild();
-                            ImGui::TreePop();
-                        }
-    
-                        if (!isCollapsingHeaderOpen)
-                        {
-                            entity.RemoveComponent<MaterialComponent>();
+                            auto shaderMaterial = std::static_pointer_cast<ShaderMaterial>(materialComponent.material);
+                            shaderMaterial->SetShader(t);
+                            ImGui::CloseCurrentPopup();
                         }
                     }
                 }
+                if(ImGui::Button("Close"))
+                {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
             }
         }
 
@@ -2930,9 +3093,9 @@ namespace Coffee
                 }
                 else if (items[item_current] == "Material Component")
                 {
-                    if(!entity.HasComponent<MaterialComponent>())
+                    if (!entity.HasComponent<MaterialComponent>())
                     {
-                        entity.AddComponent<MaterialComponent>(PBRMaterial::Create("Default Material"));
+                        entity.AddComponent<MaterialComponent>();
                     }
                     ImGui::CloseCurrentPopup();
                 }
@@ -3114,6 +3277,41 @@ namespace Coffee
 
             ImGui::EndPopup();
         }
+
+/*         if (ShowMaterialOptions)
+        {
+            ImGui::OpenPopup("Select Material Type");
+            ShowMaterialOptions = false;
+        }
+
+        if (ImGui::BeginPopupModal("Select Material Type"))
+        {
+            ImGui::Text("Choose the type of material to create:");
+            ImGui::Separator();
+    
+            if (ImGui::Button("PBRMaterial", ImVec2(120, 0)))
+            {
+                entity.AddComponent<MaterialComponent>(PBRMaterial::Create("Default PBR Material"));
+                ImGui::CloseCurrentPopup();
+            }
+    
+            ImGui::SameLine();
+    
+            if (ImGui::Button("ShaderMaterial", ImVec2(120, 0)))
+            {
+                entity.AddComponent<MaterialComponent>(ShaderMaterial::Create("Default Shader Material"));
+                ImGui::CloseCurrentPopup();
+            }
+    
+            ImGui::Separator();
+    
+            if (ImGui::Button("Cancel", ImVec2(240, 0)))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+    
+            ImGui::EndPopup();
+        } */
 
         // Add Lua script component options
         if (m_ShowLuaScriptOptions)

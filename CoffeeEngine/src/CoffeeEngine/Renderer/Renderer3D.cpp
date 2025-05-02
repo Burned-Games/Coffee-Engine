@@ -262,7 +262,7 @@ namespace Coffee {
         {
             Material* material = command.material.get();
 
-            if(material == nullptr)
+            if(material == nullptr or material->GetShader() == nullptr)
             {
                 material = s_RendererData.DefaultMaterial.get();
             }

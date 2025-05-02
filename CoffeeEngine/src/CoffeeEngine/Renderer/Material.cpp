@@ -34,7 +34,10 @@ namespace Coffee {
     {
         ZoneScoped;
 
-        m_Shader->Bind();
+        if (m_Shader)
+        {
+            m_Shader->Bind();
+        }
     }
 
     Ref<ShaderMaterial> ShaderMaterial::Create(const std::string& name, Ref<Shader> shader)

@@ -80,7 +80,7 @@ namespace Coffee {
 
         Material(const std::string& name, ResourceType type) : Resource(type) { m_Name = name; }
 
-        Material(const std::string& name, Ref<Shader> shader) : Resource(ResourceType::Material), m_Shader(shader) { m_Name = name; }
+        Material(const std::string& name, Ref<Shader> shader, ResourceType type) : Resource(type), m_Shader(shader) { m_Name = name; }
 
         Ref<Shader> GetShader() { return m_Shader; }
         MaterialRenderSettings& GetRenderSettings() { return m_RenderSettings; }
@@ -109,11 +109,13 @@ namespace Coffee {
     public:
         ShaderMaterial() : Material(ResourceType::ShaderMaterial) {}
 
-        ShaderMaterial(const std::string& name, Ref<Shader> shader) : Material(name, shader) {}
+        ShaderMaterial(const std::string& name, Ref<Shader> shader) : Material(name, shader, ResourceType::ShaderMaterial) {}
 
         ShaderMaterial(ImportData& importData);
 
         void Use() override;
+
+        void SetShader(Ref<Shader> shader) { m_Shader = shader; }
 
         static Ref<ShaderMaterial> Create(const std::string& name = "", Ref<Shader> shader = nullptr);
     private:
@@ -304,3 +306,5 @@ CEREAL_REGISTER_TYPE(Coffee::Material);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Coffee::Resource, Coffee::Material);
 CEREAL_REGISTER_TYPE(Coffee::PBRMaterial);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Coffee::Material, Coffee::PBRMaterial);
+CEREAL_REGISTER_TYPE(Coffee::ShaderMaterial);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Coffee::Material, Coffee::ShaderMaterial);
