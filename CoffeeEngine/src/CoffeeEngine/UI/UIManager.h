@@ -26,6 +26,10 @@ namespace Coffee {
             UIComponentType ComponentType; ///< The type of UI component.
             entt::entity Parent; ///< The parent entity in the hierarchy.
             entt::entity Next; ///< The next sibling entity in the hierarchy.
+            glm::mat4 WorldTransform; ///< Cached world transform matrix
+            bool TransformDirty = true; ///< Flag to indicate if transform needs updating
+            glm::vec2 ParentSize; ///< Cached size of the parent element
+            bool ParentSizeDirty = true; ///< Flag to indicate if parent size needs updating
         };
 
         /**
@@ -58,10 +62,9 @@ namespace Coffee {
         /**
          * @brief Gets the size of the parent element for a given entity.
          * @param registry The entity registry.
-         * @param parentEntity The parent entity.
          * @return The size of the parent element as a glm::vec2.
          */
-        static glm::vec2 GetParentSize(entt::registry& registry, entt::entity parentEntity);
+        static glm::vec2 GetParentSize(entt::registry& registry, UIRenderItem& item);
 
         /**
         * @brief Sets the reference canvas size that the UI was designed for.
@@ -88,6 +91,8 @@ namespace Coffee {
          */
         static glm::vec2 ScalePosition(const glm::vec2& position);
 
+        static UIRenderItem GetUIRenderItem(entt::entity entity);
+
     private:
         /**
          * @brief Checks if the transform of an entity has changed.
@@ -112,47 +117,46 @@ namespace Coffee {
         /**
          * @brief Renders a UIImage component.
          * @param registry The entity registry.
-         * @param entity The entity containing the UIImage component.
+         * @param item Reference to the corresponding UIRenderItem.
          */
-        static void RenderUIImage(entt::registry& registry, entt::entity entity);
+        static void RenderUIImage(entt::registry& registry, UIRenderItem& item);
 
         /**
          * @brief Renders a UIText component.
          * @param registry The entity registry.
-         * @param entity The entity containing the UIText component.
+         * @param item Reference to the corresponding UIRenderItem.
          */
-        static void RenderUIText(entt::registry& registry, entt::entity entity);
+        static void RenderUIText(entt::registry& registry, UIRenderItem& item);
 
         /**
          * @brief Renders a UIToggle component.
          * @param registry The entity registry.
-         * @param entity The entity containing the UIToggle component.
+         * @param item Reference to the corresponding UIRenderItem.
          */
-        static void RenderUIToggle(entt::registry& registry, entt::entity entity);
+        static void RenderUIToggle(entt::registry& registry, UIRenderItem& item);
 
         /**
          * @brief Renders a UIButton component.
          * @param registry The entity registry.
-         * @param entity The entity containing the UIButton component.
+         * @param item Reference to the corresponding UIRenderItem.
          */
-        static void RenderUIButton(entt::registry& registry, entt::entity entity);
+        static void RenderUIButton(entt::registry& registry, UIRenderItem& item);
 
         /**
          * @brief Renders a UISlider component.
          * @param registry The entity registry.
-         * @param entity The entity containing the UISlider component.
+         * @param item Reference to the corresponding UIRenderItem.
          */
-        static void RenderUISlider(entt::registry& registry, entt::entity entity);
+        static void RenderUISlider(entt::registry& registry, UIRenderItem& item);
 
         /**
          * @brief Calculates the anchored transform for a UI element.
          * @param registry The entity registry.
          * @param entity The entity containing the UI element.
          * @param anchor The RectAnchor of the UI element.
-         * @param windowSize The size of the window.
          * @return The calculated anchored transform.
          */
-        static AnchoredTransform CalculateAnchoredTransform(entt::registry& registry, entt::entity entity, const RectAnchor& anchor, const glm::vec2& windowSize);
+        static AnchoredTransform CalculateAnchoredTransform(entt::registry& registry, entt::entity entity, const RectAnchor& anchor, UIRenderItem& item);
     public:
         static glm::vec2 WindowSize;
 
