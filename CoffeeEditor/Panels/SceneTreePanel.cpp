@@ -582,6 +582,13 @@ namespace Coffee
                     if (ImGui::DragInt("Layer", &uiSliderComponent.Layer, 1.0f, 0.0f, 100.0f))
                         UIManager::MarkForSorting();
                 }
+                else if (entity.HasComponent<UIComponent>())
+                {
+                    auto& uiComponent = entity.GetComponent<UIComponent>();
+                    DrawUITransform(transformComponent, uiComponent.Anchor, entity);
+                    if (ImGui::DragInt("Layer", &uiComponent.Layer, 1.0f, 0.0f, 100.0f))
+                        UIManager::MarkForSorting();
+                }
                 else
                 {
                     DrawTransform(transformComponent);
@@ -2601,6 +2608,17 @@ namespace Coffee
             ImGui::PopID();
         }
 
+        if (entity.HasComponent<UIComponent>())
+        {
+            bool isCollapsingHeaderOpen = true;
+            ImGui::CollapsingHeader("UI Empty Component", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen);
+
+            if (!isCollapsingHeaderOpen)
+            {
+                entity.RemoveComponent<UIComponent>();
+            }
+        }
+
         if (entity.HasComponent<UIImageComponent>())
         {
             auto& imageComponent = entity.GetComponent<UIImageComponent>();
@@ -2839,7 +2857,7 @@ namespace Coffee
             static char buffer[256] = "";
             ImGui::InputTextWithHint("##Search Component", "Search Component:", buffer, 256);
 
-            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "Particles System Component", "NavMesh Component", "Navigation Agent Component", "Sprite Component", "UI Image Component", "UI Text Component", "UI Toggle Component", "UI Button Component", "UI Slider Component" };
+            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "Particles System Component", "NavMesh Component", "Navigation Agent Component", "Sprite Component", "UI Empty Component","UI Image Component", "UI Text Component", "UI Toggle Component", "UI Button Component", "UI Slider Component" };
 
             static int item_current = 1;
 
@@ -3017,6 +3035,14 @@ namespace Coffee
                         navigationAgentComponent.SetPathFinder(CreateRef<NavMeshPathfinding>(nullptr));
                     }
 
+                    ImGui::CloseCurrentPopup();
+                }
+                else if (items[item_current] == "UI Empty Component")
+                {
+                    if (!entity.HasComponent<UIComponent>())
+                    {
+                        entity.AddComponent<UIComponent>();
+                    }
                     ImGui::CloseCurrentPopup();
                 }
                 else if (items[item_current] == "UI Image Component")

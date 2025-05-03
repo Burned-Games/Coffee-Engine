@@ -398,10 +398,14 @@ namespace Coffee {
                 hasParent = true;
                 parentSize = GetParentSize(registry, hierarchy.m_Parent);
 
-                if (registry.any_of<TransformComponent>(hierarchy.m_Parent))
+                if (registry.any_of<TransformComponent>(hierarchy.m_Parent) && !registry.any_of<UIComponent>(hierarchy.m_Parent))
                 {
                     auto& parentTransform = registry.get<TransformComponent>(hierarchy.m_Parent);
                     parentPosition = glm::vec2(parentTransform.GetLocalPosition());
+                }
+                else
+                {
+                    hasParent = false;
                 }
             }
         }
