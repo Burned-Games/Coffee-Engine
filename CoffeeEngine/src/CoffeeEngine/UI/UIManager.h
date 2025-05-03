@@ -63,6 +63,31 @@ namespace Coffee {
          */
         static glm::vec2 GetParentSize(entt::registry& registry, entt::entity parentEntity);
 
+        /**
+        * @brief Sets the reference canvas size that the UI was designed for.
+        * @param referenceSize The reference size the UI was designed for.
+        */
+        static void SetReferenceCanvasSize(const glm::vec2& referenceSize);
+
+        /**
+         * @brief Calculates the UI scale factor based on current window size and reference size.
+         */
+        static void CalculateUIScaleFactor();
+
+        /**
+         * @brief Converts a size from the reference canvas space to the current window space.
+         * @param size Size in reference space.
+         * @return Size in current window space.
+         */
+        static glm::vec2 ScaleSize(const glm::vec2& size);
+
+        /**
+         * @brief Converts a position from the reference canvas space to the current window space.
+         * @param position Position in reference space.
+         * @return Position in current window space.
+         */
+        static glm::vec2 ScalePosition(const glm::vec2& position);
+
     private:
         /**
          * @brief Checks if the transform of an entity has changed.
@@ -135,6 +160,9 @@ namespace Coffee {
         static bool s_NeedsSorting;
         static std::vector<UIRenderItem> s_SortedUIItems;
         static std::unordered_map<entt::entity, AnchoredTransform> s_LastTransforms;
+
+        static glm::vec2 CanvasReferenceSize;
+        static float UIScale;
     };
 
 } // Coffee

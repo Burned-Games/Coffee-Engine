@@ -12,9 +12,13 @@ namespace Coffee {
     std::vector<UIManager::UIRenderItem> UIManager::s_SortedUIItems;
     std::unordered_map<entt::entity, UIManager::AnchoredTransform> UIManager::s_LastTransforms;
 
+    glm::vec2 UIManager::CanvasReferenceSize = { 1920.0f, 1080.0f };
+    float UIManager::UIScale = 1.0f;
+
     void UIManager::UpdateUI(entt::registry& registry)
     {
         WindowSize = Renderer::GetCurrentRenderTarget()->GetSize();
+        CalculateUIScaleFactor();
 
         if (s_NeedsSorting)
         {
@@ -175,11 +179,18 @@ namespace Coffee {
         textTransform = glm::rotate(textTransform, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
         textTransform = glm::scale(textTransform, glm::vec3(1.0f, -1.0f, 1.0f));
 
+        float scaledFontSize = uiTextComponent.FontSize;
+
+        scaledFontSize *= UIScale;
+
+        const float minFontSize = 8.0f;
+        scaledFontSize = std::max(scaledFontSize, minFontSize);
+
         Renderer2D::TextParams textParams;
         textParams.Color = uiTextComponent.Color;
         textParams.Kerning = uiTextComponent.Kerning;
         textParams.LineSpacing = uiTextComponent.LineSpacing;
-        textParams.Size = uiTextComponent.FontSize;
+        textParams.Size = scaledFontSize;
         textParams.Alignment = uiTextComponent.Alignment;
 
         Renderer2D::DrawTextString(uiTextComponent.Text, uiTextComponent.UIFont, textTransform, textParams, Renderer2D::RenderMode::Screen, (uint32_t)entity);
@@ -306,38 +317,40 @@ namespace Coffee {
         if (parentEntity == entt::null)
             return WindowSize;
 
+        RectAnchor* parentAnchor = nullptr;
+
         if (registry.any_of<UIImageComponent>(parentEntity))
-        {
-            auto& parentAnchor = registry.get<UIImageComponent>(parentEntity).Anchor;
-            glm::vec4 parentRect = parentAnchor.CalculateRect(WindowSize);
-            return glm::vec2(parentRect.z, parentRect.w);
-        }
+            parentAnchor = &registry.get<UIImageComponent>(parentEntity).Anchor;
         else if (registry.any_of<UITextComponent>(parentEntity))
-        {
-            auto& parentAnchor = registry.get<UITextComponent>(parentEntity).Anchor;
-            glm::vec4 parentRect = parentAnchor.CalculateRect(WindowSize);
-            return glm::vec2(parentRect.z, parentRect.w);
-        }
+            parentAnchor = &registry.get<UITextComponent>(parentEntity).Anchor;
         else if (registry.any_of<UIButtonComponent>(parentEntity))
-        {
-            auto& parentAnchor = registry.get<UIButtonComponent>(parentEntity).Anchor;
-            glm::vec4 parentRect = parentAnchor.CalculateRect(WindowSize);
-            return glm::vec2(parentRect.z, parentRect.w);
-        }
+            parentAnchor = &registry.get<UIButtonComponent>(parentEntity).Anchor;
         else if (registry.any_of<UIToggleComponent>(parentEntity))
-        {
-            auto& parentAnchor = registry.get<UIToggleComponent>(parentEntity).Anchor;
-            glm::vec4 parentRect = parentAnchor.CalculateRect(WindowSize);
-            return glm::vec2(parentRect.z, parentRect.w);
-        }
+            parentAnchor = &registry.get<UIToggleComponent>(parentEntity).Anchor;
         else if (registry.any_of<UISliderComponent>(parentEntity))
+            parentAnchor = &registry.get<UISliderComponent>(parentEntity).Anchor;
+
+        if (!parentAnchor)
+            return WindowSize;
+
+        glm::vec2 parentSize = WindowSize;
+        if (registry.any_of<HierarchyComponent>(parentEntity))
         {
-            auto& parentAnchor = registry.get<UISliderComponent>(parentEntity).Anchor;
-            glm::vec4 parentRect = parentAnchor.CalculateRect(WindowSize);
-            return glm::vec2(parentRect.z, parentRect.w);
+            auto& hierarchy = registry.get<HierarchyComponent>(parentEntity);
+            if (hierarchy.m_Parent != entt::null)
+                parentSize = GetParentSize(registry, hierarchy.m_Parent);
         }
 
-        return WindowSize;
+        bool isStretchedX = (parentAnchor->AnchorMin.x != parentAnchor->AnchorMax.x);
+        bool isStretchedY = (parentAnchor->AnchorMin.y != parentAnchor->AnchorMax.y);
+
+        glm::vec2 offsetSize = parentAnchor->OffsetMax - parentAnchor->OffsetMin;
+
+        glm::vec2 finalSize;
+        finalSize.x = isStretchedX ? parentSize.x * (parentAnchor->AnchorMax.x - parentAnchor->AnchorMin.x) + offsetSize.x : offsetSize.x;
+        finalSize.y = isStretchedY ? parentSize.y * (parentAnchor->AnchorMax.y - parentAnchor->AnchorMin.y) + offsetSize.y : offsetSize.y;
+
+        return finalSize;
     }
 
     AnchorPreset UIManager::GetAnchorPreset(int row, int column)
@@ -372,7 +385,8 @@ namespace Coffee {
     {
         AnchoredTransform result;
 
-        glm::vec2 parentSize = windowSize;
+        glm::vec2 referenceSize = CanvasReferenceSize;
+        glm::vec2 parentSize = referenceSize;
         glm::vec2 parentPosition = glm::vec2(windowSize.x / 2, windowSize.y / 2);
         bool hasParent = false;
 
@@ -387,7 +401,7 @@ namespace Coffee {
                 if (registry.any_of<TransformComponent>(hierarchy.m_Parent))
                 {
                     auto& parentTransform = registry.get<TransformComponent>(hierarchy.m_Parent);
-                    parentPosition = glm::vec2(parentTransform.GetLocalPosition().x, parentTransform.GetLocalPosition().y);
+                    parentPosition = glm::vec2(parentTransform.GetLocalPosition());
                 }
             }
         }
@@ -397,21 +411,35 @@ namespace Coffee {
 
         if (hasParent)
         {
-            float parentCenterX = parentSize.x * 0.5f;
-            float parentCenterY = parentSize.y * 0.5f;
-
             float elementCenterX = rectInParentSpace.x + rectInParentSpace.z * 0.5f;
             float elementCenterY = rectInParentSpace.y + rectInParentSpace.w * 0.5f;
 
-            float offsetX = elementCenterX - parentCenterX;
-            float offsetY = elementCenterY - parentCenterY;
+            glm::vec2 relativeOffset = glm::vec2(
+                elementCenterX - (parentSize.x * 0.5f),
+                elementCenterY - (parentSize.y * 0.5f)
+            );
 
-            result.Position.x = parentPosition.x + offsetX;
-            result.Position.y = parentPosition.y + offsetY;
+            relativeOffset = ScaleSize(relativeOffset);
+            result.Size = ScaleSize(result.Size);
+
+            result.Position = parentPosition + relativeOffset;
         }
         else
         {
-            anchor.CalculateTransformData(parentSize, result.Position, result.Size);
+            float left = 0.0f;
+            float top = 0.0f;
+            float right = 0.0f;
+            float bottom = 0.0f;
+
+            left = windowSize.x * anchor.AnchorMin.x + anchor.OffsetMin.x * UIScale;
+            top = windowSize.y * anchor.AnchorMin.y + anchor.OffsetMin.y * UIScale;
+            right = windowSize.x * anchor.AnchorMax.x + anchor.OffsetMax.x * UIScale;
+            bottom = windowSize.y * anchor.AnchorMax.y + anchor.OffsetMax.y * UIScale;
+
+            result.Position.x = (left + right) * 0.5f;
+            result.Position.y = (top + bottom) * 0.5f;
+            result.Size.x = right - left;
+            result.Size.y = bottom - top;
         }
 
         return result;
@@ -452,6 +480,33 @@ namespace Coffee {
         }
 
         return changed;
+    }
+
+    void UIManager::SetReferenceCanvasSize(const glm::vec2& referenceSize)
+    {
+        CanvasReferenceSize = referenceSize;
+        CalculateUIScaleFactor();
+    }
+
+    void UIManager::CalculateUIScaleFactor()
+    {
+        float heightScale = WindowSize.y / CanvasReferenceSize.y;
+        float widthScale = WindowSize.x / CanvasReferenceSize.x;
+
+        UIScale = std::min(heightScale, widthScale);
+    }
+
+    glm::vec2 UIManager::ScaleSize(const glm::vec2& size)
+    {
+        return size * UIScale;
+    }
+
+    glm::vec2 UIManager::ScalePosition(const glm::vec2& position)
+    {
+        float normalizedX = position.x / CanvasReferenceSize.x;
+        float normalizedY = position.y / CanvasReferenceSize.y;
+
+        return { normalizedX * WindowSize.x, normalizedY * WindowSize.y };
     }
 
 } // Coffee
