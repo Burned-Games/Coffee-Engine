@@ -10,6 +10,7 @@ namespace Coffee {
     public:
         enum class UIComponentType
         {
+            Empty,
             Image,
             Text,
             Toggle,
@@ -91,17 +92,20 @@ namespace Coffee {
          */
         static glm::vec2 ScalePosition(const glm::vec2& position);
 
-        static UIRenderItem GetUIRenderItem(entt::entity entity);
+        /**
+         * @brief Gets the UIRenderItem associated with a given entity.
+         * @param entity The entity to get the UIRenderItem for.
+         * @return A reference to the UIRenderItem associated with the entity.
+         */
+        static UIRenderItem& GetUIRenderItem(entt::entity entity);
+
+        /**
+         * @brief Marks a UI element as dirty, indicating that it needs to be updated.
+         * @param entity The entity to mark as dirty.
+         */
+        static void MarkDirty(entt::entity entity);
 
     private:
-        /**
-         * @brief Checks if the transform of an entity has changed.
-         * @param entity The entity to check.
-         * @param newTransform The new transform to compare with the previous one.
-         * @return True if the transform has changed, false otherwise.
-         */
-        static bool HasTransformChanged(entt::entity entity, const AnchoredTransform& newTransform);
-
         /**
          * @brief Marks all child entities of a given parent entity for update.
          * @param parentEntity The parent entity whose children need to be marked.
@@ -156,7 +160,22 @@ namespace Coffee {
          * @param anchor The RectAnchor of the UI element.
          * @return The calculated anchored transform.
          */
-        static AnchoredTransform CalculateAnchoredTransform(entt::registry& registry, entt::entity entity, const RectAnchor& anchor, UIRenderItem& item);
+        static AnchoredTransform CalculateAnchoredTransform(entt::registry& registry, const RectAnchor& anchor, UIRenderItem& item);
+
+        /**
+         * @brief Updates the transform of a UI element.
+         * @param registry The entity registry.
+         * @param item Reference to the UIRenderItem to update.
+         */
+        static void UpdateUITranform(entt::registry& registry, UIRenderItem& item);
+
+        /**
+         * @brief Recursively updates the transform of a UI element and its children.
+         * @param registry The entity registry.
+         * @param item Reference to the UIRenderItem to update.
+         */
+        static void UpdateUITranformRecursive(entt::registry& registry, UIRenderItem& item);
+
     public:
         static glm::vec2 WindowSize;
 
@@ -167,6 +186,7 @@ namespace Coffee {
 
         static glm::vec2 CanvasReferenceSize;
         static float UIScale;
+        static glm::vec2 m_lastWindowSize;
     };
 
 } // Coffee
