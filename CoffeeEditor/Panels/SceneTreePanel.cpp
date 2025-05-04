@@ -93,6 +93,21 @@ namespace Coffee
 
         ImGui::EndChild();
 
+        // Entity unparenting
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_NODE"))
+            {
+                // Unparent the entity if dragged onto empty space in the hierarchy view
+                // Copy-paste of payload handling for reparenting entities found in DrawEntityNode(entity)
+                Entity payloadEntity = *(const Entity*)payload->Data;
+                HierarchyComponent::Reparent(
+                    m_Context->m_Registry, (entt::entity)payloadEntity,
+                    entt::null); // Parent set to null (unparented)
+            }
+            ImGui::EndDragDropTarget();
+        }
+
         // Entity Tree Drag and Drop functionality
         if (ImGui::BeginDragDropTarget())
         {
@@ -171,6 +186,20 @@ namespace Coffee
         bool isActive = entity.IsActive();
         const char* icon = isActive ? ICON_LC_EYE : ICON_LC_EYE_OFF;
         std::string buttonId = "##Active" + std::to_string((uint32_t)entity);
+
+        // ImGui::Separator(); // TODO reimplement this with smth like ImGui::InvisibleButton() or alternatives.
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_NODE"))
+            {
+                // Assuming payload is an Entity, but you need to cast and check appropriately
+                Entity payloadEntity = *(const Entity*)payload->Data;
+                // Process the drop, e.g., reordering the entity in the hierarchy
+                // This is where you would update the ECS or scene graph
+                HierarchyComponent::Reorder(m_Context->m_Registry,payloadEntity, entt::null, entity);
+            }
+            ImGui::EndDragDropTarget();
+        }
         
         // Draw the tree node first, so ImGui sets up the proper indentation
         bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(uint32_t)entity, flags, entityNameTag.c_str());

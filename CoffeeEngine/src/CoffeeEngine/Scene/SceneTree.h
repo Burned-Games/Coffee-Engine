@@ -36,7 +36,7 @@ namespace Coffee {
          * @param registry The entity registry.
          * @param entity The entity.
          */
-        static void OnConstruct(entt::registry& registry, entt::entity entity);
+        static void OnConstruct(Scene* scene, entt::registry& registry, entt::entity entity);
 
         /**
          * @brief Called when the component is destroyed.
@@ -59,6 +59,15 @@ namespace Coffee {
          * @param parent The new parent entity.
          */
         static void Reparent(entt::registry& registry, entt::entity entity, entt::entity parent);
+
+        /**
+         * @brief Move an entity within the hierarchy. Will reparent if needed
+         * @param registry The entity registry
+         * @param entity The entity to be moved
+         * @param after The entity after which the entity will be moved to
+         * @param before The entity before which the entity will be moved to
+         */
+        static void Reorder(entt::registry& registry, entt::entity entity, entt::entity after, entt::entity before);
 
         entt::entity m_Parent;
         entt::entity m_First;
