@@ -187,7 +187,7 @@ namespace Coffee
         const char* icon = isActive ? ICON_LC_EYE : ICON_LC_EYE_OFF;
         std::string buttonId = "##Active" + std::to_string((uint32_t)entity);
 
-        ImGui::Separator();
+        // ImGui::Separator(); // TODO reimplement this with smth like ImGui::InvisibleButton() or alternatives.
         if (ImGui::BeginDragDropTarget())
         {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_NODE"))
