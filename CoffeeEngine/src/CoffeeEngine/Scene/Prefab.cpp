@@ -54,6 +54,7 @@ namespace Coffee {
         CopyComponentToPrefab<UIToggleComponent>(sourceEntity, destEntity);
         CopyComponentToPrefab<UIButtonComponent>(sourceEntity, destEntity);
         CopyComponentToPrefab<UISliderComponent>(sourceEntity, destEntity);
+        CopyComponentToPrefab<UIComponent>(sourceEntity, destEntity);
 
         
         // Copy empty components (which don't need values)
@@ -264,6 +265,7 @@ namespace Coffee {
         CopyComponentToScene<UIToggleComponent>(scene, prefabEntity, entity);
         CopyComponentToScene<UIButtonComponent>(scene, prefabEntity, entity);
         CopyComponentToScene<UISliderComponent>(scene, prefabEntity, entity);
+        CopyComponentToScene<UIComponent>(scene, prefabEntity, entity);
         
         // Copy empty components
         CopyEmptyComponentToScene<StaticComponent>(scene, prefabEntity, entity);

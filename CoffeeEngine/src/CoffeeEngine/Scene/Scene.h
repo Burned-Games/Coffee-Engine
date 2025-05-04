@@ -179,7 +179,8 @@ namespace Coffee {
             .template get<UITextComponent>(archive)
             .template get<UIToggleComponent>(archive)
             .template get<UIButtonComponent>(archive)
-            .template get<UISliderComponent>(archive);
+            .template get<UISliderComponent>(archive)
+            .template get<UIComponent>(archive);
          }
 
         /**
@@ -243,6 +244,36 @@ namespace Coffee {
                     .template get<UIButtonComponent>(archive)
                     .template get<UISliderComponent>(archive);
             }
+            else if (version == 2)
+            {
+                entt::snapshot_loader{m_Registry}
+                .get<entt::entity>(archive)
+                .template get<TagComponent>(archive)
+                .template get<TransformComponent>(archive)
+                .template get<HierarchyComponent>(archive)
+                .template get<CameraComponent>(archive)
+                .template get<MeshComponent>(archive)
+                .template get<MaterialComponent>(archive)
+                .template get<LightComponent>(archive)
+                .template get<RigidbodyComponent>(archive)
+                .template get<ScriptComponent>(archive)
+                .template get<NavMeshComponent>(archive)
+                .template get<NavigationAgentComponent>(archive)
+                .template get<AnimatorComponent>(archive)
+                .template get<AudioSourceComponent>(archive)
+                .template get<AudioListenerComponent>(archive)
+                .template get<AudioZoneComponent>(archive)
+                .template get<ParticlesSystemComponent>(archive)
+                .template get<ActiveComponent>(archive)
+                .template get<StaticComponent>(archive)
+                .template get<SpriteComponent>(archive)
+                .template get<UIImageComponent>(archive)
+                .template get<UITextComponent>(archive)
+                .template get<UIToggleComponent>(archive)
+                .template get<UIButtonComponent>(archive)
+                .template get<UISliderComponent>(archive)
+                .template get<UIComponent>(archive);
+            }
 
             AssignAnimatorsToMeshes(AnimationSystem::GetAnimators());
 
@@ -283,4 +314,4 @@ namespace Coffee {
 
     /** @} */ // end of scene group
 } // namespace Coffee
-CEREAL_CLASS_VERSION(Coffee::Scene, 1);
+CEREAL_CLASS_VERSION(Coffee::Scene, 2);
