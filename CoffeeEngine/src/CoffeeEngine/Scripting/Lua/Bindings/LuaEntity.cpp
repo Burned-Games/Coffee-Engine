@@ -34,7 +34,7 @@ void Coffee::RegisterEntityBindings(sol::state& luaState)
                     return sol::nil;
                 } else if (componentName == "MaterialComponent") {
                     if (auto* component = self->TryGetComponent<MaterialComponent>())
-                        return sol::make_object(luaState, std::ref(*component));
+                        return sol::make_object(luaState, component);
                     COFFEE_CORE_ERROR("Lua: Entity does not have a MaterialComponent");
                     return sol::nil;
                 } else if (componentName == "LightComponent") {

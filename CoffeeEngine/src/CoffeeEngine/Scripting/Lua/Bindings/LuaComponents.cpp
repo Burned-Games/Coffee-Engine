@@ -3,6 +3,7 @@
 #include "CoffeeEngine/Scene/Components.h"
 #include "CoffeeEngine/Scripting/GameSaver.h"
 #include "CoffeeEngine/Scripting/Lua/LuaScript.h"
+#include <memory>
 
 void Coffee::RegisterComponentsBindings(sol::state& luaState)
 {
@@ -36,7 +37,33 @@ void Coffee::RegisterComponentsBindings(sol::state& luaState)
 
     luaState.new_usertype<MaterialComponent>("MaterialComponent",
         sol::constructors<MaterialComponent(), MaterialComponent(Ref<Material>)>(),
-        "material", &MaterialComponent::material
+        "material", sol::property(
+            [&](MaterialComponent& self) -> sol::object {
+            if (!self.material) return sol::nil;
+            switch (self.material->GetType())
+            {
+                case ResourceType::ShaderMaterial:
+                    {
+                        std::weak_ptr<ShaderMaterial> weakPtr = std::dynamic_pointer_cast<ShaderMaterial>(self.material);
+                        return sol::make_object(luaState, weakPtr.lock());
+                    }
+                case ResourceType::PBRMaterial:
+                    {
+                        std::weak_ptr<PBRMaterial> weakPtr = std::dynamic_pointer_cast<PBRMaterial>(self.material);
+                        return sol::make_object(luaState, weakPtr.lock());
+                    }
+                default:
+                    return sol::nil;
+            }
+        },
+        [](MaterialComponent& self, sol::object material) {
+            if (material.is<Ref<ShaderMaterial>>())
+                self.material = material.as<Ref<ShaderMaterial>>();
+            else if (material.is<Ref<PBRMaterial>>())
+                self.material = material.as<Ref<PBRMaterial>>();
+            else
+                COFFEE_CORE_ERROR("Lua: MaterialComponent can only be assigned a ShaderMaterial or PBRMaterial");
+        })
     );
 
     luaState.new_usertype<LightComponent>("LightComponent",
