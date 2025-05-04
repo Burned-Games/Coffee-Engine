@@ -221,7 +221,7 @@ namespace Coffee {
 
             for (int id : objectIDs)
             {
-                const ObjectContainer<T>& obj = objectMap.at(id);
+                const ObjectContainer<T>& obj = *objectMap.at(id);
                 AABB aabb = obj.aabb.CalculateTransformedAABB(obj.transform);
                 Renderer2D::DrawBox(aabb.min, aabb.max, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
             }
