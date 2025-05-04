@@ -164,6 +164,12 @@ namespace Coffee {
                 else if (auto capsuleCollider = std::dynamic_pointer_cast<CapsuleCollider>(srcComponent.rb->GetCollider())) {
                     collider = CreateRef<CapsuleCollider>(capsuleCollider->GetRadius(), capsuleCollider->GetHeight());
                 }
+                else if (auto cylinderCollider = std::dynamic_pointer_cast<CylinderCollider>(srcComponent.rb->GetCollider())) {
+                    collider = CreateRef<CylinderCollider>(cylinderCollider->GetRadius(), cylinderCollider->GetHeight());
+                }
+                else if (auto coneCollider = std::dynamic_pointer_cast<ConeCollider>(srcComponent.rb->GetCollider())) {
+                    collider = CreateRef<ConeCollider>(coneCollider->GetRadius(), coneCollider->GetHeight());
+                }
                 else {
                     collider = CreateRef<BoxCollider>(glm::vec3(1.0f, 1.0f, 1.0f));
                 }
