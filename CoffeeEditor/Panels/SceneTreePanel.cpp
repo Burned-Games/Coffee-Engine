@@ -2843,6 +2843,15 @@ namespace Coffee
                         sliderComponent.HandleTexture = texture;
                     }
                 }
+                if (ImGui::Selectable("Disabled Handle Texture"))
+                {
+                    std::string path = FileDialog::OpenFile({}).string();
+                    if (!path.empty())
+                    {
+                        Ref<Texture2D> texture = Texture2D::Load(path);
+                        sliderComponent.DisabledHandleTexture = texture;
+                    }
+                }
             }
 
             if (!isCollapsingHeaderOpen)

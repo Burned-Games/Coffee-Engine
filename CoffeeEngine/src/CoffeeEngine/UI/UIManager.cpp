@@ -269,8 +269,12 @@ namespace Coffee {
         handleTransform = glm::rotate(handleTransform, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
         handleTransform = glm::scale(handleTransform, glm::vec3(scaledHandleSize.x, -scaledHandleSize.y, 1.0f));
 
-        if (sliderComponent.HandleTexture)
-            Renderer2D::DrawQuad(handleTransform, sliderComponent.HandleTexture, 1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
+        if ((sliderComponent.Selected && sliderComponent.HandleTexture) || sliderComponent.DisabledHandleTexture)
+        {
+            Renderer2D::DrawQuad(handleTransform,
+                sliderComponent.Selected ? sliderComponent.HandleTexture : sliderComponent.DisabledHandleTexture,
+                1.0f, glm::vec4(1.0f), Renderer2D::RenderMode::Screen, (uint32_t)entity);
+        }
     }
 
     glm::vec2 UIManager::GetParentSize(entt::registry& registry, UIRenderItem& item)
