@@ -9,26 +9,26 @@ void Coffee::RegisterEntityBindings(sol::state& luaState)
             "get_component", [&luaState](Entity* self, const std::string& componentName) -> sol::object {
                 if (componentName == "TagComponent") {
                     if (auto* component = self->TryGetComponent<TagComponent>())
-                        return sol::make_object(luaState, std::ref(*component));
+                        return sol::make_object(luaState, component);
 
                     COFFEE_CORE_ERROR("Lua: Entity does not have a TagComponent");
                     return sol::nil;
                 } else if (componentName == "TransformComponent") {
                     if (auto* component = self->TryGetComponent<TransformComponent>())
-                        return sol::make_object(luaState, std::ref(*component));
+                        return sol::make_object(luaState, component);
 
                     COFFEE_CORE_ERROR("Lua: Entity does not have a TransformComponent");
                     return sol::nil;
                 } else if (componentName == "CameraComponent") {
                     if (auto* component = self->TryGetComponent<CameraComponent>())
-                        return sol::make_object(luaState, std::ref(*component));
+                        return sol::make_object(luaState, component);
 
 
                     COFFEE_CORE_ERROR("Lua: Entity does not have a CameraComponent");
                     return sol::nil;
                 } else if (componentName == "MeshComponent") {
                     if (auto* component = self->TryGetComponent<MeshComponent>())
-                        return sol::make_object(luaState, std::ref(*component));
+                        return sol::make_object(luaState, component);
 
                     COFFEE_CORE_ERROR("Lua: Entity does not have a MeshComponent");
                     return sol::nil;
@@ -39,73 +39,73 @@ void Coffee::RegisterEntityBindings(sol::state& luaState)
                     return sol::nil;
                 } else if (componentName == "LightComponent") {
                     if (auto* component = self->TryGetComponent<LightComponent>())
-                        return sol::make_object(luaState, std::ref(*component));
+                        return sol::make_object(luaState, component);
 
                     COFFEE_CORE_ERROR("Lua: Entity does not have a LightComponent");
                     return sol::nil;
                 } else if (componentName == "ScriptComponent") {
                     if (auto* component = self->TryGetComponent<ScriptComponent>())
-                        return sol::make_object(luaState, std::ref(*component));
+                        return sol::make_object(luaState, component);
 
                     COFFEE_CORE_ERROR("Lua: Entity does not have a ScriptComponent");
                     return sol::nil;
                 } else if (componentName == "ParticlesSystemComponent") {
                     if (auto* component = self->TryGetComponent<ParticlesSystemComponent>())
-                        return sol::make_object(luaState, std::ref(*component));
+                        return sol::make_object(luaState, component);
 
                     COFFEE_CORE_ERROR("Lua: Entity does not have a ParticlesSystemComponent");
                     return sol::nil;
                 } else if (componentName == "NavigationAgentComponent") {
                     if (auto* component = self->TryGetComponent<NavigationAgentComponent>())
-                        return sol::make_object(luaState, std::ref(*component));
+                        return sol::make_object(luaState, component);
 
                     COFFEE_CORE_ERROR("Lua: Entity does not have a NavigationAgentComponent");
                     return sol::nil;
                 } else if (componentName == "RigidbodyComponent") {
                     if (auto* component = self->TryGetComponent<RigidbodyComponent>())
-                        return sol::make_object(luaState, std::ref(*component));
+                        return sol::make_object(luaState, component);
 
                     COFFEE_CORE_ERROR("Lua: Entity does not have a RigidbodyComponent");
                     return sol::nil;
                 } else if (componentName == "AudioSourceComponent") {
                     if (auto* component = self->TryGetComponent<AudioSourceComponent>())
-                        return sol::make_object(luaState, std::ref(*component));
+                        return sol::make_object(luaState, component);
 
                     COFFEE_CORE_ERROR("Lua: Entity does not have a AudioSourceComponent");
                     return sol::nil;
                 } else if (componentName == "AnimatorComponent") {
                     if (auto* component = self->TryGetComponent<AnimatorComponent>())
-                        return sol::make_object(luaState, std::ref(*component));
+                        return sol::make_object(luaState, component);
 
                     COFFEE_CORE_ERROR("Lua: Entity does not have a AnimatorComponent");
                     return sol::nil;
                 } else if (componentName == "UIImageComponent") {
                     if (auto* component = self->TryGetComponent<UIImageComponent>())
-                        return sol::make_object(luaState, std::ref(*component));
+                        return sol::make_object(luaState, component);
 
                     COFFEE_CORE_ERROR("Lua: Entity does not have a UIImageComponent");
                     return sol::nil;
                 } else if (componentName == "UITextComponent") {
                     if (auto* component = self->TryGetComponent<UITextComponent>())
-                        return sol::make_object(luaState, std::ref(*component));
+                        return sol::make_object(luaState, component);
 
                     COFFEE_CORE_ERROR("Lua: Entity does not have a UITextComponent");
                     return sol::nil;
                 } else if (componentName == "UIToggleComponent") {
                     if (auto* component = self->TryGetComponent<UIToggleComponent>())
-                        return sol::make_object(luaState, std::ref(*component));
+                        return sol::make_object(luaState, component);
 
                     COFFEE_CORE_ERROR("Lua: Entity does not have a UIToggleComponent");
                     return sol::nil;
                 } else if (componentName == "UIButtonComponent") {
                     if (auto* component = self->TryGetComponent<UIButtonComponent>())
-                        return sol::make_object(luaState, std::ref(*component));
+                        return sol::make_object(luaState, component);
 
                     COFFEE_CORE_ERROR("Lua: Entity does not have a UIButtonComponent");
                     return sol::nil;
                 } else if (componentName == "UISliderComponent") {
                     if (auto* component = self->TryGetComponent<UISliderComponent>())
-                        return sol::make_object(luaState, std::ref(*component));
+                        return sol::make_object(luaState, component);
 
                     COFFEE_CORE_ERROR("Lua: Entity does not have a UISliderComponent");
                     return sol::nil;
