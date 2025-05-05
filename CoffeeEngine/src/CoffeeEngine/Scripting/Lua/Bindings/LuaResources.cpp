@@ -150,27 +150,39 @@ namespace Coffee
             ),
             "albedo_texture", sol::property(
                 [](PBRMaterial& material) { return material.GetTextures().albedo; },
-                [](PBRMaterial& material, Ref<Texture2D> texture) { material.GetTextures().albedo = texture; }
+                [](PBRMaterial& material, sol::optional<Ref<Texture2D>> texture) {
+                    material.GetTextures().albedo = texture ? texture.value() : nullptr;
+                }
             ),
             "normal_texture", sol::property(
                 [](PBRMaterial& material) { return material.GetTextures().normal; },
-                [](PBRMaterial& material, Ref<Texture2D> texture) { material.GetTextures().normal = texture; }
+                [](PBRMaterial& material, sol::optional<Ref<Texture2D>> texture) {
+                    material.GetTextures().normal = texture ? texture.value() : nullptr;
+                }
             ),
             "metallic_texture", sol::property(
                 [](PBRMaterial& material) { return material.GetTextures().metallic; },
-                [](PBRMaterial& material, Ref<Texture2D> texture) { material.GetTextures().metallic = texture; }
+                [](PBRMaterial& material, sol::optional<Ref<Texture2D>> texture) {
+                    material.GetTextures().metallic = texture ? texture.value() : nullptr;
+                }
             ),
             "roughness_texture", sol::property(
                 [](PBRMaterial& material) { return material.GetTextures().roughness; },
-                [](PBRMaterial& material, Ref<Texture2D> texture) { material.GetTextures().roughness = texture; }
+                [](PBRMaterial& material, sol::optional<Ref<Texture2D>> texture) {
+                    material.GetTextures().roughness = texture ? texture.value() : nullptr;
+                }
             ),
             "ao_texture", sol::property(
                 [](PBRMaterial& material) { return material.GetTextures().ao; },
-                [](PBRMaterial& material, Ref<Texture2D> texture) { material.GetTextures().ao = texture; }
+                [](PBRMaterial& material, sol::optional<Ref<Texture2D>> texture) {
+                    material.GetTextures().ao = texture ? texture.value() : nullptr;
+                }
             ),
             "emission_texture", sol::property(
                 [](PBRMaterial& material) { return material.GetTextures().emissive; },
-                [](PBRMaterial& material, Ref<Texture2D> texture) { material.GetTextures().emissive = texture; }
+                [](PBRMaterial& material, sol::optional<Ref<Texture2D>> texture) {
+                    material.GetTextures().emissive = texture ? texture.value() : nullptr;
+                }
             ),
             "new", sol::factories([](const std::string& name, sol::optional<Coffee::PBRMaterialTextures> textures) {
                 if (textures) {
@@ -220,7 +232,7 @@ namespace Coffee
     {
         luaState.set_function("load", [&](const std::string& path) -> sol::object
         {
-            std::filesystem::path filePath(path);
+            std::filesystem::path filePath = Project::GetActive()->GetProjectDirectory() / path;
             ResourceType type = GetResourceTypeFromExtension(filePath);
     
             switch (type)
