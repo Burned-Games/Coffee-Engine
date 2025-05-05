@@ -128,7 +128,6 @@ namespace Coffee {
 
         m_Name = materialImportData.name;
         m_UUID = materialImportData.uuid;
-        m_FilePath = materialImportData.cachedPath;
     }
 
     void PBRMaterial::Use()

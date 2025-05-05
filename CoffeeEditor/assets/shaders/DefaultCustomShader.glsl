@@ -1,7 +1,3 @@
-// DefaultCustomShader.inl
-#pragma once
-
-inline const char* defaultCustomShaderSource = R"(
 #[vertex]
 
 #version 450 core
@@ -57,4 +53,3 @@ void main()
     FragColor = vec4(1.0, 1.0, 1.0, 1.0);
     EntityID = vec4(entityID, 1.0f);
 }
-)";
