@@ -7,6 +7,20 @@
 
 namespace Coffee {
 
+    void Prefab::FixHierarchy()
+    {
+        auto view = m_Registry.view<HierarchyComponent>();
+
+        for (auto& entity : view)
+        {
+            auto& hierarchyComponent = view.get<HierarchyComponent>(entity);
+            if (hierarchyComponent.m_Parent != entt::null) continue;
+
+            hierarchyComponent.FixNode(m_Registry, entt::null);
+        }
+
+    }
+
     Prefab::Prefab()
         : Resource(ResourceType::Prefab)
     {
@@ -341,6 +355,10 @@ namespace Coffee {
             archive(*prefab);
 
             ResourceRegistry::Add(UUID(), prefab);
+
+            prefab->FixHierarchy();
+            prefab->Save(path);
+
 
             return prefab;
         }

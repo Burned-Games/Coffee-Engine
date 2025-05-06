@@ -15,6 +15,8 @@ namespace Coffee {
 
     class Prefab : public Resource {
     public:
+        void FixHierarchy();
+
         Prefab();
         ~Prefab() = default;
         
@@ -94,6 +96,7 @@ namespace Coffee {
         template<class Archive>
         void load(Archive& archive, std::uint32_t const version)
         {
+            m_IsLoading = true;
             archive(cereal::make_nvp("Base", cereal::base_class<Resource>(this)));
             archive(cereal::make_nvp("RootEntity", m_RootEntity));
 
@@ -157,12 +160,15 @@ namespace Coffee {
 
             SceneManager::GetActiveScene()->AssignAnimatorsToMeshes(AnimationSystem::GetAnimators());
 
+            m_IsLoading = false;
         }
         
     private:
         entt::registry m_Registry;
         entt::entity m_RootEntity = entt::null;
         std::unordered_map<UUID, UUID> m_EntityMap;
+
+        bool m_IsLoading = false;
     };
 
 } // namespace Coffee
