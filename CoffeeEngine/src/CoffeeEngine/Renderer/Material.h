@@ -346,6 +346,7 @@ namespace Coffee {
             construct->m_FilePath = tmpMaterial.GetPath();
             construct->m_Type = tmpMaterial.GetType();
             construct->m_UUID = tmpMaterial.GetUUID();
+            construct->m_RenderSettings = tmpMaterial.GetRenderSettings();
         }
 
     private:
