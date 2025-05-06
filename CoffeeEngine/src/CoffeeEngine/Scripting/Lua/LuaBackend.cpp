@@ -12,7 +12,8 @@
 #include "Bindings/LuaScene.h"
 #include "Bindings/LuaTimer.h"
 #include "CoffeeEngine/Core/Log.h"
-#include "CoffeeEngine/Scripting/Lua/LuaScript.h"
+#include "Bindings/LuaResources.h"
+#include "LuaScript.h"
 
 #include <fstream>
 #include <lua.h>
@@ -43,6 +44,8 @@ namespace Coffee {
         RegisterPrefabBindings(luaState);
         RegisterApplicationBindings(luaState);
         RegisterAudioBindings(luaState);
+        RegisterResourcesBindings(luaState);
+        RegisterResourceLoadingBindings(luaState);
     }
 
     Ref<Script> LuaBackend::CreateScript(const std::filesystem::path& path) {

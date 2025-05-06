@@ -6,6 +6,7 @@
  #pragma once
 
  #include "CoffeeEngine/Core/Base.h"
+#include "CoffeeEngine/IO/Resource.h"
  #include "CoffeeEngine/IO/ResourceLoader.h"
  #include "CoffeeEngine/IO/ResourceRegistry.h"
  #include "CoffeeEngine/Physics/Collider.h"
@@ -489,17 +490,73 @@
           */
          template<class Archive> void save(Archive& archive, std::uint32_t const version) const
          {
-            ResourceSaver::SaveToCache<Material>(material->GetUUID(), material);
-            archive(cereal::make_nvp("Material", material->GetUUID()));
+            if (version < 1)
+            {
+                archive(cereal::make_nvp("Material", material->GetUUID()));
+                return;
+            }
+            
+            archive(cereal::make_nvp("IsEmbedded", material->IsEmbedded()));
+            if (material->IsEmbedded())
+            {
+                archive(cereal::make_nvp("Material", material));
+            }
+            else 
+            {
+                archive(cereal::make_nvp("Type", static_cast<int>(material->GetType())));
+                
+                if (material->GetType() == ResourceType::PBRMaterial)
+                {
+                    ResourceSaver::SaveToCache<PBRMaterial>(material->GetUUID(), std::dynamic_pointer_cast<PBRMaterial>(material));
+                }
+                else if (material->GetType() == ResourceType::ShaderMaterial)
+                {
+                    ResourceSaver::SaveToCache<ShaderMaterial>(material->GetUUID(), std::dynamic_pointer_cast<ShaderMaterial>(material));
+                }
+
+                archive(cereal::make_nvp("MaterialUUID", material->GetUUID()));
+            }
          }
  
          template<class Archive> void load(Archive& archive, std::uint32_t const version)
          {
-             UUID materialUUID;
-             archive(cereal::make_nvp("Material", materialUUID));
+            if (version < 1)
+            {
+                UUID materialUUID;
+                archive(cereal::make_nvp("Material", materialUUID));
  
-             Ref<Material> material = ResourceLoader::GetResource<Material>(materialUUID);
-             this->material = material;
+                Ref<Material> material = ResourceLoader::GetResource<Material>(materialUUID);
+                this->material = material;
+                return;
+            }
+
+            bool isEmbedded = false;
+            archive(cereal::make_nvp("IsEmbedded", isEmbedded));
+
+            if (isEmbedded)
+            {
+                archive(cereal::make_nvp("Material", material));
+            }
+            else 
+            {
+                int typeInt;
+                archive(cereal::make_nvp("Type", typeInt));
+                ResourceType type = static_cast<ResourceType>(typeInt);
+
+                UUID materialUUID;
+                archive(cereal::make_nvp("MaterialUUID", materialUUID));
+ 
+                if (type == ResourceType::PBRMaterial)
+                {
+                    Ref<PBRMaterial> material = ResourceLoader::GetResource<PBRMaterial>(materialUUID);
+                    this->material = material;
+                }
+                else if (type == ResourceType::ShaderMaterial)
+                {
+                    Ref<ShaderMaterial> material = ResourceLoader::GetResource<ShaderMaterial>(materialUUID);
+                    this->material = material;
+                }
+            }
          }
      };
  
@@ -1374,7 +1431,7 @@
  CEREAL_CLASS_VERSION(Coffee::CameraComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::AnimatorComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::MeshComponent, 0);
- CEREAL_CLASS_VERSION(Coffee::MaterialComponent, 0);
+ CEREAL_CLASS_VERSION(Coffee::MaterialComponent, 1);
  CEREAL_CLASS_VERSION(Coffee::LightComponent, 1);
  CEREAL_CLASS_VERSION(Coffee::AudioSourceComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::AudioListenerComponent, 0);
