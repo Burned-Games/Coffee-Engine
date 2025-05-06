@@ -118,7 +118,7 @@ namespace Coffee {
             archive(cereal::base_class<Resource>(this), cereal::make_nvp("Shader Path", shaderPath), cereal::make_nvp("Render Settings", m_RenderSettings));
 
             if (Project::GetActive())
-                shaderPath = Project::GetActive()->GetProjectDirectory() / shaderPath;
+                shaderPath = (Project::GetActive()->GetProjectDirectory() / shaderPath).string();
             else
                 shaderPath = shaderPath;
 
