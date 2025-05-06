@@ -108,6 +108,19 @@ namespace Coffee {
 		}
 	}
 
+	void RendererAPI::SetPolygonMode(PolygonMode mode)
+	{
+		ZoneScoped;
+
+		switch (mode)
+		{
+			case PolygonMode::Fill: glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); break;
+			case PolygonMode::Line: glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); break;
+			case PolygonMode::Point: glPolygonMode(GL_FRONT_AND_BACK, GL_POINT); break;
+			default: COFFEE_CORE_ASSERT(false, "Unknown polygon mode!"); break;
+		}
+	}
+
     void RendererAPI::DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount)
     {
         ZoneScoped;

@@ -43,6 +43,10 @@ namespace Coffee {
     class Scene
     {
     public:
+
+        // TODO Delete this function
+        void FixHierarchy();
+
         /**
          * @brief Constructor for Scene.
          */
