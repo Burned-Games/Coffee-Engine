@@ -66,7 +66,6 @@ namespace Coffee {
         uint32_t QuadIndexCount = 0;
 
         std::vector<LineVertex> LineVertices;
-        uint32_t LineIndexCount = 0;
 
         std::vector<TextVertex> TextVertices;
         uint32_t TextIndexCount = 0;
@@ -207,12 +206,12 @@ namespace Coffee {
                 RendererAPI::DrawIndexed(s_Renderer2DData.QuadVertexArray, batch.QuadIndexCount);
             }
 
-            if(batch.LineIndexCount > 0)
+            if(batch.LineVertices.size() > 0)
             {
                 s_Renderer2DData.LineVertexBuffer->SetData(batch.LineVertices.data(), batch.LineVertices.size() * sizeof(LineVertex));
 
                 s_Renderer2DData.LineShader->Bind();
-                RendererAPI::DrawLines(s_Renderer2DData.LineVertexArray, batch.LineIndexCount, batch.LineWidth);
+                RendererAPI::DrawLines(s_Renderer2DData.LineVertexArray, batch.LineVertices.size(), batch.LineWidth);
             }
 
             if(batch.TextIndexCount > 0)
@@ -258,12 +257,12 @@ namespace Coffee {
                 RendererAPI::DrawIndexed(s_Renderer2DData.QuadVertexArray, batch.QuadIndexCount);
             }
 
-            if(batch.LineIndexCount > 0)
+            if(batch.LineVertices.size() > 0)
             {
                 s_Renderer2DData.LineVertexBuffer->SetData(batch.LineVertices.data(), batch.LineVertices.size() * sizeof(LineVertex));
 
                 s_Renderer2DData.LineShader->Bind();
-                RendererAPI::DrawLines(s_Renderer2DData.LineVertexArray, batch.LineIndexCount, batch.LineWidth);
+                RendererAPI::DrawLines(s_Renderer2DData.LineVertexArray, batch.LineVertices.size(), batch.LineWidth);
             }
 
             if(batch.TextIndexCount > 0)
@@ -453,7 +452,7 @@ namespace Coffee {
     {
         Batch& batch = GetBatch(RenderMode::Screen);
 
-        if(batch.LineIndexCount >= Batch::MaxIndices)
+        if(batch.LineVertices.size() >= Batch::MaxVertices)
         {
             NextBatch(RenderMode::Screen);
             batch = GetBatch(RenderMode::Screen);
@@ -469,15 +468,13 @@ namespace Coffee {
 
         batch.LineVertices.push_back({glm::vec3(start, 0.0f), color, entityIDVec3});
         batch.LineVertices.push_back({glm::vec3(end, 0.0f), color, entityIDVec3});
-
-        batch.LineIndexCount += 2;
     }
 
     void Renderer2D::DrawLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color , float linewidth)
     {
         Batch& batch = GetBatch(RenderMode::World);
 
-        if(batch.LineIndexCount >= Batch::MaxIndices)
+        if(batch.LineVertices.size() >= Batch::MaxVertices)
         {
             NextBatch(RenderMode::World);
             batch = GetBatch(RenderMode::World);
@@ -493,15 +490,13 @@ namespace Coffee {
 
         batch.LineVertices.push_back({start, color, entityIDVec3});
         batch.LineVertices.push_back({end, color, entityIDVec3});
-
-        batch.LineIndexCount += 2;
     }
 
     void Renderer2D::DrawCircle(const glm::vec2& position, float radius, const glm::vec4& color , float linewidth)
     {
         Batch& batch = GetBatch(RenderMode::Screen);
 
-        if(batch.LineIndexCount >= Batch::MaxIndices)
+        if(batch.LineVertices.size() >= Batch::MaxVertices)
         {
             NextBatch(RenderMode::Screen);
             batch = GetBatch(RenderMode::Screen);
@@ -523,14 +518,14 @@ namespace Coffee {
             batch.LineVertices.push_back({glm::vec3(start, 0.0f), color, entityIDVec3});
             batch.LineVertices.push_back({glm::vec3(end, 0.0f), color, entityIDVec3});
 
-            batch.LineIndexCount += 2;
+            
         }
     }
     void Renderer2D::DrawCircle(const glm::vec3& position, float radius, const glm::quat& rotation, const glm::vec4& color , float linewidth)
     {
         Batch& batch = GetBatch(RenderMode::World);
 
-        if(batch.LineIndexCount >= Batch::MaxIndices)
+        if(batch.LineVertices.size() >= Batch::MaxVertices)
         {
             NextBatch(RenderMode::World);
             batch = GetBatch(RenderMode::World);
@@ -552,7 +547,7 @@ namespace Coffee {
             batch.LineVertices.push_back({start, color, entityIDVec3});
             batch.LineVertices.push_back({end, color, entityIDVec3});
 
-            batch.LineIndexCount += 2;
+            
         }
     }
 
@@ -640,7 +635,7 @@ namespace Coffee {
     {
         Batch& batch = GetBatch(RenderMode::World);
 
-        if(batch.LineIndexCount >= Batch::MaxIndices)
+        if(batch.LineVertices.size() >= Batch::MaxVertices)
         {
             NextBatch(RenderMode::World);
             batch = GetBatch(RenderMode::World);
@@ -679,7 +674,7 @@ namespace Coffee {
 
         for (int i = 0; i < arrow_sides; i++) {
             for (int j = 0; j < arrow_points; j++) {
-                if(batch.LineIndexCount >= Batch::MaxIndices)
+                if(batch.LineVertices.size() >= Batch::MaxVertices)
                 {
                     NextBatch(RenderMode::World);
                     batch = GetBatch(RenderMode::World);
@@ -696,7 +691,7 @@ namespace Coffee {
                 batch.LineVertices.push_back({transformed_v1, color, entityIDVec3});
                 batch.LineVertices.push_back({transformed_v2, color, entityIDVec3});
 
-                batch.LineIndexCount += 2;
+                
             }
         }
     }
@@ -820,7 +815,7 @@ namespace Coffee {
     {
         Batch& batch = GetBatch(RenderMode::World);
 
-        if(batch.LineIndexCount >= Batch::MaxIndices)
+        if(batch.LineVertices.size() >= Batch::MaxVertices)
         {
             NextBatch(RenderMode::World);
             batch = GetBatch(RenderMode::World);
@@ -854,7 +849,7 @@ namespace Coffee {
         // Draw the base circle
         for (int i = 0; i < segments; i++)
         {
-            if(batch.LineIndexCount >= Batch::MaxIndices)
+            if(batch.LineVertices.size() >= Batch::MaxVertices)
             {
                 NextBatch(RenderMode::World);
                 batch = GetBatch(RenderMode::World);
@@ -862,13 +857,13 @@ namespace Coffee {
             
             batch.LineVertices.push_back({basePoints[i], color, entityIDVec3});
             batch.LineVertices.push_back({basePoints[i + 1], color, entityIDVec3});
-            batch.LineIndexCount += 2;
+            
         }
         
         // Draw lines from the base to the apex (every few segments for clarity)
         for (int i = 0; i < segments; i += 3)
         {
-            if(batch.LineIndexCount >= Batch::MaxIndices)
+            if(batch.LineVertices.size() >= Batch::MaxVertices)
             {
                 NextBatch(RenderMode::World);
                 batch = GetBatch(RenderMode::World);
@@ -876,7 +871,7 @@ namespace Coffee {
             
             batch.LineVertices.push_back({basePoints[i], color, entityIDVec3});
             batch.LineVertices.push_back({apex, color, entityIDVec3});
-            batch.LineIndexCount += 2;
+            
         }
     }
 
