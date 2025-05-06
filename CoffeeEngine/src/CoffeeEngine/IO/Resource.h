@@ -130,7 +130,16 @@ namespace Coffee {
         template <class Archive> void load(Archive& archive, std::uint32_t const version)
         {
             int typeInt;
-            archive(m_Name, m_FilePath, typeInt, m_UUID, m_isEmbedded);
+            if (version < 1)
+            {
+                archive(m_Name, m_FilePath, typeInt, m_UUID);
+            }
+            else
+            {
+                archive(m_Name, m_FilePath, typeInt, m_UUID, m_isEmbedded);
+            }
+            
+            
             m_Type = static_cast<ResourceType>(typeInt);
         }
 
@@ -145,5 +154,6 @@ namespace Coffee {
 }
 
 CEREAL_REGISTER_TYPE(Coffee::Resource);
+CEREAL_CLASS_VERSION(Coffee::Resource, 1);
 
 /** @} */
