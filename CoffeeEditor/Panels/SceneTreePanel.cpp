@@ -187,7 +187,7 @@ namespace Coffee
         const char* icon = isActive ? ICON_LC_EYE : ICON_LC_EYE_OFF;
         std::string buttonId = "##Active" + std::to_string((uint32_t)entity);
 
-        // ImGui::Separator(); // TODO reimplement this with smth like ImGui::InvisibleButton() or alternatives.
+        ImGui::Separator(); // TODO reimplement this with smth like ImGui::InvisibleButton() or alternatives.
         if (ImGui::BeginDragDropTarget())
         {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_NODE"))
@@ -200,7 +200,9 @@ namespace Coffee
             }
             ImGui::EndDragDropTarget();
         }
-        
+
+        ImGui::SetNextItemAllowOverlap();
+
         // Draw the tree node first, so ImGui sets up the proper indentation
         bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(uint32_t)entity, flags, entityNameTag.c_str());
     
