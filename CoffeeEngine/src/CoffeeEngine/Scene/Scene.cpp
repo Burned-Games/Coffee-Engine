@@ -47,6 +47,20 @@ namespace Coffee {
     std::vector<MeshComponent*> Scene::s_MeshComponents;
     std::vector<AnimatorComponent*> Scene::s_AnimatorComponents;
 
+    void Scene::FixHierarchy()
+    {
+        auto view = m_Registry.view<HierarchyComponent>();
+
+        for (auto& entity : view)
+        {
+            auto& hierarchyComponent = view.get<HierarchyComponent>(entity);
+            if (hierarchyComponent.m_Parent != entt::null) continue;
+
+            hierarchyComponent.FixNode(m_Registry, entt::null);
+        }
+
+    }
+
     Scene::Scene() : m_Octree({glm::vec3(-50.0f), glm::vec3(50.0f)}, 10, 5)
     {
         m_SceneTree = CreateScope<SceneTree>(this);
