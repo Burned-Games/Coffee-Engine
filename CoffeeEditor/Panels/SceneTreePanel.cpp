@@ -96,6 +96,21 @@ namespace Coffee
 
         ImGui::EndChild();
 
+        // Entity unparenting
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_NODE"))
+            {
+                // Unparent the entity if dragged onto empty space in the hierarchy view
+                // Copy-paste of payload handling for reparenting entities found in DrawEntityNode(entity)
+                Entity payloadEntity = *(const Entity*)payload->Data;
+                HierarchyComponent::Reparent(
+                    m_Context->m_Registry, (entt::entity)payloadEntity,
+                    entt::null); // Parent set to null (unparented)
+            }
+            ImGui::EndDragDropTarget();
+        }
+
         // Entity Tree Drag and Drop functionality
         if (ImGui::BeginDragDropTarget())
         {
@@ -174,7 +189,23 @@ namespace Coffee
         bool isActive = entity.IsActive();
         const char* icon = isActive ? ICON_LC_EYE : ICON_LC_EYE_OFF;
         std::string buttonId = "##Active" + std::to_string((uint32_t)entity);
-        
+
+        ImGui::Separator(); // TODO reimplement this with smth like ImGui::InvisibleButton() or alternatives.
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_NODE"))
+            {
+                // Assuming payload is an Entity, but you need to cast and check appropriately
+                Entity payloadEntity = *(const Entity*)payload->Data;
+                // Process the drop, e.g., reordering the entity in the hierarchy
+                // This is where you would update the ECS or scene graph
+                HierarchyComponent::Reorder(m_Context->m_Registry,payloadEntity, entt::null, entity);
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        ImGui::SetNextItemAllowOverlap();
+
         // Draw the tree node first, so ImGui sets up the proper indentation
         bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(uint32_t)entity, flags, entityNameTag.c_str());
     
@@ -360,12 +391,14 @@ namespace Coffee
                         auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
 
                         Entity parentEntity{hierarchyComponent.m_Parent, m_Context.get()};
-                        glm::vec2 parentSize = UIManager::GetParentSize(m_Context->m_Registry, parentEntity);
+                        auto& parentRenderItem = UIManager::GetUIRenderItem(parentEntity);
+                        glm::vec2 parentSize = UIManager::GetParentSize(m_Context->m_Registry, parentRenderItem);
 
                         glm::vec4 currentRect = anchor.CalculateRect(parentSize);
 
                         AnchorPreset preset = UIManager::GetAnchorPreset(row, col);
                         anchor.SetAnchorPreset(preset, currentRect, parentSize, preservePosition);
+                        UIManager::MarkDirty(entity);
 
                         ImGui::CloseCurrentPopup();
                     }
@@ -430,10 +463,12 @@ namespace Coffee
         if (ImGui::TreeNodeEx("Anchors", ImGuiTreeNodeFlags_DefaultOpen))
         {
             ImGui::Text("Min");
-            ImGui::DragFloat2("##AnchorMin", glm::value_ptr(anchor.AnchorMin), 0.01f, 0.0f, 1.0f);
+            if (ImGui::DragFloat2("##AnchorMin", glm::value_ptr(anchor.AnchorMin), 0.01f, 0.0f, 1.0f))
+                UIManager::MarkDirty(entity);
 
             ImGui::Text("Max");
-            ImGui::DragFloat2("##AnchorMax", glm::value_ptr(anchor.AnchorMax), 0.01f, 0.0f, 1.0f);
+            if (ImGui::DragFloat2("##AnchorMax", glm::value_ptr(anchor.AnchorMax), 0.01f, 0.0f, 1.0f))
+                UIManager::MarkDirty(entity);
 
             ImGui::TreePop();
         }
@@ -443,7 +478,8 @@ namespace Coffee
 
         auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
         Entity parentEntity{hierarchyComponent.m_Parent, m_Context.get()};
-        glm::vec2 parentSize = UIManager::GetParentSize(m_Context->m_Registry, parentEntity);
+        auto& parentRenderItem = UIManager::GetUIRenderItem(parentEntity);
+        glm::vec2 parentSize = UIManager::GetParentSize(m_Context->m_Registry, parentRenderItem);
 
         if (!isStretchingX && !isStretchingY)
         {
@@ -452,6 +488,7 @@ namespace Coffee
             if (ImGui::DragFloat2("##Position", glm::value_ptr(anchoredPos), 1.0f))
             {
                 anchor.SetAnchoredPosition(anchoredPos, parentSize);
+                UIManager::MarkDirty(entity);
             }
 
             glm::vec2 size = anchor.GetSize();
@@ -459,6 +496,7 @@ namespace Coffee
             if (ImGui::DragFloat2("##Size", glm::value_ptr(size), 1.0f, 0.0f, FLT_MAX, "%.0f"))
             {
                 anchor.SetSize(size, parentSize);
+                UIManager::MarkDirty(entity);
             }
         }
 
@@ -469,17 +507,23 @@ namespace Coffee
                 if (isStretchingX)
                 {
                     ImGui::Text("Left");
-                    ImGui::DragFloat("##OffsetMinX", &anchor.OffsetMin.x, 1.0f);
+                    if (ImGui::DragFloat("##OffsetMinX", &anchor.OffsetMin.x, 1.0f))
+                        UIManager::MarkDirty(entity);
+
                     ImGui::Text("Right");
-                    ImGui::DragFloat("##OffsetMaxX", &anchor.OffsetMax.x, 1.0f);
+                    if (ImGui::DragFloat("##OffsetMaxX", &anchor.OffsetMax.x, 1.0f))
+                        UIManager::MarkDirty(entity);
                 }
 
                 if (isStretchingY)
                 {
                     ImGui::Text("Top");
-                    ImGui::DragFloat("##OffsetMinY", &anchor.OffsetMin.y, 1.0f);
+                    if (ImGui::DragFloat("##OffsetMinY", &anchor.OffsetMin.y, 1.0f))
+                        UIManager::MarkDirty(entity);
+
                     ImGui::Text("Bottom");
-                    ImGui::DragFloat("##OffsetMaxY", &anchor.OffsetMax.y, 1.0f);
+                    if (ImGui::DragFloat("##OffsetMaxY", &anchor.OffsetMax.y, 1.0f))
+                        UIManager::MarkDirty(entity);
                 }
                 ImGui::TreePop();
             }
@@ -491,6 +535,7 @@ namespace Coffee
         if (ImGui::DragFloat("##Rotation", &rotation, 0.1f))
         {
             transformComponent.SetLocalRotation(glm::vec3(0.f, 0.f, rotation));
+            UIManager::MarkDirty(entity);
         }
     }
 
@@ -583,6 +628,13 @@ namespace Coffee
                     auto& uiSliderComponent = entity.GetComponent<UISliderComponent>();
                     DrawUITransform(transformComponent, uiSliderComponent.Anchor, entity);
                     if (ImGui::DragInt("Layer", &uiSliderComponent.Layer, 1.0f, 0.0f, 100.0f))
+                        UIManager::MarkForSorting();
+                }
+                else if (entity.HasComponent<UIComponent>())
+                {
+                    auto& uiComponent = entity.GetComponent<UIComponent>();
+                    DrawUITransform(transformComponent, uiComponent.Anchor, entity);
+                    if (ImGui::DragInt("Layer", &uiComponent.Layer, 1.0f, 0.0f, 100.0f))
                         UIManager::MarkForSorting();
                 }
                 else
@@ -2806,6 +2858,17 @@ namespace Coffee
             ImGui::PopID();
         }
 
+        if (entity.HasComponent<UIComponent>())
+        {
+            bool isCollapsingHeaderOpen = true;
+            ImGui::CollapsingHeader("UI Empty Component", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen);
+
+            if (!isCollapsingHeaderOpen)
+            {
+                entity.RemoveComponent<UIComponent>();
+            }
+        }
+
         if (entity.HasComponent<UIImageComponent>())
         {
             auto& imageComponent = entity.GetComponent<UIImageComponent>();
@@ -3016,6 +3079,15 @@ namespace Coffee
                         sliderComponent.HandleTexture = texture;
                     }
                 }
+                if (ImGui::Selectable("Disabled Handle Texture"))
+                {
+                    std::string path = FileDialog::OpenFile({}).string();
+                    if (!path.empty())
+                    {
+                        Ref<Texture2D> texture = Texture2D::Load(path);
+                        sliderComponent.DisabledHandleTexture = texture;
+                    }
+                }
             }
 
             if (!isCollapsingHeaderOpen)
@@ -3044,7 +3116,7 @@ namespace Coffee
             static char buffer[256] = "";
             ImGui::InputTextWithHint("##Search Component", "Search Component:", buffer, 256);
 
-            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "Particles System Component", "NavMesh Component", "Navigation Agent Component", "Sprite Component", "UI Image Component", "UI Text Component", "UI Toggle Component", "UI Button Component", "UI Slider Component" };
+            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "Particles System Component", "NavMesh Component", "Navigation Agent Component", "Sprite Component", "UI Empty Component","UI Image Component", "UI Text Component", "UI Toggle Component", "UI Button Component", "UI Slider Component" };
 
             static int item_current = 1;
 
@@ -3222,6 +3294,14 @@ namespace Coffee
                         navigationAgentComponent.SetPathFinder(CreateRef<NavMeshPathfinding>(nullptr));
                     }
 
+                    ImGui::CloseCurrentPopup();
+                }
+                else if (items[item_current] == "UI Empty Component")
+                {
+                    if (!entity.HasComponent<UIComponent>())
+                    {
+                        entity.AddComponent<UIComponent>();
+                    }
                     ImGui::CloseCurrentPopup();
                 }
                 else if (items[item_current] == "UI Image Component")

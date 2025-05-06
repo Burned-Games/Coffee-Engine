@@ -1,8 +1,9 @@
 #include "Prefab.h"
 
-#include "SceneManager.h"
 #include "CoffeeEngine/Core/Log.h"
 #include "CoffeeEngine/IO/ResourceRegistry.h"
+#include "CoffeeEngine/Scripting/Lua/LuaScript.h"
+#include "SceneManager.h"
 
 namespace Coffee {
 
@@ -53,6 +54,7 @@ namespace Coffee {
         CopyComponentToPrefab<UIToggleComponent>(sourceEntity, destEntity);
         CopyComponentToPrefab<UIButtonComponent>(sourceEntity, destEntity);
         CopyComponentToPrefab<UISliderComponent>(sourceEntity, destEntity);
+        CopyComponentToPrefab<UIComponent>(sourceEntity, destEntity);
 
         
         // Copy empty components (which don't need values)
@@ -181,13 +183,77 @@ namespace Coffee {
             entity.AddComponent<AnimatorComponent>(newAnimatorComp);
             Scene::s_AnimatorComponents.push_back(&entity.GetComponent<AnimatorComponent>());
         }
+
+        if (m_Registry.all_of<ScriptComponent>(prefabEntity))
+        {
+            const auto& scriptComp = m_Registry.get<ScriptComponent>(prefabEntity);
+            std::filesystem::path scriptPath = scriptComp.script->GetPath();
+            ScriptComponent newScriptComp;
+            newScriptComp.script = ScriptManager::CreateScript(scriptPath, ScriptingLanguage::Lua);
+            entity.AddComponent<ScriptComponent>(newScriptComp);
+            
+            // Initialize the script
+            std::dynamic_pointer_cast<LuaScript>(newScriptComp.script)->SetVariable("self", entity);
+            std::dynamic_pointer_cast<LuaScript>(newScriptComp.script)->SetVariable("current_scene", scene);
+            newScriptComp.script->OnReady();
+
+        }
+
+        if (m_Registry.all_of<RigidbodyComponent>(prefabEntity))
+        {
+            const auto& rbComponent = m_Registry.get<RigidbodyComponent>(prefabEntity);
+        
+            try {
+                RigidBody::Properties props = rbComponent.rb->GetProperties();
+        
+                Ref<Collider> collider;
+                if (auto boxCollider = std::dynamic_pointer_cast<BoxCollider>(rbComponent.rb->GetCollider())) {
+                    collider = CreateRef<BoxCollider>(boxCollider->GetSize());
+                }
+                else if (auto sphereCollider = std::dynamic_pointer_cast<SphereCollider>(rbComponent.rb->GetCollider())) {
+                    collider = CreateRef<SphereCollider>(sphereCollider->GetRadius());
+                }
+                else if (auto capsuleCollider = std::dynamic_pointer_cast<CapsuleCollider>(rbComponent.rb->GetCollider())) {
+                    collider = CreateRef<CapsuleCollider>(capsuleCollider->GetRadius(), capsuleCollider->GetHeight());
+                }
+                else if (auto cylinderCollider = std::dynamic_pointer_cast<CylinderCollider>(rbComponent.rb->GetCollider())) {
+                    collider = CreateRef<CylinderCollider>(cylinderCollider->GetRadius(), cylinderCollider->GetHeight());
+                }
+                else if (auto coneCollider = std::dynamic_pointer_cast<ConeCollider>(rbComponent.rb->GetCollider())) {
+                    collider = CreateRef<ConeCollider>(coneCollider->GetRadius(), coneCollider->GetHeight());
+                }
+                else {
+                    collider = CreateRef<BoxCollider>(glm::vec3(1.0f, 1.0f, 1.0f));
+                }
+        
+                auto& newComponent = entity.AddComponent<RigidbodyComponent>(props, collider);
+        
+                newComponent.callback = rbComponent.callback;
+        
+                // Set initial transform
+                auto& transform = entity.GetComponent<TransformComponent>();
+                newComponent.rb->SetPosition(transform.GetLocalPosition());
+                newComponent.rb->SetRotation(transform.GetLocalRotation());
+                
+                // Add to physics world - this is the missing part
+                scene->GetPhysicsWorld().addRigidBody(newComponent.rb->GetNativeBody());
+                
+                // Set user pointer for collision detection
+                newComponent.rb->GetNativeBody()->setUserPointer(
+                    reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
+            }
+            catch (const std::exception& e) {
+                COFFEE_CORE_ERROR("Exception copying rigidbody component during prefab instantiation: {0}", e.what());
+                if (entity.HasComponent<RigidbodyComponent>()) {
+                    entity.RemoveComponent<RigidbodyComponent>();
+                }
+            }
+        }
         
         // Copy standard components
         CopyComponentToScene<MaterialComponent>(scene, prefabEntity, entity);
         CopyComponentToScene<LightComponent>(scene, prefabEntity, entity);
-        CopyComponentToScene<RigidbodyComponent>(scene, prefabEntity, entity);
         CopyComponentToScene<ParticlesSystemComponent>(scene, prefabEntity, entity);
-        CopyComponentToScene<ScriptComponent>(scene, prefabEntity, entity);
         CopyComponentToScene<AudioSourceComponent>(scene, prefabEntity, entity);
         CopyComponentToScene<AudioListenerComponent>(scene, prefabEntity, entity);
         CopyComponentToScene<AudioZoneComponent>(scene, prefabEntity, entity);
@@ -199,6 +265,7 @@ namespace Coffee {
         CopyComponentToScene<UIToggleComponent>(scene, prefabEntity, entity);
         CopyComponentToScene<UIButtonComponent>(scene, prefabEntity, entity);
         CopyComponentToScene<UISliderComponent>(scene, prefabEntity, entity);
+        CopyComponentToScene<UIComponent>(scene, prefabEntity, entity);
         
         // Copy empty components
         CopyEmptyComponentToScene<StaticComponent>(scene, prefabEntity, entity);

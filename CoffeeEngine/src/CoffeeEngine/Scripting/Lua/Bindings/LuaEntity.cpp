@@ -55,7 +55,17 @@ void Coffee::RegisterEntityBindings(sol::state& luaState)
 
                     COFFEE_CORE_ERROR("Lua: Entity does not have a ParticlesSystemComponent");
                     return sol::nil;
-                } else if (componentName == "NavigationAgentComponent") {
+                }
+                else if (componentName == "SpriteComponent")
+                {
+                    if (auto* component = self->TryGetComponent<SpriteComponent>())
+                        return sol::make_object(luaState, std::ref(*component));
+
+                    COFFEE_CORE_ERROR("Lua: Entity does not have a SpriteComponent");
+                    return sol::nil;
+                }
+                else if (componentName == "NavigationAgentComponent")
+                {
                     if (auto* component = self->TryGetComponent<NavigationAgentComponent>())
                         return sol::make_object(luaState, component);
 

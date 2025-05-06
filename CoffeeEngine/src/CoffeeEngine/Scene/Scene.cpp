@@ -47,6 +47,20 @@ namespace Coffee {
     std::vector<MeshComponent*> Scene::s_MeshComponents;
     std::vector<AnimatorComponent*> Scene::s_AnimatorComponents;
 
+    void Scene::FixHierarchy()
+    {
+        auto view = m_Registry.view<HierarchyComponent>();
+
+        for (auto& entity : view)
+        {
+            auto& hierarchyComponent = view.get<HierarchyComponent>(entity);
+            if (hierarchyComponent.m_Parent != entt::null) continue;
+
+            hierarchyComponent.FixNode(m_Registry, entt::null);
+        }
+
+    }
+
     Scene::Scene() : m_Octree({glm::vec3(-50.0f), glm::vec3(50.0f)}, 10, 5)
     {
         m_SceneTree = CreateScope<SceneTree>(this);
@@ -163,6 +177,12 @@ namespace Coffee {
                 }
                 else if (auto capsuleCollider = std::dynamic_pointer_cast<CapsuleCollider>(srcComponent.rb->GetCollider())) {
                     collider = CreateRef<CapsuleCollider>(capsuleCollider->GetRadius(), capsuleCollider->GetHeight());
+                }
+                else if (auto cylinderCollider = std::dynamic_pointer_cast<CylinderCollider>(srcComponent.rb->GetCollider())) {
+                    collider = CreateRef<CylinderCollider>(cylinderCollider->GetRadius(), cylinderCollider->GetHeight());
+                }
+                else if (auto coneCollider = std::dynamic_pointer_cast<ConeCollider>(srcComponent.rb->GetCollider())) {
+                    collider = CreateRef<ConeCollider>(coneCollider->GetRadius(), coneCollider->GetHeight());
                 }
                 else {
                     collider = CreateRef<BoxCollider>(glm::vec3(1.0f, 1.0f, 1.0f));

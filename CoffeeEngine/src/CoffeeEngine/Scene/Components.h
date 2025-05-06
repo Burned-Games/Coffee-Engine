@@ -1088,6 +1088,9 @@
 
         SpriteComponent(const SpriteComponent& other) { *this = other; }
 
+        void SetTintColor(glm::vec4 newTint) { tintColor = newTint; }
+        glm::vec4 GetTintColor() { return tintColor; }
+        
         SpriteComponent& operator=(const SpriteComponent& other)
         {
             if (this != &other)
@@ -1112,11 +1115,18 @@
 
         template <class Archive> void load(Archive& archive, std::uint32_t const version)
         {
-            archive(cereal::make_nvp("TextureUUID", texture->GetUUID()));
+            UUID textureUUID;
+            
+            archive(cereal::make_nvp("TextureUUID", textureUUID));
             archive(cereal::make_nvp("TintColor", tintColor));
             archive(cereal::make_nvp("FlipX", flipX));
             archive(cereal::make_nvp("FlipY", flipY));
             archive(cereal::make_nvp("TilingFactor", tilingFactor));
+
+            if (textureUUID)
+            {
+                texture = ResourceLoader::GetResource<Texture2D>(textureUUID);
+            }
         }
     };
 
@@ -1358,6 +1368,7 @@
          {
              BackgroundTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
              HandleTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+             DisabledHandleTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
              HandleScale = {1.0f, 1.0f};
          }
 
@@ -1367,6 +1378,8 @@
          glm::vec2 HandleScale; ///< The scale of the handle.
          Ref<Texture2D> BackgroundTexture; ///< The texture of the background.
          Ref<Texture2D> HandleTexture; ///< The texture of the handle.
+         Ref<Texture2D> DisabledHandleTexture; ///< The texture of the disabled handle.
+         bool Selected = false; ///< Flag to indicate if the slider is selected.
 
          template<class Archive> void save(Archive& archive, std::uint32_t const version) const
          {
@@ -1376,6 +1389,10 @@
                      cereal::make_nvp("HandleScale", HandleScale),
                      cereal::make_nvp("BackgroundTextureUUID", BackgroundTexture ? BackgroundTexture->GetUUID() : UUID(0)),
                      cereal::make_nvp("HandleTextureUUID", HandleTexture ? HandleTexture->GetUUID() : UUID(0)));
+             if (version >= 1)
+             {
+                 archive(cereal::make_nvp("DisabledHandleTextureUUID", DisabledHandleTexture ? DisabledHandleTexture->GetUUID() : UUID(0)));
+             }
              UIComponent::save(archive, version);
          }
 
@@ -1383,6 +1400,7 @@
          {
              UUID BackgroundTextureUUID;
              UUID HandleTextureUUID;
+             UUID DisabledHandleTextureUUID;
 
              archive(cereal::make_nvp("Value", Value),
                      cereal::make_nvp("MinValue", MinValue),
@@ -1390,10 +1408,19 @@
                      cereal::make_nvp("HandleScale", HandleScale),
                      cereal::make_nvp("BackgroundTextureUUID", BackgroundTextureUUID),
                      cereal::make_nvp("HandleTextureUUID", HandleTextureUUID));
+
              if (BackgroundTextureUUID != UUID(0))
                  BackgroundTexture = ResourceLoader::GetResource<Texture2D>(BackgroundTextureUUID);
              if (HandleTextureUUID != UUID(0))
                  HandleTexture = ResourceLoader::GetResource<Texture2D>(HandleTextureUUID);
+
+             if (version >= 1)
+             {
+                 archive(cereal::make_nvp("DisabledHandleTextureUUID", DisabledHandleTextureUUID));
+
+                 if (DisabledHandleTextureUUID != UUID(0))
+                     DisabledHandleTexture = ResourceLoader::GetResource<Texture2D>(DisabledHandleTextureUUID);
+             }
              UIComponent::load(archive, version);
          }
      };
@@ -1419,6 +1446,6 @@
  CEREAL_CLASS_VERSION(Coffee::UITextComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::UIToggleComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::UIButtonComponent, 0);
- CEREAL_CLASS_VERSION(Coffee::UISliderComponent, 0);
+ CEREAL_CLASS_VERSION(Coffee::UISliderComponent, 1);
  
  /** @} */

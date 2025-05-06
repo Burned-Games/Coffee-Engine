@@ -98,13 +98,14 @@ void Coffee::RegisterComponentsBindings(sol::state& luaState)
     );
 
 
-
-
     luaState.new_usertype<ParticlesSystemComponent>("ParticlesSystemComponent", sol::constructors<ParticlesSystemComponent()>(),
         "emit",&ParticlesSystemComponent::Emit,
         "set_looping",&ParticlesSystemComponent::SetLooping,
         "get_emitter", &ParticlesSystemComponent::GetParticleEmitter
         );
+
+    luaState.new_usertype<SpriteComponent>("SpriteComponent", sol::constructors<SpriteComponent()>(),
+        "tint_color", sol::property(&SpriteComponent::GetTintColor, &SpriteComponent::SetTintColor));
 
     luaState.new_usertype<RigidbodyComponent>("RigidbodyComponent",
         "rb", &RigidbodyComponent::rb,
@@ -176,6 +177,7 @@ void Coffee::RegisterComponentsBindings(sol::state& luaState)
         "value", &UISliderComponent::Value,
         "min_value", &UISliderComponent::MinValue,
         "max_value", &UISliderComponent::MaxValue,
+        "selected", &UISliderComponent::Selected,
         "handle_scale", &UISliderComponent::HandleScale
     );
 

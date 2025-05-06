@@ -298,6 +298,15 @@ namespace Coffee {
                 }
                 ImGui::EndMenu();
             }
+            // Bugfix menu (options WILL be removed once they're no longer needed) TODO this
+            if (ImGui::BeginMenu("Bugfix"))
+            {
+                if (ImGui::MenuItem("Fix scene hierarchy"))
+                {
+                    SceneManager::GetActiveScene()->FixHierarchy();
+                }
+                ImGui::EndMenu();
+            }
 
             //Play and Stop buttons
             ImGui::SetCursorPosX(ImGui::GetWindowWidth() * 0.5f - 50);

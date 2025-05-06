@@ -352,12 +352,11 @@ namespace Coffee {
 
             RendererAPI::DrawIndexed(mesh->GetVertexArray());
 
-            /*
+            
             s_Stats.DrawCalls++;
 
             s_Stats.VertexCount += mesh->GetVertices().size();
             s_Stats.IndexCount += mesh->GetIndices().size();
-            */
         }
 
         forwardBuffer->UnBind();
@@ -377,7 +376,7 @@ namespace Coffee {
         const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
 
         forwardBuffer->Bind();
-        forwardBuffer->SetDrawBuffers({0});
+        forwardBuffer->SetDrawBuffers({0, 1});
 
         RendererAPI::SetDepthMask(false);
         s_EnvironmentMap->Bind(0);
