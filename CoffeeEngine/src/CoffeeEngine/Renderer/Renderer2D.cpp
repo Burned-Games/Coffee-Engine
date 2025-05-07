@@ -57,7 +57,7 @@ namespace Coffee {
 
     struct Batch
     {
-        static const uint32_t MaxQuadCount = 20000; // maybe this can be increased even more
+        static const uint32_t MaxQuadCount = 10000; // Think of increasing this number to 20000
         static const uint32_t MaxVertices = MaxQuadCount * 4;
         static const uint32_t MaxIndices = MaxQuadCount * 6;
         static const uint32_t MaxTextureSlots = 32;
