@@ -331,7 +331,7 @@ namespace Coffee
         if (p->current_texture)
         {
             Renderer2D::DrawQuad(p->GetWorldTransform(), p->current_texture, 1, p->color,
-                                 Renderer2D::RenderMode::World);
+                                 Renderer2D::RenderMode::World, transparency);
         }
     }
 

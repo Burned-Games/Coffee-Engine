@@ -3,6 +3,7 @@
 #include "CoffeeEngine/Math/BoundingBox.h"
 #include <CoffeeEngine/ImGui/ImGuiExtras.h>
 #include <CoffeeEngine/Scene/PrimitiveMesh.h>
+#include <cereal/details/helpers.hpp>
 
 namespace Coffee
 {
@@ -220,6 +221,7 @@ namespace Coffee
 
         static Ref<Mesh> particleMesh;  // Mesh for particles
         Ref<Texture2D> particleTexture;
+        bool transparency = false; // Transparency flag
 
         /**
          * @brief Enum for render alignment types.
@@ -399,6 +401,7 @@ namespace Coffee
            archive(cereal::make_nvp("UseRenderer", useRenderer));
            archive(cereal::make_nvp("RenderMode", renderMode));
            archive(cereal::make_nvp("RenderAlignment", renderAlignment));
+           archive(cereal::make_nvp("transparency", transparency));
 
 
            // -------------------- Misc --------------------
@@ -531,7 +534,6 @@ template <class Archive> void load(Archive& archive, const std::uint32_t& versio
                 archive(cereal::make_nvp("RenderMode", renderMode));
                 archive(cereal::make_nvp("RenderAlignment", renderAlignment));
 
-
                 UUID textureUUID;
 
                 // -------------------- Misc --------------------
@@ -549,13 +551,15 @@ template <class Archive> void load(Archive& archive, const std::uint32_t& versio
             if (version >= 2)
             {
                 archive(cereal::make_nvp("UseBurst", useBurst));
-                archive(cereal::make_nvp("Bursts", bursts));
-            
+                archive(cereal::make_nvp("Bursts", bursts));      
             }
 
-           
+           if (version >= 3)
+           {
+                archive(cereal::make_nvp("transparency", transparency));
+           }
   
         }
     };
 } // namespace Coffee
-CEREAL_CLASS_VERSION(Coffee::ParticleEmitter, 2);
+CEREAL_CLASS_VERSION(Coffee::ParticleEmitter, 3);

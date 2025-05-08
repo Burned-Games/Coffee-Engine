@@ -55,7 +55,11 @@ namespace Coffee {
             }
 
             // Think if this should be done before or after post processing
+            RendererAPI::SetDepthMask(false);
+            RendererAPI::SetFaceCulling(false);
             Renderer2D::WorldPass(target);
+            RendererAPI::SetFaceCulling(true);
+            RendererAPI::SetDepthMask(true);
             
             // TODO: Think if this should be done here or in the Renderer2D
             cameraData.projection = glm::ortho(0.0f, target.GetSize().x, target.GetSize().y, 0.0f, -1.0f, 1.0f);
