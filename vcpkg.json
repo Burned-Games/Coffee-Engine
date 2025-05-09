@@ -1,7 +1,7 @@
 {
   "name" : "coffee-engine",
   "version-string" : "1.0.0",
-  "builtin-baseline" : "782ccc18d8b819cdef6794a6c03eb3d9f7cd04aa",
+  "builtin-baseline" : "52572867982f5265a7c71f59be1a006dfc49c90c",
   "dependencies" : [ {
     "name" : "cereal",
     "version>=" : "1.3.2#1"

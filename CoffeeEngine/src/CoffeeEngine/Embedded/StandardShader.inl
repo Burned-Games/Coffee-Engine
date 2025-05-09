@@ -138,6 +138,12 @@ struct Material
     float ao;
     vec3 emissive;
 
+    int transparencyMode;
+    // 0 = opaque
+    // 1 = alpha
+    // 2 = alpha cutoff
+    float alphaCutoff;
+
     int hasAlbedo;
     int hasNormal;
     int hasMetallic;
@@ -276,6 +282,17 @@ void main()
 {
     vec3 albedo = material.hasAlbedo * (texture(material.albedoMap, VertexInput.TexCoords).rgb * material.color.rgb) + (1 - material.hasAlbedo) * material.color.rgb;
 
+    float alpha = 1.0;
+    if (material.transparencyMode == 1) {
+        alpha = material.hasAlbedo * (texture(material.albedoMap, VertexInput.TexCoords).a) + (1 - material.hasAlbedo) * material.color.a;
+    }
+    else if (material.transparencyMode == 2) {
+        alpha = material.hasAlbedo * (texture(material.albedoMap, VertexInput.TexCoords).a) + (1 - material.hasAlbedo) * material.color.a;
+        if (alpha < material.alphaCutoff) {
+            discard;
+        }
+    }
+
     // Revise this type of conditional assignment (the commented one) because i think can lead to some undefined behavior in the shader!!!!!
     vec3 normal/*  = material.hasNormal * (VertexInput.TBN * (texture(material.normalMap, VertexInput.TexCoords).rgb * 2.0 - 1.0)) + (1 - material.hasNormal) * VertexInput.Normal */;
     if (material.hasNormal == 1) {
@@ -364,7 +381,7 @@ void main()
     vec3 ambient = (kD * diffuse + specular) * ao;
     vec3 color = ambient + Lo + emissive;
 
-    FragColor = vec4(vec3(color), 1.0);
+    FragColor = vec4(color, alpha);
     EntityID = vec4(entityID, 1.0f); //set the alpha to 0
 
     //REMOVE: This is for the first release of the engine it should be handled differently

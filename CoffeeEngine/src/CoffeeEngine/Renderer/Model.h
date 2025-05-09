@@ -166,7 +166,7 @@ namespace Coffee {
          * @param material The Assimp material.
          * @return The loaded material textures.
          */
-        MaterialTextures LoadMaterialTextures(aiMaterial* material);
+        PBRMaterialTextures LoadMaterialTextures(aiMaterial* material);
         
         friend class cereal::access;
         template<class Archive>

@@ -30,6 +30,8 @@ namespace Coffee {
         Mesh,   ///< Mesh resource type
         Shader,   ///< Shader resource type
         Material, ///< Material resource type
+        PBRMaterial, ///< PBRMaterial resource type
+        ShaderMaterial, ///< ShaderMaterial resource type
         AnimationSystem, ///< AnimationSystem resource type
         Skeleton, ///< Skeleton resource type
         Animation, ///< Animation resource type
@@ -94,6 +96,18 @@ namespace Coffee {
          */
         UUID GetUUID() const { return m_UUID; }
 
+        /**
+         * @brief Sets the embedded status of the resource.
+         * @param isEmbedded The embedded status to set.
+         */
+        void SetEmbedded(bool isEmbedded) { m_isEmbedded = isEmbedded; }
+
+        /**
+         * @brief Checks if the resource is embedded.
+         * @return True if the resource is embedded, false otherwise.
+         */
+        bool IsEmbedded() const { return m_isEmbedded; }
+
     private:
         friend class cereal::access;
 
@@ -105,7 +119,7 @@ namespace Coffee {
         template <class Archive> void save(Archive& archive, std::uint32_t const version) const
         {
             int typeInt = static_cast<int>(m_Type);
-            archive(m_Name, m_FilePath, typeInt, m_UUID);
+            archive(m_Name, m_FilePath, typeInt, m_UUID, m_isEmbedded);
         }
 
         /**
@@ -116,7 +130,16 @@ namespace Coffee {
         template <class Archive> void load(Archive& archive, std::uint32_t const version)
         {
             int typeInt;
-            archive(m_Name, m_FilePath, typeInt, m_UUID);
+            if (version < 1)
+            {
+                archive(m_Name, m_FilePath, typeInt, m_UUID);
+            }
+            else
+            {
+                archive(m_Name, m_FilePath, typeInt, m_UUID, m_isEmbedded);
+            }
+            
+            
             m_Type = static_cast<ResourceType>(typeInt);
         }
 
@@ -125,10 +148,12 @@ namespace Coffee {
         std::filesystem::path m_FilePath; ///< The file path of the resource.
         ResourceType m_Type; ///< The type of the resource.
         UUID m_UUID; ///< The UUID of the resource.
+        bool m_isEmbedded = false; ///< Flag indicating if the resource is embedded. // TODO: Revise if this is the right place for this
     };
 
 }
 
 CEREAL_REGISTER_TYPE(Coffee::Resource);
+CEREAL_CLASS_VERSION(Coffee::Resource, 1);
 
 /** @} */
