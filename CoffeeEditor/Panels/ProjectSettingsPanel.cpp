@@ -238,9 +238,26 @@ namespace Coffee {
         if (!(m_VisiblePanels & PanelDisplayEnum::General))
             return;
 
+        if (m_RefreshPanels & PanelDisplayEnum::General)
+        {
+            // Refresh values (in case of new project loaded)
+            m_NewProjectName = Project::GetProjectName();
+            m_NewProjectName.reserve(256);
+
+            m_RefreshPanels ^= PanelDisplayEnum::General;
+        }
+
         BeginHorizontalChild("General", flags);
 
         ImGui::Text("General settings for this project (WIP)");
+
+        ImGui::Text("Game name: ");
+        ImGui::SameLine();
+        if (ImGui::InputText("##gamename", m_NewProjectName.data(), 256, ImGuiInputTextFlags_EnterReturnsTrue))
+        {
+            // no need to check for active project, this window is only accessible when a project is active
+            Project::SetProjectName(m_NewProjectName);
+        }
 
         ImGui::EndChild();
     }
@@ -272,13 +289,13 @@ namespace Coffee {
         if (ImGui::TreeNodeEx("General", ImGuiTreeNodeFlags_Leaf))
         {
             if (ImGui::IsItemClicked())
-                m_VisiblePanels = PanelDisplayEnum::General;
+                SetPanelVisible(PanelDisplayEnum::General);
             ImGui::TreePop();
         }
         if (ImGui::TreeNodeEx("Input", ImGuiTreeNodeFlags_Leaf))
         {
             if (ImGui::IsItemClicked())
-                m_VisiblePanels = PanelDisplayEnum::Input;
+                SetPanelVisible(PanelDisplayEnum::Input);
             ImGui::TreePop();
         }
 

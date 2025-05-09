@@ -56,6 +56,14 @@ namespace Coffee {
         static const std::string& GetProjectName() { return s_ActiveProject->m_Name; }
 
         /**
+         * @brief Sets the name of the active project.
+         * @param name The new name for the project
+         */
+        static void SetProjectName(const std::string& name) { s_ActiveProject->m_Name = name; }
+
+        static const std::filesystem::path& GetProjectDefaultScene() { return s_ActiveProject->m_StartScenePath; }
+
+        /**
          * @brief Retrieves the cache directory path of the active project.
          * 
          * This static method returns a constant reference to the cache directory path
