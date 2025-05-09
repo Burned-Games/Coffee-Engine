@@ -95,6 +95,19 @@ option(TRACY_ENABLE "Enable Tracy Profiler" ON)
 option(TRACY_ON_DEMAND "Enable Tracy on-demand mode" OFF)
 option(TRACY_DELAYED_INIT "Enable delayed initialization of the library (init on first call)" OFF)
 
+set(ENABLE_PROFILING OFF CACHE BOOL "Enable profiling" FORCE)
+
+if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    if (ENABLE_PROFILING)
+        message(STATUS "Profiling enabled")
+    endif()
+else()
+    message(STATUS "Profiling disabled")
+    get_target_property(TRACY_INTERFACE Tracy::TracyClient INTERFACE_COMPILE_DEFINITIONS)
+    list(REMOVE_ITEM TRACY_INTERFACE "TRACY_ENABLE")
+    set_target_properties(Tracy::TracyClient PROPERTIES INTERFACE_COMPILE_DEFINITIONS "${TRACY_INTERFACE}")
+endif()
+
 option(NFD_PORTAL "Use xdg-desktop-portal instead of GTK" ON)
 
 if (WIN32)
