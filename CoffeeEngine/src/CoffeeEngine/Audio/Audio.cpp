@@ -8,6 +8,7 @@
 
 namespace Coffee
 {
+    const std::filesystem::path Audio::DefaultAudioPath = "assets/audio/Wwise Project/GeneratedSoundBanks/Windows";
 
     // Global pointer for the low-level IO
     CAkFilePackageLowLevelIODeferred* g_lowLevelIO = nullptr;
@@ -212,13 +213,13 @@ namespace Coffee
         }
         COFFEE_CORE_INFO("Project audio directory found, loading audio banks...");
 
-        g_lowLevelIO->SetBasePath(audioPath.wstring().c_str());
+        g_lowLevelIO->SetBasePath(audioPath.c_str());
 
         LoadAudioBanks();
     }
     void Audio::OnProjectUnload()
     {
-        g_lowLevelIO->SetBasePath(DefaultAudioPath);
+        g_lowLevelIO->SetBasePath(DefaultAudioPath.c_str());
 
         LoadAudioBanks();
 

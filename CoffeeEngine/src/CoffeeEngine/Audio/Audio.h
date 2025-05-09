@@ -44,7 +44,7 @@ namespace Coffee {
     {
     public:
 
-        static constexpr const wchar_t* DefaultAudioPath = AKTEXT("assets/audio/Wwise Project/GeneratedSoundBanks/Windows");
+        static const std::filesystem::path DefaultAudioPath;
 
         /**
          * @brief Initializes the audio system.
