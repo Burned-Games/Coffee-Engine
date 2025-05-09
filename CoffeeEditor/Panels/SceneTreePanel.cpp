@@ -76,6 +76,7 @@ namespace Coffee
         ShowCreateEntityMenu();
         ImGui::SameLine();
 
+        // Search by entity tag
         static std::array<char, 256> searchBuffer;
         ImGui::InputTextWithHint("##searchbar", ICON_LC_SEARCH " Search by name:", searchBuffer.data(),
                                  searchBuffer.size());
@@ -91,10 +92,11 @@ namespace Coffee
 
             if (searchMode)
             {
+                // Find substring in tag, draw entity if found and continue to next entity
                 auto& tag = entity.GetComponent<TagComponent>();
                 if (tag.Tag.find(search) != std::string::npos)
                 {
-                    DrawEntityNode(entity);
+                    DrawEntityNode(entity, false);
                 }
                 continue;
             }
@@ -190,14 +192,14 @@ namespace Coffee
         ImGui::End();
     }
 
-    void SceneTreePanel::DrawEntityNode(Entity entity)
+    void SceneTreePanel::DrawEntityNode(Entity entity, bool drawChildren)
     {
         auto& entityNameTag = entity.GetComponent<TagComponent>().Tag;
         auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
     
         ImGuiTreeNodeFlags flags = ((m_SelectionContext == entity) ? ImGuiTreeNodeFlags_Selected : 0) |
-                                   ((hierarchyComponent.m_First == entt::null) ? ImGuiTreeNodeFlags_Leaf : 0) |
-                                   ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_FramePadding;
+                                   ((!drawChildren || hierarchyComponent.m_First == entt::null) ? ImGuiTreeNodeFlags_Leaf : 0) |
+                                   ((drawChildren) ? ImGuiTreeNodeFlags_OpenOnArrow : 0) | ImGuiTreeNodeFlags_FramePadding;
         
         bool isActive = entity.IsActive();
         const char* icon = isActive ? ICON_LC_EYE : ICON_LC_EYE_OFF;
@@ -328,7 +330,7 @@ namespace Coffee
     
         if (opened)
         {
-            if (hierarchyComponent.m_First != entt::null)
+            if (drawChildren && hierarchyComponent.m_First != entt::null)
             {
                 // Recursively draw all children
                 Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
