@@ -493,9 +493,15 @@ namespace Coffee {
             auto navMeshViewDebug = m_Registry.view<ActiveComponent, NavMeshComponent>();
             for (auto& entity : navMeshViewDebug) {
                 auto& navMeshComponent = navMeshViewDebug.get<NavMeshComponent>(entity);
-                if (navMeshComponent.ShowDebug && navMeshComponent.GetNavMesh() && navMeshComponent.GetNavMesh()->IsCalculated()) {
-                    navMeshComponent.GetNavMesh()->RenderWalkableAreas();
+                if (navMeshComponent.GetNavMesh() && navMeshComponent.GetNavMesh()->IsCalculated()) {
+                    navMeshComponent.ShowDebug = m_SceneDebugFlags.ShowNavMesh;
                 }
+            }
+        } else {
+            auto navMeshViewDebug = m_Registry.view<ActiveComponent, NavMeshComponent>();
+            for (auto& entity : navMeshViewDebug) {
+                auto& navMeshComponent = navMeshViewDebug.get<NavMeshComponent>(entity);
+                navMeshComponent.ShowDebug = false;
             }
         }
 
@@ -503,8 +509,14 @@ namespace Coffee {
             auto navigationAgentViewDebug = m_Registry.view<ActiveComponent, NavigationAgentComponent>();
             for (auto& agent : navigationAgentViewDebug) {
                 auto& navAgentComponent = navigationAgentViewDebug.get<NavigationAgentComponent>(agent);
-                if (navAgentComponent.ShowDebug && navAgentComponent.GetPathFinder())
-                    navAgentComponent.GetPathFinder()->RenderPath(navAgentComponent.Path);
+                if (navAgentComponent.GetNavMeshComponent())
+                    navAgentComponent.ShowDebug = m_SceneDebugFlags.ShowNavMeshPath;
+            }
+        } else {
+            auto navigationAgentViewDebug = m_Registry.view<ActiveComponent, NavigationAgentComponent>();
+            for (auto& agent : navigationAgentViewDebug) {
+                auto& navAgentComponent = navigationAgentViewDebug.get<NavigationAgentComponent>(agent);
+                navAgentComponent.ShowDebug = false;
             }
         }
     }
