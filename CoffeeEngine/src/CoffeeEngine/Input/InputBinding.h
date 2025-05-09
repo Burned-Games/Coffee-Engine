@@ -37,6 +37,10 @@ namespace Coffee
         ButtonCode ButtonNeg = Button::Invalid;
 
         AxisCode Axis = Axis::Invalid;
+        bool invertedAxis = false;
+
+        // Last time this input was updated
+        long latestUpdate = 0;
 
         InputBinding() = default;
         ~InputBinding() = default;
@@ -52,6 +56,10 @@ namespace Coffee
                 CEREAL_NVP(ButtonNeg),
                 CEREAL_NVP(Axis)
                 );
+            if (version > 2)
+            {
+                archive(CEREAL_NVP(invertedAxis));
+            }
         }
 
         /**
@@ -94,4 +102,4 @@ namespace Coffee
 
 } // namespace Coffee
 
-CEREAL_CLASS_VERSION(Coffee::InputBinding, 2)
+CEREAL_CLASS_VERSION(Coffee::InputBinding, 3)

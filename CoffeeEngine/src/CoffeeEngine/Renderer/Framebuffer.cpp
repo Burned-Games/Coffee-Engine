@@ -102,6 +102,13 @@ namespace Coffee {
                     }
                 }
             }
+
+            if(m_ColorTextures.size() == 0)
+            {
+                glDrawBuffer(GL_NONE);
+                glReadBuffer(GL_NONE);
+            }
+            
             //Set all the render buffers to be drawn to (Wrap it in a function)
             /* std::vector<GLenum> drawBuffers;
             for (size_t i = 0; i < m_ColorTextures.size(); ++i)
@@ -179,6 +186,26 @@ namespace Coffee {
         }
 
         glNamedFramebufferDrawBuffers(m_fboID, drawBuffers.size(), drawBuffers.data());
+    }
+
+    void Framebuffer::AttachDepthTexture(const Ref<Texture2D>& texture)
+    {
+        ZoneScoped;
+
+        // Remove the old depth texture if it exists and add the new one to the attachments vector
+        for (size_t i = 0; i < m_Attachments.size(); i++)
+        {
+            if (m_Attachments[i].format == ImageFormat::DEPTH24STENCIL8)
+            {
+                m_Attachments.erase(m_Attachments.begin() + i);
+                break;
+            }
+        }
+        m_Attachments.push_back({ImageFormat::DEPTH24STENCIL8, "Depth"});
+        m_Attachments.back().texture = texture;
+
+        m_DepthTexture = texture;
+        glNamedFramebufferTexture(m_fboID, GL_DEPTH_STENCIL_ATTACHMENT, texture->GetID(), 0);
     }
 
     Ref<Framebuffer> Framebuffer::Create(uint32_t width, uint32_t height, std::initializer_list<Attachment> attachments)

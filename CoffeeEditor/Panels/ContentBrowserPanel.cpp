@@ -5,6 +5,7 @@
 #include "CoffeeEngine/Project/Project.h"
 #include "CoffeeEngine/Renderer/Model.h"
 #include "CoffeeEngine/Renderer/Texture.h"
+#include "CoffeeEngine/Scene/Prefab.h"
 #include "CoffeeEngine/Scene/Scene.h"
 #include <CoffeeEngine/IO/ResourceUtils.h>
 #include <IconsLucide.h>
@@ -115,6 +116,9 @@ namespace Coffee {
                     case Cubemap:
                         icon = ICON_LC_IMAGES;
                         break;
+                    case Prefab:
+                        icon = ICON_LC_PACKAGE;
+                        break;
                     /* case Scene:
                         icon = ICON_LC_CLAPPERBOARD;
                         break; */
@@ -131,9 +135,24 @@ namespace Coffee {
             {
                 if (ImGui::BeginDragDropSource())
                 {
-                    Ref<Resource> resource = ResourceRegistry::Get<Resource>(path.filename().string());
-                    ImGui::SetDragDropPayload("RESOURCE", &resource, sizeof(Ref<Resource>));
-                    ImGui::Text("%s", filenameString.c_str());
+                    // Only load non-prefab resources immediately
+                    if (GetResourceTypeFromExtension(path) != ResourceType::Prefab)
+                    {
+                        Ref<Resource> resource = ResourceRegistry::Get<Resource>(path.filename().string());
+                        if (resource)
+                        {
+                            ImGui::SetDragDropPayload("RESOURCE", &resource, sizeof(Ref<Resource>));
+                            ImGui::Text("%s", filenameString.c_str());
+                        }
+                    }
+                    else
+                    {
+                        // For prefabs, just pass the path
+                        std::filesystem::path absolutePath = std::filesystem::absolute(path);
+                        ImGui::SetDragDropPayload("PREFAB_PATH", absolutePath.string().c_str(), absolutePath.string().size() + 1);
+                        ImGui::Text("%s (Prefab)", filenameString.c_str());
+                    }
+                    
                     ImGui::EndDragDropSource();
                 }
 
@@ -152,27 +171,50 @@ namespace Coffee {
                         
                         ImGui::BeginTooltip();
                         
-                        switch (resource->GetType())
+                        if (resource)
                         {
-                            case ResourceType::Texture2D:
+                            try
                             {
-                                Ref<Texture2D> texture = std::static_pointer_cast<Texture2D>(resource);
-                                ImGui::Image((void*)(intptr_t)texture->GetID(), ImVec2(64, 64));
-                                ImGui::SameLine();
-                                ImGui::BeginGroup();
-                                ImGui::Text("%s", resource->GetName().c_str());
-                                ImGui::Text("Size: %s", FormatFileSize(std::filesystem::directory_entry(path).file_size()).c_str());
-                                ImGui::Text("Type: %s", ResourceTypeToString(resource->GetType()).c_str());
-                                //ImGui::Text("Image Format: %s", ImageFormatToString(texture->GetImageFormat()).c_str());
-                                ImGui::Text("Dimensions: %d x %d", texture->GetWidth(), texture->GetHeight());
-                                ImGui::EndGroup();
-                                break;
+                                ResourceType resourceType = resource->GetType();
+                                
+                                switch (resourceType)
+                                {
+                                    case ResourceType::Texture2D:
+                                    {
+                                        Ref<Texture2D> texture = std::static_pointer_cast<Texture2D>(resource);
+                                        ImGui::Image((void*)(intptr_t)texture->GetID(), ImVec2(64, 64));
+                                        ImGui::SameLine();
+                                        ImGui::BeginGroup();
+                                        ImGui::Text("%s", resource->GetName().c_str());
+                                        ImGui::Text("Size: %s", FormatFileSize(std::filesystem::directory_entry(path).file_size()).c_str());
+                                        ImGui::Text("Type: %s", ResourceTypeToString(resource->GetType()).c_str());
+                                        //ImGui::Text("Image Format: %s", ImageFormatToString(texture->GetImageFormat()).c_str());
+                                        ImGui::Text("Dimensions: %d x %d", texture->GetWidth(), texture->GetHeight());
+                                        ImGui::EndGroup();
+                                        break;
+                                    }
+
+                                    default:
+                                        ImGui::Text("%s", resource->GetName().c_str());
+                                        ImGui::Text("Size: %s", FormatFileSize(std::filesystem::directory_entry(path).file_size()).c_str());
+                                        ImGui::Text("Type: %s", ResourceTypeToString(resourceType).c_str());
+                                        break;
+                                }
                             }
-                            default:
-                                ImGui::Text("%s", resource->GetName().c_str());
+                            catch (...)
+                            {
+                                // Fallback for any exception
+                                ImGui::Text("%s", path.filename().string().c_str());
                                 ImGui::Text("Size: %s", FormatFileSize(std::filesystem::directory_entry(path).file_size()).c_str());
-                                ImGui::Text("Type: %s", ResourceTypeToString(resource->GetType()).c_str());
-                                break;
+                                ImGui::Text("Type: %s", ResourceTypeToString(GetResourceTypeFromExtension(path)).c_str());
+                            }
+                        }
+                        else
+                        {
+                            // Fallback for when resource isn't registered
+                            ImGui::Text("%s", path.filename().string().c_str());
+                            ImGui::Text("Size: %s", FormatFileSize(std::filesystem::directory_entry(path).file_size()).c_str());
+                            ImGui::Text("Type: %s", ResourceTypeToString(GetResourceTypeFromExtension(path)).c_str());
                         }
 
                         ImGui::EndTooltip();

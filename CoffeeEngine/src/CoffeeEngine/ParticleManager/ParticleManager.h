@@ -8,6 +8,29 @@ namespace Coffee
 {
     class ParticleEmitter;
 
+
+    struct BurstParticleEmitter
+    {
+        float initialTime;
+        int count;
+        float interval;
+        float intervalTimer;
+
+        template <class Archive> void save(Archive& archive, std::uint32_t const version) const {
+            archive(cereal::make_nvp("initialTime", initialTime));
+            archive(cereal::make_nvp("count", count));
+            archive(cereal::make_nvp("interval", interval));
+        }
+
+        template <class Archive> void load(Archive& archive, const std::uint32_t& version) {
+            archive(cereal::make_nvp("initialTime", initialTime));
+            archive(cereal::make_nvp("count", count));
+            archive(cereal::make_nvp("interval", interval));
+        }
+
+    };
+
+
     /**
      * @brief Represents a particle in the particle system.
      */
@@ -22,6 +45,7 @@ namespace Coffee
         float startSpeed;          // Initial speed of the particle
         glm::vec3 startSize;       // Initial size of the particle
         glm::vec3 startRotation;   // Initial rotation of the particle
+        Ref<Texture2D> current_texture; //Current texture of the particle
 
         /**
          * @brief Default constructor for Particle.
@@ -139,6 +163,11 @@ namespace Coffee
         float rateOverTime = 1.0f; // Emission rate over time
         float emitParticlesTest = 5.0f;
 
+
+        bool useBurst = false;
+        std::vector<Ref<BurstParticleEmitter>> bursts;
+
+
         /**
          * @brief Enum for shape types.
          */
@@ -190,7 +219,7 @@ namespace Coffee
         glm::mat4 cameraViewMatrix; // Camera view matrix
 
         static Ref<Mesh> particleMesh;  // Mesh for particles
-        Ref<Material> particleMaterial; // Material for particles
+        Ref<Texture2D> particleTexture;
 
         /**
          * @brief Enum for render alignment types.
@@ -278,46 +307,255 @@ namespace Coffee
 
         template <class Archive> void save(Archive& archive, std::uint32_t const version) const
         {
-            archive(transformComponentMatrix, useDirectionRandom, direction, directionRandom, useColorRandom,
-                    colorNormal, colorRandom, amount, looping, useRandomLifeTime, startLifeTimeMin, startLifeTimeMax,
-                    startLifeTime, useRandomSpeed, startSpeedMin, startSpeedMax, startSpeed, useRandomSize,
-                    useSplitAxesSize, startSizeMin, startSizeMax, startSize, useRandomRotation, startRotationMin,
-                    startRotationMax, startRotation, simulationSpace, useEmission, rateOverTime, shape, minSpread,
-                    maxSpread, useShape, shapeAngle, shapeRadius, shapeRadiusThickness, useVelocityOverLifetime,
-                    velocityOverLifeTimeSeparateAxes, speedOverLifeTimeX, speedOverLifeTimeY, speedOverLifeTimeZ,
-                    speedOverLifeTimeGeneral, useSizeOverLifetime, sizeOverLifeTimeSeparateAxes, sizeOverLifetimeX,
-                    sizeOverLifetimeY, sizeOverLifetimeZ, sizeOverLifetimeGeneral, useRotationOverLifetime,
-                    rotationOverLifetimeX, rotationOverLifetimeY, rotationOverLifetimeZ, useColorOverLifetime,
-                    overLifetimecolor, colorOverLifetime_gradientPoints, useRenderer, renderMode, renderAlignment,
-                    elapsedTime, particleMaterial->GetMaterialTextures().albedo->GetUUID(), particleMaterial->GetMaterialProperties().color);
+  
+            // -------------------- Transform --------------------
+           archive(cereal::make_nvp("TransformMatrix", transformComponentMatrix));
+
+           // -------------------- Dirección --------------------
+           archive(cereal::make_nvp("UseDirectionRandom", useDirectionRandom));
+           archive(cereal::make_nvp("Direction", direction));
+           archive(cereal::make_nvp("DirectionRandom", directionRandom));
+
+           // -------------------- Color Aleatorio --------------------
+           archive(cereal::make_nvp("UseColorRandom", useColorRandom));
+           archive(cereal::make_nvp("ColorNormal", colorNormal));
+           archive(cereal::make_nvp("ColorRandom", colorRandom));
+
+           // -------------------- General --------------------
+           archive(cereal::make_nvp("Amount", amount));
+           archive(cereal::make_nvp("Looping", looping));
+
+           // -------------------- Lifetime --------------------
+           archive(cereal::make_nvp("UseRandomLifeTime", useRandomLifeTime));
+           archive(cereal::make_nvp("StartLifeTimeMin", startLifeTimeMin));
+           archive(cereal::make_nvp("StartLifeTimeMax", startLifeTimeMax));
+           archive(cereal::make_nvp("StartLifeTime", startLifeTime));
+
+           // -------------------- Speed --------------------
+           archive(cereal::make_nvp("UseRandomSpeed", useRandomSpeed));
+           archive(cereal::make_nvp("StartSpeedMin", startSpeedMin));
+           archive(cereal::make_nvp("StartSpeedMax", startSpeedMax));
+           archive(cereal::make_nvp("StartSpeed", startSpeed));
+
+           // -------------------- Size --------------------
+           archive(cereal::make_nvp("UseRandomSize", useRandomSize));
+           archive(cereal::make_nvp("UseSplitAxesSize", useSplitAxesSize));
+           archive(cereal::make_nvp("StartSizeMin", startSizeMin));
+           archive(cereal::make_nvp("StartSizeMax", startSizeMax));
+           archive(cereal::make_nvp("StartSize", startSize));
+
+           // -------------------- Rotación --------------------
+           archive(cereal::make_nvp("UseRandomRotation", useRandomRotation));
+           archive(cereal::make_nvp("StartRotationMin", startRotationMin));
+           archive(cereal::make_nvp("StartRotationMax", startRotationMax));
+           archive(cereal::make_nvp("StartRotation", startRotation));
+
+           // -------------------- Espacio de simulación --------------------
+           archive(cereal::make_nvp("SimulationSpace", simulationSpace));
+
+           // -------------------- Emisión --------------------
+           archive(cereal::make_nvp("UseEmission", useEmission));
+           archive(cereal::make_nvp("RateOverTime", rateOverTime));
+           archive(cereal::make_nvp("UseBurst", useBurst));
+           archive(cereal::make_nvp("Bursts", bursts));
+
+           // -------------------- Forma --------------------
+           archive(cereal::make_nvp("ShapeType", shape));
+           archive(cereal::make_nvp("MinSpread", minSpread));
+           archive(cereal::make_nvp("MaxSpread", maxSpread));
+           archive(cereal::make_nvp("UseShape", useShape));
+           archive(cereal::make_nvp("ShapeAngle", shapeAngle));
+           archive(cereal::make_nvp("ShapeRadius", shapeRadius));
+           archive(cereal::make_nvp("ShapeRadiusThickness", shapeRadiusThickness));
+
+           // -------------------- Velocity over Lifetime --------------------
+           archive(cereal::make_nvp("UseVelocityOverLifetime", useVelocityOverLifetime));
+           archive(cereal::make_nvp("VelocitySeparateAxes", velocityOverLifeTimeSeparateAxes));
+           archive(cereal::make_nvp("VelocityOverLifeX", speedOverLifeTimeX));
+           archive(cereal::make_nvp("VelocityOverLifeY", speedOverLifeTimeY));
+           archive(cereal::make_nvp("VelocityOverLifeZ", speedOverLifeTimeZ));
+           archive(cereal::make_nvp("VelocityOverLifeGeneral", speedOverLifeTimeGeneral));
+
+           // -------------------- Size over Lifetime --------------------
+           archive(cereal::make_nvp("UseSizeOverLifetime", useSizeOverLifetime));
+           archive(cereal::make_nvp("SizeSeparateAxes", sizeOverLifeTimeSeparateAxes));
+           archive(cereal::make_nvp("SizeOverLifeX", sizeOverLifetimeX));
+           archive(cereal::make_nvp("SizeOverLifeY", sizeOverLifetimeY));
+           archive(cereal::make_nvp("SizeOverLifeZ", sizeOverLifetimeZ));
+           archive(cereal::make_nvp("SizeOverLifeGeneral", sizeOverLifetimeGeneral));
+
+           // -------------------- Rotation over Lifetime --------------------
+           archive(cereal::make_nvp("UseRotationOverLifetime", useRotationOverLifetime));
+           archive(cereal::make_nvp("RotationOverLifeX", rotationOverLifetimeX));
+           archive(cereal::make_nvp("RotationOverLifeY", rotationOverLifetimeY));
+           archive(cereal::make_nvp("RotationOverLifeZ", rotationOverLifetimeZ));
+
+           // -------------------- Color over Lifetime --------------------
+           archive(cereal::make_nvp("UseColorOverLifetime", useColorOverLifetime));
+           archive(cereal::make_nvp("OverLifetimeColor", overLifetimecolor));
+           archive(cereal::make_nvp("ColorGradientPoints", colorOverLifetime_gradientPoints));
+
+           // -------------------- Render --------------------
+           archive(cereal::make_nvp("UseRenderer", useRenderer));
+           archive(cereal::make_nvp("RenderMode", renderMode));
+           archive(cereal::make_nvp("RenderAlignment", renderAlignment));
+
+
+           // -------------------- Misc --------------------
+           archive(cereal::make_nvp("ElapsedTime", elapsedTime));
+           archive(cereal::make_nvp("TextureUUID", particleTexture->GetUUID()));
+
+
+
         }
 
 
 template <class Archive> void load(Archive& archive, const std::uint32_t& version) 
         {
-            UUID textureUUID;
-            glm::vec4 materialColor;
 
-            archive(transformComponentMatrix, useDirectionRandom, direction, directionRandom, useColorRandom,
-                    colorNormal, colorRandom, amount, looping, useRandomLifeTime, startLifeTimeMin, startLifeTimeMax,
-                    startLifeTime, useRandomSpeed, startSpeedMin, startSpeedMax, startSpeed, useRandomSize,
-                    useSplitAxesSize, startSizeMin, startSizeMax, startSize, useRandomRotation, startRotationMin,
-                    startRotationMax, startRotation, simulationSpace, useEmission, rateOverTime, shape, minSpread,
-                    maxSpread, useShape, shapeAngle, shapeRadius, shapeRadiusThickness, useVelocityOverLifetime,
-                    velocityOverLifeTimeSeparateAxes, speedOverLifeTimeX, speedOverLifeTimeY, speedOverLifeTimeZ,
-                    speedOverLifeTimeGeneral, useSizeOverLifetime, sizeOverLifeTimeSeparateAxes, sizeOverLifetimeX,
-                    sizeOverLifetimeY, sizeOverLifetimeZ, sizeOverLifetimeGeneral, useRotationOverLifetime,
-                    rotationOverLifetimeX, rotationOverLifetimeY, rotationOverLifetimeZ, useColorOverLifetime,
-                    overLifetimecolor, colorOverLifetime_gradientPoints, useRenderer, renderMode, renderAlignment,
-                    elapsedTime, textureUUID, materialColor);
-
-            if (textureUUID)
+            if (version == 0)
             {
-                particleMaterial->GetMaterialTextures().albedo = ResourceLoader::GetResource<Texture2D>(textureUUID);
-                particleMaterial->GetMaterialProperties().color = materialColor;
+                UUID textureUUID;
+                glm::vec4 materialColor;
+
+                archive(transformComponentMatrix, useDirectionRandom, direction, directionRandom, useColorRandom,
+                        colorNormal, colorRandom, amount, looping, useRandomLifeTime, startLifeTimeMin,
+                        startLifeTimeMax, startLifeTime, useRandomSpeed, startSpeedMin, startSpeedMax, startSpeed,
+                        useRandomSize, useSplitAxesSize, startSizeMin, startSizeMax, startSize, useRandomRotation,
+                        startRotationMin, startRotationMax, startRotation, simulationSpace, useEmission, rateOverTime,
+                        shape, minSpread, maxSpread, useShape, shapeAngle, shapeRadius, shapeRadiusThickness,
+                        useVelocityOverLifetime, velocityOverLifeTimeSeparateAxes, speedOverLifeTimeX,
+                        speedOverLifeTimeY, speedOverLifeTimeZ, speedOverLifeTimeGeneral, useSizeOverLifetime,
+                        sizeOverLifeTimeSeparateAxes, sizeOverLifetimeX, sizeOverLifetimeY, sizeOverLifetimeZ,
+                        sizeOverLifetimeGeneral, useRotationOverLifetime, rotationOverLifetimeX, rotationOverLifetimeY,
+                        rotationOverLifetimeZ, useColorOverLifetime, overLifetimecolor,
+                        colorOverLifetime_gradientPoints, useRenderer, renderMode, renderAlignment, elapsedTime,
+                        textureUUID, materialColor);
+
+                if (textureUUID)
+                {
+                    particleTexture =
+                        ResourceLoader::GetResource<Texture2D>(textureUUID);
+                }
+            
             }
+            if (version >= 1)
+            {
+                // -------------------- Transform --------------------
+                archive(cereal::make_nvp("TransformMatrix", transformComponentMatrix));
+
+                // -------------------- Dirección --------------------
+                archive(cereal::make_nvp("UseDirectionRandom", useDirectionRandom));
+                archive(cereal::make_nvp("Direction", direction));
+                archive(cereal::make_nvp("DirectionRandom", directionRandom));
+
+                // -------------------- Color Aleatorio --------------------
+                archive(cereal::make_nvp("UseColorRandom", useColorRandom));
+                archive(cereal::make_nvp("ColorNormal", colorNormal));
+                archive(cereal::make_nvp("ColorRandom", colorRandom));
+
+                // -------------------- General --------------------
+                archive(cereal::make_nvp("Amount", amount));
+                archive(cereal::make_nvp("Looping", looping));
+
+                // -------------------- Lifetime --------------------
+                archive(cereal::make_nvp("UseRandomLifeTime", useRandomLifeTime));
+                archive(cereal::make_nvp("StartLifeTimeMin", startLifeTimeMin));
+                archive(cereal::make_nvp("StartLifeTimeMax", startLifeTimeMax));
+                archive(cereal::make_nvp("StartLifeTime", startLifeTime));
+
+                // -------------------- Speed --------------------
+                archive(cereal::make_nvp("UseRandomSpeed", useRandomSpeed));
+                archive(cereal::make_nvp("StartSpeedMin", startSpeedMin));
+                archive(cereal::make_nvp("StartSpeedMax", startSpeedMax));
+                archive(cereal::make_nvp("StartSpeed", startSpeed));
+
+                // -------------------- Size --------------------
+                archive(cereal::make_nvp("UseRandomSize", useRandomSize));
+                archive(cereal::make_nvp("UseSplitAxesSize", useSplitAxesSize));
+                archive(cereal::make_nvp("StartSizeMin", startSizeMin));
+                archive(cereal::make_nvp("StartSizeMax", startSizeMax));
+                archive(cereal::make_nvp("StartSize", startSize));
+
+                // -------------------- Rotación --------------------
+                archive(cereal::make_nvp("UseRandomRotation", useRandomRotation));
+                archive(cereal::make_nvp("StartRotationMin", startRotationMin));
+                archive(cereal::make_nvp("StartRotationMax", startRotationMax));
+                archive(cereal::make_nvp("StartRotation", startRotation));
+
+                // -------------------- Espacio de simulación --------------------
+                archive(cereal::make_nvp("SimulationSpace", simulationSpace));
+
+                // -------------------- Emisión --------------------
+                archive(cereal::make_nvp("UseEmission", useEmission));
+                archive(cereal::make_nvp("RateOverTime", rateOverTime));
+
+                // -------------------- Forma --------------------
+                archive(cereal::make_nvp("ShapeType", shape));
+                archive(cereal::make_nvp("MinSpread", minSpread));
+                archive(cereal::make_nvp("MaxSpread", maxSpread));
+                archive(cereal::make_nvp("UseShape", useShape));
+                archive(cereal::make_nvp("ShapeAngle", shapeAngle));
+                archive(cereal::make_nvp("ShapeRadius", shapeRadius));
+                archive(cereal::make_nvp("ShapeRadiusThickness", shapeRadiusThickness));
+
+                // -------------------- Velocity over Lifetime --------------------
+                archive(cereal::make_nvp("UseVelocityOverLifetime", useVelocityOverLifetime));
+                archive(cereal::make_nvp("VelocitySeparateAxes", velocityOverLifeTimeSeparateAxes));
+                archive(cereal::make_nvp("VelocityOverLifeX", speedOverLifeTimeX));
+                archive(cereal::make_nvp("VelocityOverLifeY", speedOverLifeTimeY));
+                archive(cereal::make_nvp("VelocityOverLifeZ", speedOverLifeTimeZ));
+                archive(cereal::make_nvp("VelocityOverLifeGeneral", speedOverLifeTimeGeneral));
+
+                // -------------------- Size over Lifetime --------------------
+                archive(cereal::make_nvp("UseSizeOverLifetime", useSizeOverLifetime));
+                archive(cereal::make_nvp("SizeSeparateAxes", sizeOverLifeTimeSeparateAxes));
+                archive(cereal::make_nvp("SizeOverLifeX", sizeOverLifetimeX));
+                archive(cereal::make_nvp("SizeOverLifeY", sizeOverLifetimeY));
+                archive(cereal::make_nvp("SizeOverLifeZ", sizeOverLifetimeZ));
+                archive(cereal::make_nvp("SizeOverLifeGeneral", sizeOverLifetimeGeneral));
+
+                // -------------------- Rotation over Lifetime --------------------
+                archive(cereal::make_nvp("UseRotationOverLifetime", useRotationOverLifetime));
+                archive(cereal::make_nvp("RotationOverLifeX", rotationOverLifetimeX));
+                archive(cereal::make_nvp("RotationOverLifeY", rotationOverLifetimeY));
+                archive(cereal::make_nvp("RotationOverLifeZ", rotationOverLifetimeZ));
+
+                // -------------------- Color over Lifetime --------------------
+                archive(cereal::make_nvp("UseColorOverLifetime", useColorOverLifetime));
+                archive(cereal::make_nvp("OverLifetimeColor", overLifetimecolor));
+                archive(cereal::make_nvp("ColorGradientPoints", colorOverLifetime_gradientPoints));
+
+                // -------------------- Render --------------------
+                archive(cereal::make_nvp("UseRenderer", useRenderer));
+                archive(cereal::make_nvp("RenderMode", renderMode));
+                archive(cereal::make_nvp("RenderAlignment", renderAlignment));
+
+
+                UUID textureUUID;
+
+                // -------------------- Misc --------------------
+                archive(cereal::make_nvp("ElapsedTime", elapsedTime));
+                archive(cereal::make_nvp("TextureUUID", textureUUID));
+
+
+
+                if (textureUUID)
+                {
+                    particleTexture = ResourceLoader::GetResource<Texture2D>(textureUUID);
+                }
+
+            }
+            if (version >= 2)
+            {
+                archive(cereal::make_nvp("UseBurst", useBurst));
+                archive(cereal::make_nvp("Bursts", bursts));
+            
+            }
+
+           
   
         }
     };
 } // namespace Coffee
-CEREAL_CLASS_VERSION(Coffee::ParticleEmitter, 0);
+CEREAL_CLASS_VERSION(Coffee::ParticleEmitter, 2);

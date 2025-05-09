@@ -250,19 +250,19 @@ namespace Coffee {
                 s_ModelMaterialsUUIDs[referenceName] = materialUUID;
             }
 
-            MaterialTextures matTextures = LoadMaterialTextures(material);
+            PBRMaterialTextures matTextures = LoadMaterialTextures(material);
 
-            MaterialImportData materialImportData;
+            PBRMaterialImportData materialImportData;
             materialImportData.name = referenceName;
             materialImportData.materialTextures = &matTextures;
             materialImportData.uuid = materialUUID;
-            materialImportData.cachedPath = CacheManager::GetCachedFilePath(materialUUID, ResourceType::Material);
+            materialImportData.cachedPath = CacheManager::GetCachedFilePath(materialUUID, ResourceType::PBRMaterial);
             
-            meshMaterial = ResourceLoader::LoadEmbedded<Material>(materialImportData);
+            meshMaterial = ResourceLoader::LoadEmbedded<PBRMaterial>(materialImportData);
         }
         else
         {
-            meshMaterial = Material::Create();
+            meshMaterial = PBRMaterial::Create();
         }
 
         AABB aabb(
@@ -308,19 +308,13 @@ namespace Coffee {
 
         m_Transform = aiMatrix4x4ToGLMMat4(node->mTransformation);
 
-        bool isAnimationNode = std::any_of(scene->mAnimations, scene->mAnimations + scene->mNumAnimations, [&](const aiAnimation* animation) {
-            return std::any_of(animation->mChannels, animation->mChannels + animation->mNumChannels, [&](const aiNodeAnim* channel) {
-                return channel->mNodeName.C_Str() == m_NodeName;
-            });
-        });
-
         bool isBone = std::any_of(scene->mMeshes, scene->mMeshes + scene->mNumMeshes, [&](const aiMesh* mesh) {
             return std::any_of(mesh->mBones, mesh->mBones + mesh->mNumBones, [&](const aiBone* bone) {
                 return bone->mName.C_Str() == m_NodeName;
             });
         });
 
-        if (isAnimationNode || isBone)
+        if (isBone)
             return;
 
         for(uint32_t i = 0; i < node->mNumMeshes; i++)
@@ -377,9 +371,9 @@ namespace Coffee {
         return Texture2D::Load(texturePath);
     }
 
-    MaterialTextures Model::LoadMaterialTextures(aiMaterial* material)
+    PBRMaterialTextures Model::LoadMaterialTextures(aiMaterial* material)
     {
-        MaterialTextures matTextures;
+        PBRMaterialTextures matTextures;
 
         matTextures.albedo = LoadTexture2D(material, aiTextureType_DIFFUSE);
         matTextures.normal = LoadTexture2D(material, aiTextureType_NORMALS);

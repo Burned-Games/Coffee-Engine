@@ -13,6 +13,20 @@ namespace Coffee {
      * @{
      */
 
+     enum class CullFace 
+     {
+        Front = 0,
+        Back = 1,
+        FrontAndBack = 2
+     };
+
+        enum class PolygonMode
+        {
+            Fill = 0,
+            Line = 1,
+            Point = 2
+        };
+
     /**
      * @brief Class representing the Renderer API.
      */
@@ -22,6 +36,8 @@ namespace Coffee {
          * @brief Initializes the Renderer API.
          */
         static void Init();
+
+        static void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 
         /**
          * @brief Sets the clear color for the renderer.
@@ -42,6 +58,10 @@ namespace Coffee {
 
         static void SetFaceCulling(bool enabled);
 
+        static void SetCullFace(CullFace face);
+
+        static void SetPolygonMode(PolygonMode mode);
+
         /**
          * @brief Draws the indexed vertices from the specified vertex array.
          * @param vertexArray The vertex array containing the vertices to draw.
@@ -61,7 +81,6 @@ namespace Coffee {
          * @return A scope pointer to the created Renderer API instance.
          */
         static Scope<RendererAPI> Create();
-
     private:
         static Scope<RendererAPI> s_RendererAPI; ///< The Renderer API instance.
     };

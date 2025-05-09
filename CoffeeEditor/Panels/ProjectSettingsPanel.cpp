@@ -26,6 +26,11 @@ namespace Coffee {
 
         BeginHorizontalChild("Input", flags);
         ImGui::Text("Input Settings");
+        ImGui::SameLine();
+        if (ImGui::Button("Save Inputs"))
+        {
+            Input::Save();
+        }
 
 #pragma region InputMap
         auto& bindings = Input::GetAllBindings();
@@ -160,6 +165,7 @@ namespace Coffee {
             static std::string newBindName;
             newBindName = m_SelectedInputKey;
             ImGui::TextUnformatted("Name: "); ImGui::SameLine();
+            /*
             if (ImGui::InputText("BindingName", &newBindName, ImGuiInputTextFlags_EnterReturnsTrue))
             {
                 if (newBindName.length() != 0)
@@ -172,6 +178,7 @@ namespace Coffee {
                     m_SelectedInputKey = newBindName;
                 }
             }
+            */
             ImGui::NewLine();
             ImGui::TextUnformatted("PosButton:"); ImGui::SameLine();
             ImGui::Text("%s", Input::GetButtonLabel(m_SelectedInputBinding->ButtonPos)); ImGui::SameLine();

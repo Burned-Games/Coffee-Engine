@@ -21,6 +21,7 @@
 #include "CoffeeEngine/Scene/SceneManager.h"
 #include "CoffeeEngine/Scene/SceneTree.h"
 #include "CoffeeEngine/Scripting/Lua/LuaScript.h"
+#include "CoffeeEngine/UI/UIManager.h"
 #include "PrimitiveMesh.h"
 #include "entt/entity/entity.hpp"
 #include "entt/entity/fwd.hpp"
@@ -46,6 +47,20 @@ namespace Coffee {
     std::vector<MeshComponent*> Scene::s_MeshComponents;
     std::vector<AnimatorComponent*> Scene::s_AnimatorComponents;
 
+    void Scene::FixHierarchy()
+    {
+        auto view = m_Registry.view<HierarchyComponent>();
+
+        for (auto& entity : view)
+        {
+            auto& hierarchyComponent = view.get<HierarchyComponent>(entity);
+            if (hierarchyComponent.m_Parent != entt::null) continue;
+
+            hierarchyComponent.FixNode(m_Registry, entt::null);
+        }
+
+    }
+
     Scene::Scene() : m_Octree({glm::vec3(-50.0f), glm::vec3(50.0f)}, 10, 5)
     {
         m_SceneTree = CreateScope<SceneTree>(this);
@@ -60,6 +75,24 @@ namespace Coffee {
         {
             auto srcComponent = registry.get<T>(sourceEntity);
             registry.emplace_or_replace<T>(destinyEntity, srcComponent);
+        }
+    }
+
+    template <>
+    void CopyComponentIfExists<ActiveComponent>(entt::entity destinyEntity, entt::entity sourceEntity, entt::registry& registry)
+    {
+        // ActiveComponent is empty, just place it
+        if (!registry.all_of<ActiveComponent>(destinyEntity)) {
+            registry.emplace<ActiveComponent>(destinyEntity);
+        }
+    }
+
+    template <>
+    void CopyComponentIfExists<StaticComponent>(entt::entity destinyEntity, entt::entity sourceEntity, entt::registry& registry)
+    {
+        // StaticComponent is empty, just place it
+        if (!registry.all_of<StaticComponent>(destinyEntity)) {
+            registry.emplace<StaticComponent>(destinyEntity);
         }
     }
 
@@ -144,6 +177,12 @@ namespace Coffee {
                 }
                 else if (auto capsuleCollider = std::dynamic_pointer_cast<CapsuleCollider>(srcComponent.rb->GetCollider())) {
                     collider = CreateRef<CapsuleCollider>(capsuleCollider->GetRadius(), capsuleCollider->GetHeight());
+                }
+                else if (auto cylinderCollider = std::dynamic_pointer_cast<CylinderCollider>(srcComponent.rb->GetCollider())) {
+                    collider = CreateRef<CylinderCollider>(cylinderCollider->GetRadius(), cylinderCollider->GetHeight());
+                }
+                else if (auto coneCollider = std::dynamic_pointer_cast<ConeCollider>(srcComponent.rb->GetCollider())) {
+                    collider = CreateRef<ConeCollider>(coneCollider->GetRadius(), coneCollider->GetHeight());
                 }
                 else {
                     collider = CreateRef<BoxCollider>(glm::vec3(1.0f, 1.0f, 1.0f));
@@ -425,21 +464,30 @@ namespace Coffee {
             auto& particlesSystemComponent = particleSystemView.get<ParticlesSystemComponent>(entity);
             auto& transformComponent = particleSystemView.get<TransformComponent>(entity);
 
-            auto materialComponent = m_Registry.try_get<MaterialComponent>(entity);
-            Ref<Material> material = (materialComponent) ? materialComponent->material : nullptr;
-
-            if (!particlesSystemComponent.GetParticleEmitter()->particleMaterial && material)
-            {
-                particlesSystemComponent.GetParticleEmitter()->particleMaterial = material;
-            }
-
             particlesSystemComponent.GetParticleEmitter()->transformComponentMatrix = transformComponent.GetWorldTransform();
             particlesSystemComponent.GetParticleEmitter()->cameraViewMatrix = camera.GetViewMatrix();
             particlesSystemComponent.GetParticleEmitter()->Update(dt);
             particlesSystemComponent.GetParticleEmitter()->DrawDebug();
         }
 
+        auto spriteView = m_Registry.view<ActiveComponent, SpriteComponent, TransformComponent>();
+        for (auto& entity : spriteView)
+        {
+            auto& spriteComponent = spriteView.get<SpriteComponent>(entity);
+            auto& transformComponent = spriteView.get<TransformComponent>(entity);
+
+            if (spriteComponent.texture)
+            {
+                Renderer2D::DrawQuad(transformComponent.GetWorldTransform(), spriteComponent.texture,
+                                     spriteComponent.tilingFactor, spriteComponent.tintColor,
+                                     Renderer2D::RenderMode::World);
+            }
+        }
+
+
         m_PhysicsWorld.drawCollisionShapes();
+
+        UIManager::UpdateUI(m_Registry);
     }
 
 
@@ -586,20 +634,28 @@ namespace Coffee {
             auto& particlesSystemComponent = particleSystemView.get<ParticlesSystemComponent>(entity);
             auto& transformComponent = particleSystemView.get<TransformComponent>(entity);
 
-
-            auto materialComponent = m_Registry.try_get<MaterialComponent>(entity);
-            Ref<Material> material = (materialComponent) ? materialComponent->material : nullptr;
-
-            if (!particlesSystemComponent.GetParticleEmitter()->particleMaterial && material)
-            {
-                particlesSystemComponent.GetParticleEmitter()->particleMaterial = material;
-            }
-
             particlesSystemComponent.GetParticleEmitter()->transformComponentMatrix = transformComponent.GetWorldTransform();
             particlesSystemComponent.GetParticleEmitter()->cameraViewMatrix = glm::inverse(cameraTransform);
             particlesSystemComponent.GetParticleEmitter()->Update(dt);
 
         }
+
+        auto spriteView = m_Registry.view<ActiveComponent, SpriteComponent, TransformComponent>();
+        for (auto& entity : spriteView)
+        {
+            auto& spriteComponent = spriteView.get<SpriteComponent>(entity);
+            auto& transformComponent = spriteView.get<TransformComponent>(entity);
+
+            if (spriteComponent.texture) {
+                Renderer2D::DrawQuad(transformComponent.GetWorldTransform(), spriteComponent.texture,
+                                     spriteComponent.tilingFactor, spriteComponent.tintColor,
+                                     Renderer2D::RenderMode::World);
+            }
+
+            
+        }
+
+        UIManager::UpdateUI(m_Registry);
     }
 
     void Scene::OnEvent(Event& e)
