@@ -82,10 +82,23 @@ namespace Coffee
 
         ImGui::BeginChild("entity tree", {0, 0}, ImGuiChildFlags_Border);
 
+        bool searchMode = (searchBuffer[0] != '\0');
+        std::string_view search = searchBuffer.data();
         auto view = m_Context->m_Registry.view<entt::entity>();
         for (auto entityID : view)
         {
             Entity entity{entityID, m_Context.get()};
+
+            if (searchMode)
+            {
+                auto& tag = entity.GetComponent<TagComponent>();
+                if (tag.Tag.find(search) != std::string::npos)
+                {
+                    DrawEntityNode(entity);
+                }
+                continue;
+            }
+
             auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
 
             if (hierarchyComponent.m_Parent == entt::null)
