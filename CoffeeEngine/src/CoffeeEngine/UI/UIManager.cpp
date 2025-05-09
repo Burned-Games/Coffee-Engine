@@ -606,6 +606,12 @@ namespace Coffee {
             glm::vec2 newSize = currentSize * scale;
             anchor->SetSize(newSize, item.ParentSize);
 
+            if (item.ComponentType == UIComponentType::Text && registry.any_of<UITextComponent>(entity))
+            {
+                auto& textComponent = registry.get<UITextComponent>(entity);
+                textComponent.FontSize *= (scale.x + scale.y) / 2.0f;
+            }
+
             item.TransformDirty = true;
 
             for (auto& childItem : s_SortedUIItems)
