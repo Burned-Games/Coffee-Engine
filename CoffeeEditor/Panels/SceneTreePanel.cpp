@@ -2109,7 +2109,15 @@ namespace Coffee
             bool isCollapsingHeaderOpen = true;
             if (ImGui::CollapsingHeader("NavMesh", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
-                ImGui::Checkbox("Show NavMesh", &navMeshComponent.ShowDebug);
+                bool showComponent = navMeshComponent.ShowDebug;
+                if (ImGui::Checkbox("Show NavMesh", &showComponent))
+                {
+                    navMeshComponent.ShowDebug = showComponent;
+                    
+                    if (showComponent)
+                        m_Context->m_SceneDebugFlags.ShowNavMesh = true;
+                }
+                
                 ImGui::DragFloat("Walkable Slope Angle", &navMeshComponent.GetNavMesh()->WalkableSlopeAngle, 0.1f, 0.1f, 60.0f);
 
                 if (ImGui::SmallButton("Generate NavMesh"))
@@ -2131,7 +2139,14 @@ namespace Coffee
             {
                 auto view = m_Context->m_Registry.view<NavMeshComponent>();
 
-                ImGui::Checkbox("Show Path", &navigationAgentComponent.ShowDebug);
+                bool showComponent = navigationAgentComponent.ShowDebug;
+                if (ImGui::Checkbox("Show Path", &showComponent))
+                {
+                    navigationAgentComponent.ShowDebug = showComponent;
+                    
+                    if (showComponent)
+                        m_Context->m_SceneDebugFlags.ShowNavMeshPath = true;
+                }
 
                 if (ImGui::BeginCombo("NavMesh", navigationAgentComponent.GetNavMeshComponent() ? std::to_string(navigationAgentComponent.GetNavMeshComponent()->GetNavMeshUUID()).c_str() : "Select NavMesh"))
                 {
