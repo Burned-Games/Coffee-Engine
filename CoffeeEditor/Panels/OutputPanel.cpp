@@ -6,35 +6,92 @@
 #include <spdlog/spdlog.h>
 #include <string>
 #include <vector>
+#include <regex>
 
 namespace Coffee {
+
+    // Helper function to remove milliseconds from timestamp
+    std::string SimplifyTimestamp(const std::string& log) {
+        // Regular expression to match timestamps with milliseconds: [YYYY-MM-DD HH:MM:SS.mmm]
+        static std::regex timestamp_regex(R"(\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\.\d{3}\])");
+        
+        // Replace with timestamp without milliseconds: [YYYY-MM-DD HH:MM:SS]
+        return std::regex_replace(log, timestamp_regex, "[$1]");
+    }
 
     void OutputPanel::OnImGuiRender()
     {
         if (!m_Visible) return;
 
         ImGui::Begin("Output", nullptr, ImGuiWindowFlags_HorizontalScrollbar);
-        const std::vector<std::string>& logBuffer = Coffee::Log::GetLogBuffer();
-        /* for (const auto& log : logBuffer)
-        {
-            auto [before_level, level_str, after_level] = ParseLogMessage(log);
-            spdlog::level::level_enum level = spdlog::level::from_str(level_str);
-            RenderLogMessage(before_level, level_str, after_level, level);
-        } */
+        
+        // Add buttons and filter
+        if (ImGui::Button("Options"))
+            ImGui::OpenPopup("Options");
+        ImGui::SameLine();
+        bool clear = ImGui::Button("Clear");
+        ImGui::SameLine();
+        bool copy = ImGui::Button("Copy");
+        ImGui::SameLine();
+        m_Filter.Draw("Filter", -100.0f);
 
+        // Options menu
+        if (ImGui::BeginPopup("Options"))
+        {
+            ImGui::Checkbox("Auto-scroll", &m_AutoScroll);
+            ImGui::EndPopup();
+        }
+
+        ImGui::Separator();
+        ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+
+        const std::vector<std::string>& logBuffer = Coffee::Log::GetLogBuffer();
+        
+        // Handle clear button
+        if (clear)
+            Coffee::Log::ClearLogBuffer();
+
+        // Handle copy button
+        if (copy)
+        {
+            ImGui::LogToClipboard();
+            for (const std::string& log : logBuffer)
+            {
+                if (m_Filter.IsActive() && !m_Filter.PassFilter(log.c_str()))
+                    continue;
+                
+                // Use simplified timestamp for copying
+                std::string simplifiedLog = SimplifyTimestamp(log);
+                ImGui::LogText("%s\n", simplifiedLog.c_str());
+            }
+            ImGui::LogFinish();
+        }
+
+        // Display logs with filtering
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
         for (const std::string& log : logBuffer)
         {
-            auto [before_level, level_str, after_level] = ParseLogMessage(log);
+            // Skip this log if it doesn't pass the filter
+            if (m_Filter.IsActive() && !m_Filter.PassFilter(log.c_str()))
+                continue;
+
+            // Simplify timestamp for display
+            std::string simplifiedLog = SimplifyTimestamp(log);
+            
+            auto [before_level, level_str, after_level] = ParseLogMessage(simplifiedLog);
             spdlog::level::level_enum level = spdlog::level::from_str(level_str);
             
             ImGui::PushStyleColor(ImGuiCol_Text, GetLogLevelColor(level));
-            ImGui::TextUnformatted(after_level.c_str());
+            ImGui::TextUnformatted(simplifiedLog.c_str());
             ImGui::PopStyleColor();
         }
+        ImGui::PopStyleVar();
 
-        if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
-                ImGui::SetScrollHereY(1.0f);
+        // Auto-scroll if enabled
+        if (m_AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+            ImGui::SetScrollHereY(1.0f);
 
+        ImGui::EndChild();
         ImGui::End();
     }
 
