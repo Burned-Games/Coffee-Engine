@@ -27,6 +27,15 @@ namespace Coffee {
     class Entity;
     class Model;
 
+    struct SceneDebugFlags
+    {
+        bool DebugDraw = false;
+        bool ShowNavMesh = false;
+        bool ShowNavMeshPath = false;
+        bool ShowColliders = false;
+        bool ShowOctree = false;
+    };
+
     /**
      * @brief Class representing a scene.
      * @ingroup scene
@@ -136,6 +145,9 @@ namespace Coffee {
         void UpdateAudioComponentsPositions();
 
         const std::filesystem::path& GetFilePath() { return m_FilePath; }
+
+        SceneDebugFlags& GetDebugFlags() { return m_SceneDebugFlags; }
+
 
 
         /**
@@ -297,6 +309,7 @@ namespace Coffee {
         Scope<SceneTree> m_SceneTree;
         Octree<Ref<Mesh>> m_Octree;
         PhysicsWorld m_PhysicsWorld;
+        SceneDebugFlags m_SceneDebugFlags;
 
         // Temporal: Scenes should be Resources and the Base Resource class already has a path variable.
         std::filesystem::path m_FilePath;
