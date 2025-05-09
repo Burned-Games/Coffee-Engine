@@ -81,10 +81,18 @@ namespace Coffee
         ImGui::InputTextWithHint("##searchbar", ICON_LC_SEARCH " Search by name:", searchBuffer.data(),
                                  searchBuffer.size());
 
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_LC_CIRCLE_X "##searchbarclear"))
+        {
+            searchBuffer[0] = '\0';
+        }
+
         ImGui::BeginChild("entity tree", {0, 0}, ImGuiChildFlags_Border);
 
         bool searchMode = (searchBuffer[0] != '\0');
-        std::string_view search = searchBuffer.data();
+        std::string search = searchBuffer.data();
+        std::transform(search.begin(), search.end(), search.begin(), ::tolower);
+
         auto view = m_Context->m_Registry.view<entt::entity>();
         for (auto entityID : view)
         {
@@ -93,9 +101,11 @@ namespace Coffee
             if (searchMode)
             {
                 // Find substring in tag, draw entity if found and continue to next entity
-                auto& tag = entity.GetComponent<TagComponent>();
-                if (tag.Tag.find(search) != std::string::npos)
+                auto tag = entity.GetComponent<TagComponent>().Tag;
+                std::transform(tag.begin(), tag.end(), tag.begin(), ::tolower);
+                if (tag.find(search) != std::string::npos)
                 {
+
                     DrawEntityNode(entity, false);
                 }
                 continue;
