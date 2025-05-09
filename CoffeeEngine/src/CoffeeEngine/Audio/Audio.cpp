@@ -216,6 +216,9 @@ namespace Coffee
         }
         COFFEE_CORE_INFO("Project audio directory found, loading audio banks...");
 
+        // Clear the previous audio banks
+        audioBanks.clear();
+
         Shutdown();
         m_ActiveAudioPath = audioPath;
         Init();
