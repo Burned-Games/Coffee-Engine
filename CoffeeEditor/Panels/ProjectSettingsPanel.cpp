@@ -218,6 +218,21 @@ namespace Coffee {
                 Input::StartRebindMode(m_SelectedInputKey, RebindState::Axis);
             }
 
+            static bool deletionConfirmation = false;
+            std::string deletionLabel = deletionConfirmation ? "Are you sure?":"Delete";
+            deletionLabel += "##ActionDeleteButton";
+            if (ImGui::Button(deletionLabel.c_str()))
+            {
+                if (!deletionConfirmation)
+                    deletionConfirmation = true;
+                else
+                {
+                    bindings.erase(m_SelectedInputKey);
+                    deletionConfirmation = false;
+                    m_SelectedInputKey = "";
+                    m_SelectedInputBinding = nullptr;
+                }
+            }
         }
 
         if (ImGui::Button("New Action"))
