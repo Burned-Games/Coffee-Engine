@@ -9,8 +9,7 @@
 namespace Coffee
 {
     const std::filesystem::path Audio::DefaultAudioPath = "assets/audio/Wwise Project/GeneratedSoundBanks/Windows";
-    std::filesystem::path m_ActiveAudioPath = Audio::DefaultAudioPath;
-
+    std::filesystem::path Audio::m_ActiveAudioPath = Audio::DefaultAudioPath;
 
     // Global pointer for the low-level IO
     CAkFilePackageLowLevelIODeferred* g_lowLevelIO = nullptr;
