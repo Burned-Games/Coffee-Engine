@@ -216,8 +216,6 @@ namespace Coffee
         }
         COFFEE_CORE_INFO("Project audio directory found, loading audio banks...");
 
-        // Clear the previous audio banks
-        audioBanks.clear();
 
         Shutdown();
         m_ActiveAudioPath = audioPath;
@@ -228,7 +226,6 @@ namespace Coffee
         COFFEE_CORE_INFO("Loading default audio banks");
 
         Shutdown();
-        m_ActiveAudioPath = DefaultAudioPath;
         Init();
     }
 
@@ -396,6 +393,10 @@ namespace Coffee
 
         // Unload the soundbanks
         AK::SoundEngine::ClearBanks();
+        audioBanks.clear();
+
+        // Reset audio path
+        m_ActiveAudioPath = DefaultAudioPath;
 
 #ifndef AK_OPTIMIZED
         // Terminate the Communication module
