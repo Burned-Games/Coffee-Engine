@@ -22,6 +22,8 @@ namespace Coffee {
 
         void OnImGuiRender() override;
 
+        bool IsPanelVisible(uint8_t panelMask) const { return m_VisiblePanels & panelMask; }
+
     private:
 
         static void BeginHorizontalChild(const char* label, ImGuiWindowFlags flags = ImGuiWindowFlags_None);
