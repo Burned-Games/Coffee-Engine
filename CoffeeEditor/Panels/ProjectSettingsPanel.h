@@ -42,7 +42,7 @@ namespace Coffee {
         uint8_t m_RefreshPanels = 0; // Used to mark panels for manual refresh when opened
 
         // General settings
-        std::string m_NewProjectName;
+        std::array<char, 256> m_NewProjectName;
 
         // Input settings
         InputBinding* m_SelectedInputBinding = nullptr;

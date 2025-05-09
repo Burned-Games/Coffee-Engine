@@ -31,6 +31,8 @@ namespace Coffee {
          */
         static Ref<Project> Load(const std::filesystem::path& path);
 
+        static void LoadDefaultScene();
+
         /**
          * @brief Saves the active project to the specified path.
          * @param path The path to save the project file.
@@ -63,6 +65,8 @@ namespace Coffee {
 
         static const std::filesystem::path& GetProjectDefaultScene() { return s_ActiveProject->m_StartScenePath; }
 
+        static void SetProjectDefaultScene(const std::filesystem::path& path) { s_ActiveProject->m_StartScenePath = path; }
+
         /**
          * @brief Retrieves the cache directory path of the active project.
          * 
@@ -71,7 +75,7 @@ namespace Coffee {
          * 
          * @return const std::filesystem::path& Reference to the cache directory path.
          */
-        static std::filesystem::path GetCacheDirectory() { return s_ActiveProject->GetProjectDirectory() / s_ActiveProject->m_CacheDirectory; }
+        static std::filesystem::path GetCacheDirectory() { return GetProjectDirectory() / s_ActiveProject->m_CacheDirectory; }
 
         /**
          * @brief Retrieves de audio directory path of the active project
@@ -108,9 +112,13 @@ namespace Coffee {
          */
         template<class Archive> void serialize(Archive& archive, std::uint32_t const version) 
         {
+            std::string startScenePath = m_StartScenePath.string();
+
             archive(cereal::make_nvp("Name", m_Name),
-                    cereal::make_nvp("StartScene",m_StartScenePath.string()),
+                    cereal::make_nvp("StartScene",startScenePath),
                     cereal::make_nvp("CacheDirectory", m_CacheDirectory));
+
+            m_StartScenePath = startScenePath;
 
             if (version >= 1)
             {
@@ -124,6 +132,7 @@ namespace Coffee {
 
     private:
         std::string m_Name = "Untitled"; ///< The name of the project.
+        std::filesystem::path m_FileName = "Default.TeaProject"; ///< The filename of the project.
         std::filesystem::path m_ProjectDirectory; ///< The directory of the project.
         std::filesystem::path m_CacheDirectory; ///< The directory of the project cache.
 

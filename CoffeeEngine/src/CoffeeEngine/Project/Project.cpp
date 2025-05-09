@@ -41,6 +41,7 @@ namespace Coffee {
 
         archive(*project);
 
+        project->m_FileName = path.filename();
         project->m_ProjectDirectory = path.parent_path();
 
         s_ActiveProject = project;
@@ -55,14 +56,31 @@ namespace Coffee {
         Input::Load();
         Audio::OnProjectLoad();
 
+        if (GetProjectDefaultScene().empty())
+        {
+            SetProjectDefaultScene("DefaultScene.TeaScene");
+        }
+
+        auto defaultScene = GetProjectDirectory()/GetProjectDefaultScene();
+
+        LoadDefaultScene();
+
         return project;
+    }
+
+    void Project::LoadDefaultScene()
+    {
+        auto defaultScene = GetProjectDirectory()/GetProjectDefaultScene();
+
+        if (std::filesystem::exists(defaultScene))
+            SceneManager::ChangeScene(defaultScene);
     }
 
     void Project::SaveActive()
     {
         if (s_ActiveProject)
         {
-            std::filesystem::path path = s_ActiveProject->m_ProjectDirectory / s_ActiveProject->m_Name;
+            std::filesystem::path path = s_ActiveProject->m_ProjectDirectory / s_ActiveProject->m_FileName;
 
             std::ofstream projectFile(path);
             cereal::JSONOutputArchive archive(projectFile);

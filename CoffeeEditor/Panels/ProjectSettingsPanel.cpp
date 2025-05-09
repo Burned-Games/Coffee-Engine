@@ -240,8 +240,9 @@ namespace Coffee {
         if (m_RefreshPanels & PanelDisplayEnum::General)
         {
             // Refresh values (in case of new project loaded)
-            m_NewProjectName = Project::GetProjectName();
-            m_NewProjectName.reserve(256);
+            std::string s = Project::GetProjectName();
+            m_NewProjectName.fill('\0');
+            std::copy_n(s.begin(), min(s.size(), 255),m_NewProjectName.begin());
 
             m_RefreshPanels ^= PanelDisplayEnum::General;
         }
@@ -252,15 +253,35 @@ namespace Coffee {
 
         ImGui::Text("Game name: ");
         ImGui::SameLine();
-        if (ImGui::InputText("##gamename", m_NewProjectName.data(), 256, ImGuiInputTextFlags_EnterReturnsTrue))
+        if (ImGui::InputText("##gamename", m_NewProjectName.data(), 255, ImGuiInputTextFlags_EnterReturnsTrue))
         {
             // no need to check for active project, this window is only accessible when a project is active
-            Project::SetProjectName(m_NewProjectName);
+            // NOT a redundant call to c_str(). It is being used to trim extra null characters at the end of the string
+            Project::SetProjectName(std::string(m_NewProjectName.begin(), m_NewProjectName.end()).c_str());
         }
 
-        std::string str = Coffee::Project::GetRelativeAudioDirectory().string();
-        char* strData = str.data();
-        ImGui::InputText("##AudioBanksPath", strData, str.size(), ImGuiInputTextFlags_ReadOnly);
+        std::string defScenePath = Project::GetProjectDefaultScene().string();
+        ImGui::Text("Default scene path: ");
+        ImGui::SameLine();
+        ImGui::InputText("##DefaultScenePath", defScenePath.data(), defScenePath.size(), ImGuiInputTextFlags_ReadOnly);
+        ImGui::SameLine();
+        if (ImGui::Button("Select...##DefaultScenePathButton"))
+        {
+            FileDialogArgs args;
+            args.DefaultPath = Project::GetProjectDirectory().string();
+            args.Filters.push_back({"Coffee Engine Scene", "TeaScene"});
+            std::filesystem::path path = FileDialog::OpenFile(args);
+            if (!path.empty())
+            {
+                path = std::filesystem::relative(path, Project::GetProjectDirectory());
+                Project::SetProjectDefaultScene(path);
+            }
+        }
+
+        std::string audioDirPath = Project::GetRelativeAudioDirectory().string();
+        ImGui::Text("Audio directory: ");
+        ImGui::SameLine();
+        ImGui::InputText("##AudioBanksPath", audioDirPath.data(), audioDirPath.size(), ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();
         if (ImGui::Button("Select...##AudioBanksPathButton"))
         {
