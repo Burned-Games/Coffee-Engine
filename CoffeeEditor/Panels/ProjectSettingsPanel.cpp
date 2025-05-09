@@ -1,12 +1,11 @@
 #include "ProjectSettingsPanel.h"
 
 #include "CoffeeEngine/Core/Application.h"
-#include "CoffeeEngine/Project/Project.h"
-#include <imgui.h>
-#include <imgui_stdlib.h>
-
+#include "CoffeeEngine/Core/FileDialog.h"
 #include "CoffeeEngine/Core/Input.h"
+#include "CoffeeEngine/Project/Project.h"
 #include "src/EditorLayer.h"
+#include <imgui.h>
 
 namespace Coffee {
 
@@ -259,8 +258,26 @@ namespace Coffee {
             Project::SetProjectName(m_NewProjectName);
         }
 
+        std::string str = Coffee::Project::GetRelativeAudioDirectory().string();
+        char* strData = str.data();
+        ImGui::InputText("##AudioBanksPath", strData, str.size(), ImGuiInputTextFlags_ReadOnly);
+        ImGui::SameLine();
+        if (ImGui::Button("Select...##AudioBanksPathButton"))
+        {
+            FileDialogArgs args;
+            args.DefaultPath = Project::GetProjectDirectory().string();
+            std::filesystem::path path = FileDialog::PickFolder(args);
+            if (is_directory(path))
+            {
+                path = std::filesystem::relative(path, Project::GetProjectDirectory());
+                Project::SetRelativeAudioDirectory(path);
+                Audio::OnProjectLoad();
+            }
+        }
+
         ImGui::EndChild();
     }
+
     void ProjectSettingsPanel::OnImGuiRender()
     {
         if (!m_Visible) return;

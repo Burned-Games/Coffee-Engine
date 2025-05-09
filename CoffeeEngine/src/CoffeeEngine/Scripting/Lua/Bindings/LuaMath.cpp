@@ -1,4 +1,5 @@
 #include "LuaMath.h"
+#include <glm/fwd.hpp>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
@@ -152,6 +153,9 @@ void Coffee::RegisterMathBindings(sol::state& luaState)
         sol::meta_function::addition, [](const glm::mat4& a, const glm::mat4& b) { return a + b; },
         sol::meta_function::subtraction, [](const glm::mat4& a, const glm::mat4& b) { return a - b; },
         sol::meta_function::multiplication, [](const glm::mat4& a, const glm::mat4& b) { return a * b; },
+        sol::meta_function::multiplication, [](const glm::mat4& mat, const glm::vec3& vec) { return mat * glm::vec4(vec, 1.0f); },
+        sol::meta_function::multiplication, [](const glm::mat4& mat, const glm::vec4& vec) { return mat * vec; },
+        sol::meta_function::multiplication, [](const glm::mat4& mat, const glm::quat& quat) { return mat * glm::toMat4(quat); },
         sol::meta_function::division, [](const glm::mat4& a, const glm::mat4& b) { return a / b; },
         sol::meta_function::equal_to, [](const glm::mat4& a, const glm::mat4& b) { return a == b; }
     );
@@ -164,8 +168,18 @@ void Coffee::RegisterMathBindings(sol::state& luaState)
         "w", &glm::quat::w,
         "from_euler", [](const glm::vec3& euler) { return glm::quat(glm::radians(euler)); },
         "to_euler_angles", [](const glm::quat& q) { return glm::eulerAngles(q); },
-        "toMat4", [](const glm::quat& q) { return glm::toMat4(q); },
+        "to_mat4", [](const glm::quat& q) { return glm::toMat4(q); },
         "normalize", [](const glm::quat& q) { return glm::normalize(q); },
-        "slerp", [](const glm::quat& a, const glm::quat& b, float t) { return glm::slerp(a, b, t); }
+        "slerp", [](const glm::quat& a, const glm::quat& b, float t) { return glm::slerp(a, b, t); },
+        "dot", [](const glm::quat& a, const glm::quat& b) { return glm::dot(a, b); },
+
+        // Improve this to not have to specify the operation for each type
+        sol::meta_function::addition, [](const glm::quat& a, const glm::quat& b) { return a + b; },
+        sol::meta_function::subtraction, [](const glm::quat& a, const glm::quat& b) { return a - b; },
+        sol::meta_function::multiplication, [](const glm::quat& a, const glm::quat& b) { return a * b; },
+        sol::meta_function::multiplication, [](const glm::quat& quat, const glm::vec3& vec) { return quat * vec; },
+        sol::meta_function::multiplication, [](const glm::quat& quat, const glm::vec4& vec) { return quat * vec; },
+        sol::meta_function::equal_to, [](const glm::quat& a, const glm::quat& b) { return a == b; },
+        sol::meta_function::unary_minus, [](const glm::quat& a) { return -a; }
     );
 }

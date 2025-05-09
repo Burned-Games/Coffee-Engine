@@ -53,6 +53,7 @@ namespace Coffee {
         SceneManager::SetWorkingDirectory(s_ActiveProject->m_ProjectDirectory);
         ScriptManager::SetWorkingDirectory(s_ActiveProject->m_ProjectDirectory);
         Input::Load();
+        Audio::OnProjectLoad();
 
         return project;
     }
@@ -69,6 +70,6 @@ namespace Coffee {
             archive(cereal::make_nvp("Project", *s_ActiveProject));
 
             Input::Save();
-        } 
+        }
     }
-}
+} // namespace Coffee

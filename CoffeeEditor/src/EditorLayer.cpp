@@ -253,7 +253,7 @@ namespace Coffee {
                 if (ImGui::MenuItem(ICON_LC_FILE_PLUS_2 " New Project...", "Ctrl+N")) { NewProject(); }
                 if (ImGui::MenuItem(ICON_LC_FOLDER_OPEN " Open Project...", "Ctrl+O")) { OpenProject(); }
                 if (ImGui::MenuItem(ICON_LC_SAVE " Save Project", "Ctrl+S")) { SaveProject(); }
-                if(ImGui::MenuItem(ICON_LC_SETTINGS " Project Settings", nullptr, mainMenuWindows.ProjectSettings))
+                if (ImGui::MenuItem(ICON_LC_SETTINGS " Project Settings", nullptr, mainMenuWindows.ProjectSettings))
                 {
                     mainMenuWindows.ProjectSettings = !mainMenuWindows.ProjectSettings;
                 }
@@ -290,6 +290,52 @@ namespace Coffee {
                 }
                 ImGui::EndMenu();
             }
+            if (ImGui::BeginMenu("Debug"))
+            {
+                Ref<Scene> activeScene = SceneManager::GetActiveScene();
+                bool isSceneActive = activeScene != nullptr;
+
+                if (!isSceneActive)
+                    ImGui::BeginDisabled();
+
+                if (ImGui::MenuItem("Debug Draw", nullptr, isSceneActive ? activeScene->GetDebugFlags().DebugDraw : false))
+                {
+                    if (isSceneActive)
+                    {
+                        // Toggle the debug draw flag
+                        bool newState = !activeScene->GetDebugFlags().DebugDraw;
+                        activeScene->GetDebugFlags().DebugDraw = newState;
+                        
+                        // Set all other debug flags to match the main debug draw flag
+                        activeScene->GetDebugFlags().ShowOctree = newState;
+                        activeScene->GetDebugFlags().ShowColliders = newState;
+                        activeScene->GetDebugFlags().ShowNavMesh = newState;
+                        activeScene->GetDebugFlags().ShowNavMeshPath = newState;
+                    }
+                }
+
+                if (ImGui::MenuItem("Show Octree", nullptr, isSceneActive ? activeScene->GetDebugFlags().ShowOctree : false))
+                    if (isSceneActive)
+                        activeScene->GetDebugFlags().ShowOctree = !activeScene->GetDebugFlags().ShowOctree;
+
+                if (ImGui::MenuItem("Show Colliders", nullptr, isSceneActive ? activeScene->GetDebugFlags().ShowColliders : false))
+                    if (isSceneActive)
+                        activeScene->GetDebugFlags().ShowColliders = !activeScene->GetDebugFlags().ShowColliders;
+
+                if (ImGui::MenuItem("Show NavMesh", nullptr, isSceneActive ? activeScene->GetDebugFlags().ShowNavMesh : false))
+                    if (isSceneActive)
+                        activeScene->GetDebugFlags().ShowNavMesh = !activeScene->GetDebugFlags().ShowNavMesh;
+
+                if (ImGui::MenuItem("Show NavMeshPath", nullptr, isSceneActive ? activeScene->GetDebugFlags().ShowNavMeshPath : false))
+                    if (isSceneActive)
+                        activeScene->GetDebugFlags().ShowNavMeshPath = !activeScene->GetDebugFlags().ShowNavMeshPath;
+
+                if (!isSceneActive)
+                    ImGui::EndDisabled();
+
+                ImGui::EndMenu();
+            }
+
             if (ImGui::BeginMenu("About"))
             {
                 if(ImGui::MenuItem("About Coffee Engine"))

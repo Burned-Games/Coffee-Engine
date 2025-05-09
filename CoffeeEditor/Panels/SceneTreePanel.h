@@ -24,7 +24,7 @@ namespace Coffee {
         void CreatePrefab(Entity entity);
 
     private:
-        void DrawEntityNode(Entity entity);
+        void DrawEntityNode(Entity entity, bool drawChildren = true);
         void DrawComponents(Entity entity);
 
         //UI functions for scenetree menus

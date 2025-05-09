@@ -8,6 +8,8 @@
 
 namespace Coffee
 {
+    const std::filesystem::path Audio::DefaultAudioPath = "assets/audio/Wwise Project/GeneratedSoundBanks/Windows";
+    std::filesystem::path Audio::m_ActiveAudioPath = Audio::DefaultAudioPath;
 
     // Global pointer for the low-level IO
     CAkFilePackageLowLevelIODeferred* g_lowLevelIO = nullptr;
@@ -39,7 +41,7 @@ namespace Coffee
         if (!InitializeCommunicationModule())
             return;
 
-        g_lowLevelIO->SetBasePath(AKTEXT("assets/audio/Wwise Project/GeneratedSoundBanks/Windows"));
+        g_lowLevelIO->SetBasePath(m_ActiveAudioPath.c_str());
 
         LoadAudioBanks();
 
@@ -200,6 +202,31 @@ namespace Coffee
         volume = std::max(0.0f, std::min(1.0f, volume));
         std::string rtpcName = std::string(busName) + "Bus_Volume";
         AK::SoundEngine::SetRTPCValue(rtpcName.c_str(), volume * 100.0f);
+    }
+    void Audio::OnProjectLoad()
+    {
+        std::filesystem::path audioPath = Project::GetAudioDirectory();
+
+        std::filesystem::path projectPath = Project::GetProjectDirectory() / "";
+        // Don't try to load
+        if (projectPath.compare(audioPath) == 0)
+        {
+            COFFEE_CORE_WARN("Audio folder path not defined in project");
+            return;
+        }
+        COFFEE_CORE_INFO("Project audio directory found, loading audio banks...");
+
+
+        Shutdown();
+        m_ActiveAudioPath = audioPath;
+        Init();
+    }
+    void Audio::OnProjectUnload()
+    {
+        COFFEE_CORE_INFO("Loading default audio banks");
+
+        Shutdown();
+        Init();
     }
 
     void Audio::ProcessAudio()
@@ -366,6 +393,10 @@ namespace Coffee
 
         // Unload the soundbanks
         AK::SoundEngine::ClearBanks();
+        audioBanks.clear();
+
+        // Reset audio path
+        m_ActiveAudioPath = DefaultAudioPath;
 
 #ifndef AK_OPTIMIZED
         // Terminate the Communication module
