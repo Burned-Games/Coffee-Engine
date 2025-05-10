@@ -46,6 +46,15 @@ namespace Coffee {
          * @return The selected file path.
          */
         static const std::filesystem::path SaveFile(const FileDialogArgs& args = {});
+
+        /**
+         * @brief Opens a file dialog to select a directory.
+         *
+         * Note that the only arguments used is DefaultPath
+         *
+         * @return The selected directory path
+         */
+        static const std::filesystem::path PickFolder(const FileDialogArgs& args = {});
     };
 
     /** @} */

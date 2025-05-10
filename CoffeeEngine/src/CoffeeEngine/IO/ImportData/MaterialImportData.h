@@ -6,15 +6,15 @@
 
 namespace Coffee
 {
-    struct MaterialTextures;
+    struct PBRMaterialTextures;
 
-    struct MaterialImportData : public ImportData
+    struct PBRMaterialImportData : public ImportData
     {
 
         std::string name;
-        MaterialTextures* materialTextures;
+        PBRMaterialTextures* materialTextures;
 
-        MaterialImportData() : ImportData(ResourceType::Material) {}
+        PBRMaterialImportData() : ImportData(ResourceType::PBRMaterial) {}
 
         template <typename Archive> void serialize(Archive& archive, std::uint32_t const version)
         {
@@ -23,5 +23,5 @@ namespace Coffee
     };
 
 } // namespace Coffee
-CEREAL_REGISTER_TYPE(Coffee::MaterialImportData);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Coffee::ImportData, Coffee::MaterialImportData);
+CEREAL_REGISTER_TYPE(Coffee::PBRMaterialImportData);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Coffee::ImportData, Coffee::PBRMaterialImportData);

@@ -27,6 +27,15 @@ namespace Coffee {
     class Entity;
     class Model;
 
+    struct SceneDebugFlags
+    {
+        bool DebugDraw = false;
+        bool ShowNavMesh = false;
+        bool ShowNavMeshPath = false;
+        bool ShowColliders = false;
+        bool ShowOctree = false;
+    };
+
     /**
      * @brief Class representing a scene.
      * @ingroup scene
@@ -34,6 +43,10 @@ namespace Coffee {
     class Scene
     {
     public:
+
+        // TODO Delete this function
+        void FixHierarchy();
+
         /**
          * @brief Constructor for Scene.
          */
@@ -124,12 +137,17 @@ namespace Coffee {
         const std::filesystem::path& GetFilePath() const { return m_FilePath; }
         void SetFilePath(const std::filesystem::path& path) { m_FilePath = path; }
 
+        bool IsLoading() const { return m_IsLoading; }
+
         /**
          * @brief Update the positions of the audio components.
          */
         void UpdateAudioComponentsPositions();
 
         const std::filesystem::path& GetFilePath() { return m_FilePath; }
+
+        SceneDebugFlags& GetDebugFlags() { return m_SceneDebugFlags; }
+
 
 
         /**
@@ -177,7 +195,8 @@ namespace Coffee {
             .template get<UITextComponent>(archive)
             .template get<UIToggleComponent>(archive)
             .template get<UIButtonComponent>(archive)
-            .template get<UISliderComponent>(archive);
+            .template get<UISliderComponent>(archive)
+            .template get<UIComponent>(archive);
          }
 
         /**
@@ -187,6 +206,8 @@ namespace Coffee {
          */
         template <class Archive> void load(Archive& archive, std::uint32_t const version)
         {
+            m_IsLoading = true;
+
             if (version == 0)
             {
                 entt::snapshot_loader{m_Registry}
@@ -239,9 +260,40 @@ namespace Coffee {
                     .template get<UIButtonComponent>(archive)
                     .template get<UISliderComponent>(archive);
             }
-
+            else if (version == 2)
+            {
+                entt::snapshot_loader{m_Registry}
+                .get<entt::entity>(archive)
+                .template get<TagComponent>(archive)
+                .template get<TransformComponent>(archive)
+                .template get<HierarchyComponent>(archive)
+                .template get<CameraComponent>(archive)
+                .template get<MeshComponent>(archive)
+                .template get<MaterialComponent>(archive)
+                .template get<LightComponent>(archive)
+                .template get<RigidbodyComponent>(archive)
+                .template get<ScriptComponent>(archive)
+                .template get<NavMeshComponent>(archive)
+                .template get<NavigationAgentComponent>(archive)
+                .template get<AnimatorComponent>(archive)
+                .template get<AudioSourceComponent>(archive)
+                .template get<AudioListenerComponent>(archive)
+                .template get<AudioZoneComponent>(archive)
+                .template get<ParticlesSystemComponent>(archive)
+                .template get<ActiveComponent>(archive)
+                .template get<StaticComponent>(archive)
+                .template get<SpriteComponent>(archive)
+                .template get<UIImageComponent>(archive)
+                .template get<UITextComponent>(archive)
+                .template get<UIToggleComponent>(archive)
+                .template get<UIButtonComponent>(archive)
+                .template get<UISliderComponent>(archive)
+                .template get<UIComponent>(archive);
+            }
 
             AssignAnimatorsToMeshes(AnimationSystem::GetAnimators());
+
+            m_IsLoading = false;
         }
 
     private:
@@ -257,10 +309,12 @@ namespace Coffee {
         Scope<SceneTree> m_SceneTree;
         Octree<entt::entity> m_Octree;
         PhysicsWorld m_PhysicsWorld;
+        SceneDebugFlags m_SceneDebugFlags;
 
         // Temporal: Scenes should be Resources and the Base Resource class already has a path variable.
         std::filesystem::path m_FilePath;
 
+        bool m_IsLoading = false;
 
         friend class Entity;
         friend class SceneTree;
@@ -277,4 +331,4 @@ namespace Coffee {
 
     /** @} */ // end of scene group
 } // namespace Coffee
-CEREAL_CLASS_VERSION(Coffee::Scene, 1);
+CEREAL_CLASS_VERSION(Coffee::Scene, 2);

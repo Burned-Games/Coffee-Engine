@@ -44,6 +44,20 @@ namespace Coffee {
     std::vector<MeshComponent*> Scene::s_MeshComponents;
     std::vector<AnimatorComponent*> Scene::s_AnimatorComponents;
 
+    void Scene::FixHierarchy()
+    {
+        auto view = m_Registry.view<HierarchyComponent>();
+
+        for (auto& entity : view)
+        {
+            auto& hierarchyComponent = view.get<HierarchyComponent>(entity);
+            if (hierarchyComponent.m_Parent != entt::null) continue;
+
+            hierarchyComponent.FixNode(m_Registry, entt::null);
+        }
+
+    }
+
     Scene::Scene() : m_Octree({glm::vec3(-50.0f), glm::vec3(50.0f)}, 10, 5)
     {
         m_SceneTree = CreateScope<SceneTree>(this);
@@ -160,6 +174,12 @@ namespace Coffee {
                 }
                 else if (auto capsuleCollider = std::dynamic_pointer_cast<CapsuleCollider>(srcComponent.rb->GetCollider())) {
                     collider = CreateRef<CapsuleCollider>(capsuleCollider->GetRadius(), capsuleCollider->GetHeight());
+                }
+                else if (auto cylinderCollider = std::dynamic_pointer_cast<CylinderCollider>(srcComponent.rb->GetCollider())) {
+                    collider = CreateRef<CylinderCollider>(cylinderCollider->GetRadius(), cylinderCollider->GetHeight());
+                }
+                else if (auto coneCollider = std::dynamic_pointer_cast<ConeCollider>(srcComponent.rb->GetCollider())) {
+                    collider = CreateRef<ConeCollider>(coneCollider->GetRadius(), coneCollider->GetHeight());
                 }
                 else {
                     collider = CreateRef<BoxCollider>(glm::vec3(1.0f, 1.0f, 1.0f));
@@ -472,10 +492,41 @@ namespace Coffee {
             }
         }
 
-
-        m_PhysicsWorld.drawCollisionShapes();
-
         UIManager::UpdateUI(m_Registry);
+
+        // Debug Draw
+        if (m_SceneDebugFlags.ShowOctree) m_Octree.DebugDraw();
+        if (m_SceneDebugFlags.ShowColliders) m_PhysicsWorld.drawCollisionShapes();
+        if (m_SceneDebugFlags.ShowNavMesh) {
+            auto navMeshViewDebug = m_Registry.view<ActiveComponent, NavMeshComponent>();
+            for (auto& entity : navMeshViewDebug) {
+                auto& navMeshComponent = navMeshViewDebug.get<NavMeshComponent>(entity);
+                if (navMeshComponent.GetNavMesh() && navMeshComponent.GetNavMesh()->IsCalculated()) {
+                    navMeshComponent.ShowDebug = m_SceneDebugFlags.ShowNavMesh;
+                }
+            }
+        } else {
+            auto navMeshViewDebug = m_Registry.view<ActiveComponent, NavMeshComponent>();
+            for (auto& entity : navMeshViewDebug) {
+                auto& navMeshComponent = navMeshViewDebug.get<NavMeshComponent>(entity);
+                navMeshComponent.ShowDebug = false;
+            }
+        }
+
+        if (m_SceneDebugFlags.ShowNavMeshPath) {
+            auto navigationAgentViewDebug = m_Registry.view<ActiveComponent, NavigationAgentComponent>();
+            for (auto& agent : navigationAgentViewDebug) {
+                auto& navAgentComponent = navigationAgentViewDebug.get<NavigationAgentComponent>(agent);
+                if (navAgentComponent.GetNavMeshComponent())
+                    navAgentComponent.ShowDebug = m_SceneDebugFlags.ShowNavMeshPath;
+            }
+        } else {
+            auto navigationAgentViewDebug = m_Registry.view<ActiveComponent, NavigationAgentComponent>();
+            for (auto& agent : navigationAgentViewDebug) {
+                auto& navAgentComponent = navigationAgentViewDebug.get<NavigationAgentComponent>(agent);
+                navAgentComponent.ShowDebug = false;
+            }
+        }
     }
 
 
@@ -688,6 +739,41 @@ namespace Coffee {
                 Renderer2D::DrawQuad(transformComponent.GetWorldTransform(), spriteComponent.texture,
                                      spriteComponent.tilingFactor, spriteComponent.tintColor,
                                      Renderer2D::RenderMode::World);
+            }
+
+        }
+
+        // Debug Draw
+        if (m_SceneDebugFlags.ShowOctree) m_Octree.DebugDraw();
+        if (m_SceneDebugFlags.ShowColliders) m_PhysicsWorld.drawCollisionShapes();
+        if (m_SceneDebugFlags.ShowNavMesh) {
+            auto navMeshViewDebug = m_Registry.view<ActiveComponent, NavMeshComponent>();
+            for (auto& entity : navMeshViewDebug) {
+                auto& navMeshComponent = navMeshViewDebug.get<NavMeshComponent>(entity);
+                if (navMeshComponent.GetNavMesh() && navMeshComponent.GetNavMesh()->IsCalculated()) {
+                    navMeshComponent.ShowDebug = m_SceneDebugFlags.ShowNavMesh;
+                }
+            }
+        } else {
+            auto navMeshViewDebug = m_Registry.view<ActiveComponent, NavMeshComponent>();
+            for (auto& entity : navMeshViewDebug) {
+                auto& navMeshComponent = navMeshViewDebug.get<NavMeshComponent>(entity);
+                navMeshComponent.ShowDebug = false;
+            }
+        }
+
+        if (m_SceneDebugFlags.ShowNavMeshPath) {
+            auto navigationAgentViewDebug = m_Registry.view<ActiveComponent, NavigationAgentComponent>();
+            for (auto& agent : navigationAgentViewDebug) {
+                auto& navAgentComponent = navigationAgentViewDebug.get<NavigationAgentComponent>(agent);
+                if (navAgentComponent.GetNavMeshComponent())
+                    navAgentComponent.ShowDebug = m_SceneDebugFlags.ShowNavMeshPath;
+            }
+        } else {
+            auto navigationAgentViewDebug = m_Registry.view<ActiveComponent, NavigationAgentComponent>();
+            for (auto& agent : navigationAgentViewDebug) {
+                auto& navAgentComponent = navigationAgentViewDebug.get<NavigationAgentComponent>(agent);
+                navAgentComponent.ShowDebug = false;
             }
         }
 

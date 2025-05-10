@@ -33,6 +33,8 @@ namespace Coffee {
     {
         ZoneScoped;
 
+        Renderer3D::ResetStats();
+
         for (auto& target : s_RendererData.RenderTargets)
         {
             CameraData cameraData;
@@ -45,6 +47,7 @@ namespace Coffee {
             Renderer3D::ShadowPass(target);
             Renderer3D::ForwardPass(target);
             Renderer3D::SkyboxPass(target);
+            Renderer3D::TransparentPass(target);
 
             if(s_RenderSettings.PostProcessing)
             {

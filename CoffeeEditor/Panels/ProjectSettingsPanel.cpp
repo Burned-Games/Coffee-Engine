@@ -1,5 +1,6 @@
 #include "ProjectSettingsPanel.h"
-#include "CoffeeEngine/Project/Project.h"
+
+#include "CoffeeEngine/Core/FileDialog.h"
 #include <imgui.h>
 #include <imgui_stdlib.h>
 
@@ -237,9 +238,26 @@ namespace Coffee {
         BeginHorizontalChild("General", flags);
 
         ImGui::Text("General settings for this project (WIP)");
+        std::string str = Coffee::Project::GetRelativeAudioDirectory().string();
+        char* strData = str.data();
+        ImGui::InputText("##AudioBanksPath", strData, str.size(), ImGuiInputTextFlags_ReadOnly);
+        ImGui::SameLine();
+        if (ImGui::Button("Select...##AudioBanksPathButton"))
+        {
+            FileDialogArgs args;
+            args.DefaultPath = Project::GetProjectDirectory().string();
+            std::filesystem::path path = FileDialog::PickFolder(args);
+            if (is_directory(path))
+            {
+                path = std::filesystem::relative(path, Project::GetProjectDirectory());
+                Project::SetRelativeAudioDirectory(path);
+                Audio::OnProjectLoad();
+            }
+        }
 
         ImGui::EndChild();
     }
+
     void ProjectSettingsPanel::OnImGuiRender()
     {
         if (!m_Visible) return;
@@ -263,7 +281,7 @@ namespace Coffee {
 
         ImGui::PushID("ProjectSettings");
 
-        if (ImGui::TreeNodeEx("Project", ImGuiTreeNodeFlags_Leaf, ""))
+        if (ImGui::TreeNodeEx("Project", ImGuiTreeNodeFlags_Leaf))
         {
             if (ImGui::IsItemClicked())
                 m_VisiblePanels = PanelDisplayEnum::General;

@@ -59,8 +59,6 @@ namespace Coffee {
         RenderTarget* m_ViewportRenderTarget;
 
         Ref<Scene> m_EditorScene;
-        Ref<Scene> m_ActiveScene;
-
         EditorCamera m_EditorCamera;
 
         bool m_ViewportFocused = false, m_ViewportHovered = false;
