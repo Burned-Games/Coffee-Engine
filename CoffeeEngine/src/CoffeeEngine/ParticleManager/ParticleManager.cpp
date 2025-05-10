@@ -387,13 +387,15 @@ namespace Coffee
             rotation90X = glm::angleAxis(glm::radians(90.0f), glm::vec3(1, 0, 0));
             rotation = glm::quat_cast(rotationMatrix) * rotation90X;
 
+
             distance = 3.0f;
-            dispersionRadius = tan(shapeAngle / 2.0f) * distance;
+            dispersionRadius = tan(shapeAngle) * distance;
 
             Renderer2D::DrawCircle(auxTransformPosition, shapeRadius, rotation, colorDebug);
-            Renderer2D::DrawCircle(auxTransformPosition + (rotation * glm::vec3(0, 0, -distance)), dispersionRadius,
-                                   rotation,
-                                   colorDebug);
+
+            Renderer2D::DrawCone(auxTransformPosition + (rotation * glm::vec3(0, 0, -distance)),
+                                 glm::quat_cast(rotationMatrix) * rotation90X * rotation90X, dispersionRadius, distance,
+                                 colorDebug);
 
             break;
         case Coffee::ParticleEmitter::ShapeType::Box:

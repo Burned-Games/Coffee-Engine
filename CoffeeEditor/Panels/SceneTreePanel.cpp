@@ -2610,7 +2610,7 @@ namespace Coffee
 
                         ImGui::Text("Angle");
                         ImGui::SameLine();
-                        ImGui::DragFloat("##Angle", &emitter->shapeAngle, 0.001f, 0.1f); 
+                        ImGui::DragFloat("##Angle", &emitter->shapeAngle, 0.001f, 0.1f, 1.5f); 
                         if (emitter->shapeAngle <= 0.099)
                         {
                             emitter->shapeAngle = 0.1f;
