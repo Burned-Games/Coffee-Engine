@@ -102,7 +102,7 @@ namespace Coffee
 
         }
 
-        particle->localPosition = glm::vec3(0);
+        particle->localPosition = startPos;
         particle->color = useColorRandom ? glm::linearRand(colorNormal, colorRandom) : colorNormal;
         particle->current_texture = particleTexture;
         particle->lifetime = useRandomLifeTime ? glm::linearRand(startLifeTimeMin, startLifeTimeMax) : startLifeTime;
