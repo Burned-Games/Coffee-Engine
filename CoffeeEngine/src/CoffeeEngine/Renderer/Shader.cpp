@@ -144,6 +144,14 @@ namespace Coffee {
         glUniformMatrix4fv(location, matrices.size(), GL_FALSE, &matrices[0][0][0]);
     }
 
+    void Shader::Recompile()
+    {
+        ZoneScoped;
+
+        std::string shaderCode = ReadShaderFile(m_FilePath);
+        CompileShader(shaderCode);
+    }
+
     Ref<Shader> Shader::Create(const std::filesystem::path& shaderPath)
     {
         ZoneScoped;

@@ -53,20 +53,23 @@ namespace Coffee {
         SceneManager::SetWorkingDirectory(s_ActiveProject->m_ProjectDirectory);
         ScriptManager::SetWorkingDirectory(s_ActiveProject->m_ProjectDirectory);
         Input::Load();
+        Audio::OnProjectLoad();
 
         return project;
     }
 
     void Project::SaveActive()
     {
-        std::filesystem::path path = s_ActiveProject->m_ProjectDirectory / s_ActiveProject->m_Name;
+        if (s_ActiveProject)
+        {
+            std::filesystem::path path = s_ActiveProject->m_ProjectDirectory / s_ActiveProject->m_Name;
 
-        std::ofstream projectFile(path);
-        cereal::JSONOutputArchive archive(projectFile);
+            std::ofstream projectFile(path);
+            cereal::JSONOutputArchive archive(projectFile);
 
-        archive(cereal::make_nvp("Project", *s_ActiveProject));
+            archive(cereal::make_nvp("Project", *s_ActiveProject));
 
-        Input::Save();
+            Input::Save();
+        }
     }
-
-}
+} // namespace Coffee

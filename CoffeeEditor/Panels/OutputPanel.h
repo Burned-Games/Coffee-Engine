@@ -6,11 +6,14 @@
 #include "Panel.h"
 #include "imgui.h"
 
+// This class uses as reference the ImGui example "Example: Log" from the ImGui repository.
+// https://github.com/ocornut/imgui/blob/f484af34c2014e98a64410e6cd81e1a5ab434bfd/imgui_demo.cpp
+
 namespace Coffee {
 
   class OutputPanel : public Panel {
   public:
-    OutputPanel() = default;
+    OutputPanel() : m_AutoScroll(true) {}
 
     void OnImGuiRender() override;
 
@@ -41,6 +44,9 @@ namespace Coffee {
      * @return The color associated with the log level.
      */
     ImVec4 GetLogLevelColor(spdlog::level::level_enum level);
+
+    ImGuiTextFilter m_Filter;
+    bool m_AutoScroll;
 
   };
 

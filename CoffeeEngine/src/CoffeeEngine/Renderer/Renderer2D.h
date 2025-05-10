@@ -82,12 +82,20 @@ namespace Coffee {
 
         static void DrawCone(glm::vec3 vec, glm::quat qua, float radius, float height, glm::vec4 vec4);
 
+        enum class TextAlignment
+        {
+            Left,
+            Center,
+            Right
+        };
+
         struct TextParams
 		{
 			glm::vec4 Color{ 1.0f };
 			float Kerning = 0.0f;
 			float LineSpacing = 0.0f;
             float Size = 16.0f;
+            TextAlignment Alignment;
 		};
 
         static void DrawTextString(const std::string& text, Ref<Font> font, const glm::mat4& transform, const TextParams& textParams, RenderMode mode, uint32_t entityID = 4294967295);

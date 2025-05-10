@@ -3,6 +3,7 @@
 #include "CoffeeEngine/Core/Base.h"
 #include "CoffeeEngine/Core/FileDialog.h"
 #include "CoffeeEngine/IO/Resource.h"
+#include "CoffeeEngine/IO/ResourceRegistry.h"
 #include "CoffeeEngine/Renderer/Camera.h"
 #include "CoffeeEngine/Renderer/Material.h"
 #include "CoffeeEngine/Renderer/Model.h"
@@ -27,6 +28,8 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 #include <glm/fwd.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
@@ -73,16 +76,41 @@ namespace Coffee
         ShowCreateEntityMenu();
         ImGui::SameLine();
 
+        // Search by entity tag
         static std::array<char, 256> searchBuffer;
         ImGui::InputTextWithHint("##searchbar", ICON_LC_SEARCH " Search by name:", searchBuffer.data(),
                                  searchBuffer.size());
 
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_LC_CIRCLE_X "##searchbarclear"))
+        {
+            searchBuffer[0] = '\0';
+        }
+
         ImGui::BeginChild("entity tree", {0, 0}, ImGuiChildFlags_Border);
+
+        bool searchMode = (searchBuffer[0] != '\0');
+        std::string search = searchBuffer.data();
+        std::transform(search.begin(), search.end(), search.begin(), ::tolower);
 
         auto view = m_Context->m_Registry.view<entt::entity>();
         for (auto entityID : view)
         {
             Entity entity{entityID, m_Context.get()};
+
+            if (searchMode)
+            {
+                // Find substring in tag, draw entity if found and continue to next entity
+                auto tag = entity.GetComponent<TagComponent>().Tag;
+                std::transform(tag.begin(), tag.end(), tag.begin(), ::tolower);
+                if (tag.find(search) != std::string::npos)
+                {
+
+                    DrawEntityNode(entity, false);
+                }
+                continue;
+            }
+
             auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
 
             if (hierarchyComponent.m_Parent == entt::null)
@@ -92,6 +120,21 @@ namespace Coffee
         }
 
         ImGui::EndChild();
+
+        // Entity unparenting
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_NODE"))
+            {
+                // Unparent the entity if dragged onto empty space in the hierarchy view
+                // Copy-paste of payload handling for reparenting entities found in DrawEntityNode(entity)
+                Entity payloadEntity = *(const Entity*)payload->Data;
+                HierarchyComponent::Reparent(
+                    m_Context->m_Registry, (entt::entity)payloadEntity,
+                    entt::null); // Parent set to null (unparented)
+            }
+            ImGui::EndDragDropTarget();
+        }
 
         // Entity Tree Drag and Drop functionality
         if (ImGui::BeginDragDropTarget())
@@ -159,19 +202,41 @@ namespace Coffee
         ImGui::End();
     }
 
-    void SceneTreePanel::DrawEntityNode(Entity entity)
+    void SceneTreePanel::DrawEntityNode(Entity entity, bool drawChildren)
     {
         auto& entityNameTag = entity.GetComponent<TagComponent>().Tag;
         auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
     
         ImGuiTreeNodeFlags flags = ((m_SelectionContext == entity) ? ImGuiTreeNodeFlags_Selected : 0) |
-                                   ((hierarchyComponent.m_First == entt::null) ? ImGuiTreeNodeFlags_Leaf : 0) |
-                                   ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_FramePadding;
+                                   ((!drawChildren || hierarchyComponent.m_First == entt::null) ? ImGuiTreeNodeFlags_Leaf : 0) |
+                                   ((drawChildren) ? ImGuiTreeNodeFlags_OpenOnArrow : 0) | ImGuiTreeNodeFlags_FramePadding;
         
         bool isActive = entity.IsActive();
         const char* icon = isActive ? ICON_LC_EYE : ICON_LC_EYE_OFF;
         std::string buttonId = "##Active" + std::to_string((uint32_t)entity);
-        
+
+        if (ImGui::GetDragDropPayload()
+            && ImGui::GetMousePos().y > ImGui::GetCursorScreenPos().y
+            && ImGui::GetMousePos().y < ImGui::GetCursorScreenPos().y + 6)
+        {
+            ImGui::InvisibleButton("##DropTarget", ImVec2(ImGui::GetContentRegionAvail().x, 6));
+        }
+
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_NODE"))
+            {
+                // Assuming payload is an Entity, but you need to cast and check appropriately
+                Entity payloadEntity = *(const Entity*)payload->Data;
+                // Process the drop, e.g., reordering the entity in the hierarchy
+                // This is where you would update the ECS or scene graph
+                HierarchyComponent::Reorder(m_Context->m_Registry,payloadEntity, entt::null, entity);
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        ImGui::SetNextItemAllowOverlap();
+
         // Draw the tree node first, so ImGui sets up the proper indentation
         bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(uint32_t)entity, flags, entityNameTag.c_str());
     
@@ -275,7 +340,7 @@ namespace Coffee
     
         if (opened)
         {
-            if (hierarchyComponent.m_First != entt::null)
+            if (drawChildren && hierarchyComponent.m_First != entt::null)
             {
                 // Recursively draw all children
                 Entity childEntity{hierarchyComponent.m_First, m_Context.get()};
@@ -357,12 +422,14 @@ namespace Coffee
                         auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
 
                         Entity parentEntity{hierarchyComponent.m_Parent, m_Context.get()};
-                        glm::vec2 parentSize = UIManager::GetParentSize(m_Context->m_Registry, parentEntity);
+                        auto& parentRenderItem = UIManager::GetUIRenderItem(parentEntity);
+                        glm::vec2 parentSize = UIManager::GetParentSize(m_Context->m_Registry, parentRenderItem);
 
                         glm::vec4 currentRect = anchor.CalculateRect(parentSize);
 
                         AnchorPreset preset = UIManager::GetAnchorPreset(row, col);
                         anchor.SetAnchorPreset(preset, currentRect, parentSize, preservePosition);
+                        UIManager::MarkDirty(entity);
 
                         ImGui::CloseCurrentPopup();
                     }
@@ -427,10 +494,12 @@ namespace Coffee
         if (ImGui::TreeNodeEx("Anchors", ImGuiTreeNodeFlags_DefaultOpen))
         {
             ImGui::Text("Min");
-            ImGui::DragFloat2("##AnchorMin", glm::value_ptr(anchor.AnchorMin), 0.01f, 0.0f, 1.0f);
+            if (ImGui::DragFloat2("##AnchorMin", glm::value_ptr(anchor.AnchorMin), 0.01f, 0.0f, 1.0f))
+                UIManager::MarkDirty(entity);
 
             ImGui::Text("Max");
-            ImGui::DragFloat2("##AnchorMax", glm::value_ptr(anchor.AnchorMax), 0.01f, 0.0f, 1.0f);
+            if (ImGui::DragFloat2("##AnchorMax", glm::value_ptr(anchor.AnchorMax), 0.01f, 0.0f, 1.0f))
+                UIManager::MarkDirty(entity);
 
             ImGui::TreePop();
         }
@@ -440,7 +509,8 @@ namespace Coffee
 
         auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
         Entity parentEntity{hierarchyComponent.m_Parent, m_Context.get()};
-        glm::vec2 parentSize = UIManager::GetParentSize(m_Context->m_Registry, parentEntity);
+        auto& parentRenderItem = UIManager::GetUIRenderItem(parentEntity);
+        glm::vec2 parentSize = UIManager::GetParentSize(m_Context->m_Registry, parentRenderItem);
 
         if (!isStretchingX && !isStretchingY)
         {
@@ -449,6 +519,7 @@ namespace Coffee
             if (ImGui::DragFloat2("##Position", glm::value_ptr(anchoredPos), 1.0f))
             {
                 anchor.SetAnchoredPosition(anchoredPos, parentSize);
+                UIManager::MarkDirty(entity);
             }
 
             glm::vec2 size = anchor.GetSize();
@@ -456,6 +527,7 @@ namespace Coffee
             if (ImGui::DragFloat2("##Size", glm::value_ptr(size), 1.0f, 0.0f, FLT_MAX, "%.0f"))
             {
                 anchor.SetSize(size, parentSize);
+                UIManager::MarkDirty(entity);
             }
         }
 
@@ -466,17 +538,23 @@ namespace Coffee
                 if (isStretchingX)
                 {
                     ImGui::Text("Left");
-                    ImGui::DragFloat("##OffsetMinX", &anchor.OffsetMin.x, 1.0f);
+                    if (ImGui::DragFloat("##OffsetMinX", &anchor.OffsetMin.x, 1.0f))
+                        UIManager::MarkDirty(entity);
+
                     ImGui::Text("Right");
-                    ImGui::DragFloat("##OffsetMaxX", &anchor.OffsetMax.x, 1.0f);
+                    if (ImGui::DragFloat("##OffsetMaxX", &anchor.OffsetMax.x, 1.0f))
+                        UIManager::MarkDirty(entity);
                 }
 
                 if (isStretchingY)
                 {
                     ImGui::Text("Top");
-                    ImGui::DragFloat("##OffsetMinY", &anchor.OffsetMin.y, 1.0f);
+                    if (ImGui::DragFloat("##OffsetMinY", &anchor.OffsetMin.y, 1.0f))
+                        UIManager::MarkDirty(entity);
+
                     ImGui::Text("Bottom");
-                    ImGui::DragFloat("##OffsetMaxY", &anchor.OffsetMax.y, 1.0f);
+                    if (ImGui::DragFloat("##OffsetMaxY", &anchor.OffsetMax.y, 1.0f))
+                        UIManager::MarkDirty(entity);
                 }
                 ImGui::TreePop();
             }
@@ -488,6 +566,7 @@ namespace Coffee
         if (ImGui::DragFloat("##Rotation", &rotation, 0.1f))
         {
             transformComponent.SetLocalRotation(glm::vec3(0.f, 0.f, rotation));
+            UIManager::MarkDirty(entity);
         }
     }
 
@@ -580,6 +659,13 @@ namespace Coffee
                     auto& uiSliderComponent = entity.GetComponent<UISliderComponent>();
                     DrawUITransform(transformComponent, uiSliderComponent.Anchor, entity);
                     if (ImGui::DragInt("Layer", &uiSliderComponent.Layer, 1.0f, 0.0f, 100.0f))
+                        UIManager::MarkForSorting();
+                }
+                else if (entity.HasComponent<UIComponent>())
+                {
+                    auto& uiComponent = entity.GetComponent<UIComponent>();
+                    DrawUITransform(transformComponent, uiComponent.Anchor, entity);
+                    if (ImGui::DragInt("Layer", &uiComponent.Layer, 1.0f, 0.0f, 100.0f))
                         UIManager::MarkForSorting();
                 }
                 else
@@ -858,37 +944,119 @@ namespace Coffee
                 if (ImGui::BeginPopup("AlbedoColorPopup"))
                 {
                     ImGui::ColorPicker4((label + "Picker").c_str(), glm::value_ptr(color),
-                                        ImGuiColorEditFlags_NoInputs);
+                                        ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview);
                     ImGui::EndPopup();
                 }
             };
 
+            static bool ShowShaderQuickLoad = false;
+
             auto& materialComponent = entity.GetComponent<MaterialComponent>();
             bool isCollapsingHeaderOpen = true;
-            if (!materialComponent.material)
+            if (ImGui::CollapsingHeader("Material", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
-                if (ImGui::CollapsingHeader("Material (Missing)", &isCollapsingHeaderOpen,
-                                            ImGuiTreeNodeFlags_DefaultOpen))
+                // Check if the material is valid
+                if (!materialComponent.material)
                 {
-                    ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Material is missing or invalid!");
+                    // If the material is not valid render a button to choose a new one
+
+                    static bool MaterialSelectorOpen = false;
+
+                    ImGui::Text("Material");
+                    ImGui::SameLine();
+                    if (ImGui::Button("<Empty>", {64, 32}))
+                    {
+                        MaterialSelectorOpen = true;
+                    }
+
+                    if (MaterialSelectorOpen)
+                    {
+                        ImGui::OpenPopup("MaterialPopup");
+                        MaterialSelectorOpen = false;
+                    }
+
+                    if (ImGui::BeginPopup("MaterialPopup"))
+                    {
+                        if (ImGui::MenuItem(ICON_LC_BOX "PBRMaterial"))
+                        {
+                            materialComponent.material = PBRMaterial::Create();
+                            materialComponent.material->SetEmbedded(true);
+                        }
+                        if (ImGui::MenuItem(ICON_LC_SQUARE_CHART_GANTT "ShaderMaterial"))
+                        {
+                            materialComponent.material = ShaderMaterial::Create();
+                            materialComponent.material->SetEmbedded(true);
+                        }
+                        ImGui::Separator();
+                        if (ImGui::MenuItem(ICON_LC_FOLDER "Quick Load...", NULL, false, false))
+                        {
+                        }
+                        {
+                        }
+                        if (ImGui::MenuItem(ICON_LC_FOLDER "Load...", NULL, false, false))
+                        {
+                            /*std::string path = FileDialog::OpenFile({}).string();
+                            if (!path.empty())
+                            {
+                            }
+                            */
+                        }
+                        ImGui::EndPopup();
+                    }
 
                     if (!isCollapsingHeaderOpen)
                     {
                         entity.RemoveComponent<MaterialComponent>();
                     }
+                    return;
                 }
-            }
-            else
-            {
-                if (ImGui::CollapsingHeader("Material", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
+
+                if (materialComponent.material->GetType() == ResourceType::PBRMaterial)
                 {
-                    MaterialTextures& materialTextures = materialComponent.material->GetMaterialTextures();
-                    MaterialProperties& materialProperties = materialComponent.material->GetMaterialProperties();
+                    PBRMaterial& pbrMaterial = *std::static_pointer_cast<PBRMaterial>(materialComponent.material);
+
+                    PBRMaterialTextures& materialTextures = pbrMaterial.GetTextures();
+                    PBRMaterialProperties& materialProperties = pbrMaterial.GetProperties();
+                    MaterialRenderSettings& materialRenderSettings = pbrMaterial.GetRenderSettings();
+
+                    if (ImGui::TreeNode("Render Settings"))
+                    {
+                        ImGui::BeginChild("##RenderSettings Child", {0, 0},
+                                            ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+
+                        ImGui::Text("Transparency");
+                        ImGui::SameLine();
+                        ImGui::Combo("##Transparency", (int*)&materialRenderSettings.transparencyMode,
+                                        "Disabled\0Alpha\0AlphaCutoff\0");
+
+                        if (materialRenderSettings.transparencyMode == MaterialRenderSettings::TransparencyMode::AlphaCutoff)
+                        {
+                            ImGui::Text("Alpha Cutoff");
+                            ImGui::SameLine();
+                            ImGui::SliderFloat("##AlphaCutoff", &materialRenderSettings.alphaCutoff, 0.0f, 1.0f);
+                        }
+                        
+                        ImGui::Text("Cull Mode");
+                        ImGui::SameLine();
+                        ImGui::Combo("##CullMode", (int*)&materialRenderSettings.cullMode,
+                                        "Front\0Back\0None\0");
+
+                        ImGui::Text("Depth Test");
+                        ImGui::SameLine();
+                        ImGui::Checkbox("##DepthTest", &materialRenderSettings.depthTest);
+
+                        ImGui::Text("Wireframe");
+                        ImGui::SameLine();
+                        ImGui::Checkbox("##Wireframe", &materialRenderSettings.wireframe);
+
+                        ImGui::EndChild();
+                        ImGui::TreePop();
+                    }
 
                     if (ImGui::TreeNode("Albedo"))
                     {
                         ImGui::BeginChild("##Albedo Child", {0, 0},
-                                          ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+                                            ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
 
                         ImGui::Text("Color");
                         DrawCustomColorEdit4("##Albedo Color", materialProperties.color);
@@ -902,7 +1070,7 @@ namespace Coffee
                     if (ImGui::TreeNode("Metallic"))
                     {
                         ImGui::BeginChild("##Metallic Child", {0, 0},
-                                          ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+                                            ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
                         ImGui::Text("Metallic");
                         ImGui::SliderFloat("##Metallic Slider", &materialProperties.metallic, 0.0f, 1.0f);
                         ImGui::Text("Texture");
@@ -913,7 +1081,7 @@ namespace Coffee
                     if (ImGui::TreeNode("Roughness"))
                     {
                         ImGui::BeginChild("##Roughness Child", {0, 0},
-                                          ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+                                            ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
                         ImGui::Text("Roughness");
                         ImGui::SliderFloat("##Roughness Slider", &materialProperties.roughness, 0.0f, 1.0f);
                         ImGui::Text("Texture");
@@ -924,7 +1092,7 @@ namespace Coffee
                     if (ImGui::TreeNode("Emission"))
                     {
                         ImGui::BeginChild("##Emission Child", {0, 0},
-                                          ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+                                            ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
                         // FIXME: Emissive color variable is local and do not affect the materialProperties.emissive!!
                         glm::vec4& emissiveColor = reinterpret_cast<glm::vec4&>(materialProperties.emissive);
                         emissiveColor.a = 1.0f;
@@ -937,7 +1105,7 @@ namespace Coffee
                     if (ImGui::TreeNode("Normal Map"))
                     {
                         ImGui::BeginChild("##Normal Child", {0, 0},
-                                          ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+                                            ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
                         ImGui::Text("Texture");
                         DrawTextureWidget("##Normal", materialTextures.normal);
                         ImGui::EndChild();
@@ -959,6 +1127,139 @@ namespace Coffee
                         entity.RemoveComponent<MaterialComponent>();
                     }
                 }
+                else if (materialComponent.material->GetType() == ResourceType::ShaderMaterial)
+                {
+                    ShaderMaterial& shaderMaterial = *std::static_pointer_cast<ShaderMaterial>(materialComponent.material);
+                    ImGui::Text("Shader");
+                    ImGui::SameLine();
+                    std::string shaderName = shaderMaterial.GetShader() ? shaderMaterial.GetShader()->GetName() : "<Empty>";
+                    
+                    static bool LoadShaderPopupOpen = false;
+
+                    if (ImGui::Button(shaderName.c_str(), {64, 32}))
+                    {
+                        if (!shaderMaterial.GetShader())
+                        {
+                            LoadShaderPopupOpen = true;
+                        }
+                        else 
+                        {
+                            SDL_OpenURL(("file://" + std::filesystem::absolute(shaderMaterial.GetShader()->GetPath()).string()).c_str());
+                        }
+                    }
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                    {
+                        LoadShaderPopupOpen = true;
+                    }
+
+                    if (LoadShaderPopupOpen)
+                    {
+                        ImGui::OpenPopup("LoadShaderPopup");
+                        LoadShaderPopupOpen = false;
+                    }
+
+                    if(ImGui::BeginPopup("LoadShaderPopup"))
+                    {
+                        if (ImGui::MenuItem(ICON_LC_SQUARE_CHART_GANTT "New Shader..."))
+                        {
+                            std::string path = FileDialog::SaveFile({}).string();
+                            if (!path.empty())
+                            {
+                                std::ofstream scriptFile(path);
+                                std::ifstream defaultShaderFile("assets/shaders/DefaultCustomShader.glsl");
+                                if (scriptFile.is_open() and defaultShaderFile.is_open())
+                                {
+                                    scriptFile << defaultShaderFile.rdbuf();
+                                    scriptFile.close();
+                                    defaultShaderFile.close();
+                                }
+                                Ref<Shader> shader = Shader::Create(path);
+                                shaderMaterial.SetShader(shader);
+                            }
+                        }
+                        ImGui::Separator();
+                        if (ImGui::MenuItem(ICON_LC_FOLDER "Quick Load..."))
+                        {
+                            ShowShaderQuickLoad = true;
+                        }
+                        if (ImGui::MenuItem(ICON_LC_FOLDER "Load..."))
+                        {
+                            std::string path = FileDialog::OpenFile({}).string();
+                            if (!path.empty())
+                            {
+                                Ref<Shader> shader = Shader::Create(path);
+                                shaderMaterial.SetShader(shader);
+                            }
+                        }
+                        ImGui::EndPopup();
+                    }
+
+                    if (ImGui::BeginDragDropTarget())
+                    {
+                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("RESOURCE"))
+                        {
+                            const Ref<Resource>& resource = *(Ref<Resource>*)payload->Data;
+                            if (resource->GetType() == ResourceType::Shader)
+                            {
+                                const Ref<Shader>& t = std::static_pointer_cast<Shader>(resource);
+                                shaderMaterial.SetShader(t);
+                            }
+                        }
+                        ImGui::EndDragDropTarget();
+                    }
+                    if (ImGui::Button("Recompile"))
+                    {
+                        if (shaderMaterial.GetShader()) shaderMaterial.GetShader()->Recompile();
+                    }
+
+                    if (!isCollapsingHeaderOpen)
+                    {
+                        entity.RemoveComponent<MaterialComponent>();
+                    }
+                }
+                if(materialComponent.material and ImGui::TreeNode("Resource"))
+                {
+                    bool embedded = materialComponent.material->IsEmbedded();
+                    ImGui::Checkbox("Embedded", &embedded);
+                    if (embedded != materialComponent.material->IsEmbedded())
+                    {
+                        materialComponent.material->SetEmbedded(embedded);
+                    }
+                    ImGui::Text("Path: %s", materialComponent.material->GetPath().string().c_str());
+                    ImGui::Text("UUID: %s", std::to_string(materialComponent.material->GetUUID()).c_str());
+
+                    ImGui::TreePop();
+                }
+            }
+
+            if (ShowShaderQuickLoad)
+            {
+                ImGui::OpenPopup("ShaderQuickLoad");
+                ShowShaderQuickLoad = false;
+            }
+            if (ImGui::BeginPopupModal("ShaderQuickLoad"))
+            {
+                ImGui::Text("Quick Load");
+                ImGui::Separator();
+                auto& registry = ResourceRegistry::GetResourceRegistry();
+                for (auto& shader : registry)
+                {
+                    if (shader.second->GetType() == ResourceType::Shader)
+                    {
+                        const Ref<Shader>& t = std::static_pointer_cast<Shader>(shader.second);
+                        if (ImGui::Selectable(t->GetName().c_str()))
+                        {
+                            auto shaderMaterial = std::static_pointer_cast<ShaderMaterial>(materialComponent.material);
+                            shaderMaterial->SetShader(t);
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+                }
+                if(ImGui::Button("Close"))
+                {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
             }
         }
 
@@ -1839,7 +2140,15 @@ namespace Coffee
             bool isCollapsingHeaderOpen = true;
             if (ImGui::CollapsingHeader("NavMesh", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
-                ImGui::Checkbox("Show NavMesh", &navMeshComponent.ShowDebug);
+                bool showComponent = navMeshComponent.ShowDebug;
+                if (ImGui::Checkbox("Show NavMesh", &showComponent))
+                {
+                    navMeshComponent.ShowDebug = showComponent;
+                    
+                    if (showComponent)
+                        m_Context->m_SceneDebugFlags.ShowNavMesh = true;
+                }
+                
                 ImGui::DragFloat("Walkable Slope Angle", &navMeshComponent.GetNavMesh()->WalkableSlopeAngle, 0.1f, 0.1f, 60.0f);
 
                 if (ImGui::SmallButton("Generate NavMesh"))
@@ -1861,7 +2170,14 @@ namespace Coffee
             {
                 auto view = m_Context->m_Registry.view<NavMeshComponent>();
 
-                ImGui::Checkbox("Show Path", &navigationAgentComponent.ShowDebug);
+                bool showComponent = navigationAgentComponent.ShowDebug;
+                if (ImGui::Checkbox("Show Path", &showComponent))
+                {
+                    navigationAgentComponent.ShowDebug = showComponent;
+                    
+                    if (showComponent)
+                        m_Context->m_SceneDebugFlags.ShowNavMeshPath = true;
+                }
 
                 if (ImGui::BeginCombo("NavMesh", navigationAgentComponent.GetNavMeshComponent() ? std::to_string(navigationAgentComponent.GetNavMeshComponent()->GetNavMeshUUID()).c_str() : "Select NavMesh"))
                 {
@@ -2636,6 +2952,17 @@ namespace Coffee
             ImGui::PopID();
         }
 
+        if (entity.HasComponent<UIComponent>())
+        {
+            bool isCollapsingHeaderOpen = true;
+            ImGui::CollapsingHeader("UI Empty Component", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen);
+
+            if (!isCollapsingHeaderOpen)
+            {
+                entity.RemoveComponent<UIComponent>();
+            }
+        }
+
         if (entity.HasComponent<UIImageComponent>())
         {
             auto& imageComponent = entity.GetComponent<UIImageComponent>();
@@ -2679,6 +3006,19 @@ namespace Coffee
                 {
                     textComponent.Text = std::string(buffer);
                 }
+
+                if (ImGui::Selectable("Font"))
+                {
+                    std::string path = FileDialog::OpenFile({}).string();
+                    if (!path.empty())
+                    {
+                        textComponent.FontPath = path;
+                        textComponent.UIFont = CreateRef<Font>(path);
+                    }
+                }
+
+                const char* alignmentNames[] = {"Left", "Center", "Right"};
+                ImGui::Combo("TextAlignment", reinterpret_cast<int*>(&textComponent.Alignment), alignmentNames, IM_ARRAYSIZE(alignmentNames));
 
                 ImGui::DragFloat("Size", &textComponent.FontSize, 0.1f, 0.0f, 100.0f);
                 ImGui::DragFloat("Kerning", &textComponent.Kerning, 0.1f, 0.0f, 100.0f);
@@ -2833,6 +3173,15 @@ namespace Coffee
                         sliderComponent.HandleTexture = texture;
                     }
                 }
+                if (ImGui::Selectable("Disabled Handle Texture"))
+                {
+                    std::string path = FileDialog::OpenFile({}).string();
+                    if (!path.empty())
+                    {
+                        Ref<Texture2D> texture = Texture2D::Load(path);
+                        sliderComponent.DisabledHandleTexture = texture;
+                    }
+                }
             }
 
             if (!isCollapsingHeaderOpen)
@@ -2861,7 +3210,7 @@ namespace Coffee
             static char buffer[256] = "";
             ImGui::InputTextWithHint("##Search Component", "Search Component:", buffer, 256);
 
-            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "Particles System Component", "NavMesh Component", "Navigation Agent Component", "Sprite Component", "UI Image Component", "UI Text Component", "UI Toggle Component", "UI Button Component", "UI Slider Component" };
+            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "Particles System Component", "NavMesh Component", "Navigation Agent Component", "Sprite Component", "UI Empty Component","UI Image Component", "UI Text Component", "UI Toggle Component", "UI Button Component", "UI Slider Component" };
 
             static int item_current = 1;
 
@@ -2912,9 +3261,9 @@ namespace Coffee
                 }
                 else if (items[item_current] == "Material Component")
                 {
-                    if(!entity.HasComponent<MaterialComponent>())
+                    if (!entity.HasComponent<MaterialComponent>())
                     {
-                        entity.AddComponent<MaterialComponent>(Material::Create("Default Material"));
+                        entity.AddComponent<MaterialComponent>();
                     }
                     ImGui::CloseCurrentPopup();
                 }
@@ -3041,6 +3390,14 @@ namespace Coffee
 
                     ImGui::CloseCurrentPopup();
                 }
+                else if (items[item_current] == "UI Empty Component")
+                {
+                    if (!entity.HasComponent<UIComponent>())
+                    {
+                        entity.AddComponent<UIComponent>();
+                    }
+                    ImGui::CloseCurrentPopup();
+                }
                 else if (items[item_current] == "UI Image Component")
                 {
                     if (!entity.HasComponent<UIImageComponent>())
@@ -3096,6 +3453,41 @@ namespace Coffee
 
             ImGui::EndPopup();
         }
+
+/*         if (ShowMaterialOptions)
+        {
+            ImGui::OpenPopup("Select Material Type");
+            ShowMaterialOptions = false;
+        }
+
+        if (ImGui::BeginPopupModal("Select Material Type"))
+        {
+            ImGui::Text("Choose the type of material to create:");
+            ImGui::Separator();
+    
+            if (ImGui::Button("PBRMaterial", ImVec2(120, 0)))
+            {
+                entity.AddComponent<MaterialComponent>(PBRMaterial::Create("Default PBR Material"));
+                ImGui::CloseCurrentPopup();
+            }
+    
+            ImGui::SameLine();
+    
+            if (ImGui::Button("ShaderMaterial", ImVec2(120, 0)))
+            {
+                entity.AddComponent<MaterialComponent>(ShaderMaterial::Create("Default Shader Material"));
+                ImGui::CloseCurrentPopup();
+            }
+    
+            ImGui::Separator();
+    
+            if (ImGui::Button("Cancel", ImVec2(240, 0)))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+    
+            ImGui::EndPopup();
+        } */
 
         // Add Lua script component options
         if (m_ShowLuaScriptOptions)
@@ -3227,7 +3619,7 @@ namespace Coffee
                 {
                     Entity e = m_Context->CreateEntity("Primitive");
                     e.AddComponent<MeshComponent>();
-                    e.AddComponent<MaterialComponent>(Material::Create("Default Material"));
+                    e.AddComponent<MaterialComponent>(PBRMaterial::Create("Default Material"));
                     SetSelectedEntity(e);
                     ImGui::CloseCurrentPopup();
                 }

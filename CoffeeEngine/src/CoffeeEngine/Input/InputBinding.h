@@ -39,6 +39,9 @@ namespace Coffee
         AxisCode Axis = Axis::Invalid;
         bool invertedAxis = false;
 
+        // Last time this input was updated
+        long latestUpdate = 0;
+
         InputBinding() = default;
         ~InputBinding() = default;
 

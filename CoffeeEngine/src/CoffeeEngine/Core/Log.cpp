@@ -29,13 +29,13 @@ namespace Coffee
         s_CoreLogger->set_level(spdlog::level::trace);
         s_CoreLogger->sinks().push_back(imGuiSink);
         s_CoreLogger->sinks().push_back(fileSink);
-        s_CoreLogger->flush_on(spdlog::level::err);
+        s_CoreLogger->flush_on(spdlog::level::warn);
 
         s_ClientLogger = spdlog::stdout_color_mt("APP");
         s_ClientLogger->set_level(spdlog::level::trace);
         s_ClientLogger->sinks().push_back(imGuiSink);
         s_ClientLogger->sinks().push_back(fileSink);
-        s_ClientLogger->flush_on(spdlog::level::err);
+        s_ClientLogger->flush_on(spdlog::level::warn);
 
         spdlog::flush_every(std::chrono::seconds(5));
     }

@@ -346,8 +346,8 @@ namespace Coffee
         std::vector<std::pair<std::string, std::string>> actionCodes = {
             {"UiMoveHorizontal", "UiX"},
             {"UiMoveVertical", "UiY"},
-            {"Confirm", "Cancel"},
-            {"Cancel",  "Confirm"},
+            {"Confirm", "Confirm"},
+            {"Cancel",  "Cancel"},
             {"MoveHorizontal", "MoveX"},
             {"MoveVertical", "MoveY"},
             {"AimHorizontal", "AimX"},
@@ -449,6 +449,10 @@ void Coffee::RegisterInputBindings(sol::state& luaState)
 
     inputTable.set_function("get_button", [](const std::string& action) {
         return Input::GetBinding(action).AsButton();
+    });
+
+    inputTable.set_function("send_rumble", [](const float low_freq_pwr, const float high_freq_power, float duration) {
+       Input::SendRumble(glm::clamp<uint16_t>(low_freq_pwr*65535, 0, 65535), glm::clamp<uint16_t>(high_freq_power*65535,0,65535), glm::max<uint32_t>(duration, 0));
     });
 
     luaState["Input"] = inputTable;

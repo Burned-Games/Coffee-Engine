@@ -174,6 +174,8 @@ namespace Coffee {
 
         static void OnEvent(Event& e);
 
+	    static long OnFrameUpdate();
+
       private:
 
         static void GenerateDefaultMappingFile();
@@ -252,6 +254,11 @@ namespace Coffee {
         static Timer m_RebindTimer;
         static RebindState m_RebindState;
 	    static std::string m_RebindActionName;
+
+	    // Input timestamps to prevent recalculating values multiple times in the same frame
+	    static long m_Timestamp;
+
+	    friend class InputBinding; // Allow direct access to private variables from InputBinding
 
     };
     /** @} */

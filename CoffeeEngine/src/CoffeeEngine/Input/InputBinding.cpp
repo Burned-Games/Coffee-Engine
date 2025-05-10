@@ -35,6 +35,11 @@ namespace Coffee {
 
     ButtonState InputBinding::AsButton()
     {
+
+        // If already called this update, return cached value, otherwise recalculate state and update timestamp
+        if (latestUpdate >= Input::m_Timestamp) return m_State;
+        latestUpdate = Input::m_Timestamp;
+
         bool value = this->AsBool();
 
         // Set button state

@@ -7,7 +7,9 @@
 #include "CoffeeEngine/Events/KeyEvent.h"
 #include "CoffeeEngine/Events/MouseEvent.h"
 #include "CoffeeEngine/Project/Project.h"
+#include "Platform/Windows/WindowsSystemInfo.h"
 #include "SDL3/SDL_mouse.h"
+#include "SystemInfo.h"
 
 #include <SDL3/SDL_init.h>
 
@@ -32,6 +34,10 @@ namespace Coffee {
     Timer Input::m_RebindTimer(5.0,false,true,[](){Input::ResetRebindState();});
     RebindState Input::m_RebindState = RebindState::None;
     std::string Input::m_RebindActionName = "";
+
+    // Current frame's timestamp
+    // Direct call to SDL because I didn't find any functions for it within the engine's API
+    long Input::m_Timestamp = Input::OnFrameUpdate();
 
     void Input::Init()
     {
@@ -155,10 +161,6 @@ namespace Coffee {
             if (!SDL_RumbleGamepad(g,lowFreqPower, highFreqPower, duration))
             {
                 COFFEE_WARN("Rumble failed: {0}", SDL_GetError());
-            }
-            else
-            {
-                COFFEE_INFO("Rumble enabled for {0} milliseconds, with leftPower {1} and rightPower {2}", duration, lowFreqPower, highFreqPower);
             }
         }
     }
@@ -372,8 +374,8 @@ namespace Coffee {
     }
 
     void Input::OnEvent(Event& e)
-    {   
-        if(e.Handled)
+    {
+        if (e.Handled)
             return;
 
         // TODO change this code for an event dispatcher
@@ -439,6 +441,7 @@ namespace Coffee {
             }
         }
     }
+    long Input::OnFrameUpdate() { return m_Timestamp = SDL_GetTicks(); }
 
     void Input::GenerateDefaultMappingFile()
     {

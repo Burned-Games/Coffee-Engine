@@ -51,15 +51,7 @@ namespace Coffee {
     
         ExitCurrentScene();
 
-        if(s_ActiveScene != scene)
-        {
-            AudioZone::RemoveAllReverbZones();
-            Audio::UnregisterAllGameObjects();
-        }
-        else
-        {
-            Audio::StopAllEvents();
-        }
+        Audio::StopAllEvents();
     
         s_ActiveScene = scene;
     

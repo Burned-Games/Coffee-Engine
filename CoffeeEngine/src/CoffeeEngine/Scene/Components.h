@@ -6,6 +6,7 @@
  #pragma once
 
  #include "CoffeeEngine/Core/Base.h"
+#include "CoffeeEngine/IO/Resource.h"
  #include "CoffeeEngine/IO/ResourceLoader.h"
  #include "CoffeeEngine/IO/ResourceRegistry.h"
  #include "CoffeeEngine/Physics/Collider.h"
@@ -23,6 +24,7 @@
  #include "CoffeeEngine/UI/UIAnchor.h"
  #include "CoffeeEngine/UI/UIManager.h"
  #include "CoffeeEngine//Renderer/Font.h"
+ #include "CoffeeEngine/Renderer/Renderer2D.h"
 
  #include <cereal/cereal.hpp>
  #include <cereal/access.hpp>
@@ -488,17 +490,73 @@
           */
          template<class Archive> void save(Archive& archive, std::uint32_t const version) const
          {
-            ResourceSaver::SaveToCache<Material>(material->GetUUID(), material);
-            archive(cereal::make_nvp("Material", material->GetUUID()));
+            if (version < 1)
+            {
+                archive(cereal::make_nvp("Material", material->GetUUID()));
+                return;
+            }
+            
+            archive(cereal::make_nvp("IsEmbedded", material->IsEmbedded()));
+            if (material->IsEmbedded())
+            {
+                archive(cereal::make_nvp("Material", material));
+            }
+            else 
+            {
+                archive(cereal::make_nvp("Type", static_cast<int>(material->GetType())));
+                
+                if (material->GetType() == ResourceType::PBRMaterial)
+                {
+                    ResourceSaver::SaveToCache<PBRMaterial>(material->GetUUID(), std::dynamic_pointer_cast<PBRMaterial>(material));
+                }
+                else if (material->GetType() == ResourceType::ShaderMaterial)
+                {
+                    ResourceSaver::SaveToCache<ShaderMaterial>(material->GetUUID(), std::dynamic_pointer_cast<ShaderMaterial>(material));
+                }
+
+                archive(cereal::make_nvp("MaterialUUID", material->GetUUID()));
+            }
          }
  
          template<class Archive> void load(Archive& archive, std::uint32_t const version)
          {
-             UUID materialUUID;
-             archive(cereal::make_nvp("Material", materialUUID));
+            if (version < 1)
+            {
+                UUID materialUUID;
+                archive(cereal::make_nvp("Material", materialUUID));
  
-             Ref<Material> material = ResourceLoader::GetResource<Material>(materialUUID);
-             this->material = material;
+                Ref<Material> material = ResourceLoader::GetResource<Material>(materialUUID);
+                this->material = material;
+                return;
+            }
+
+            bool isEmbedded = false;
+            archive(cereal::make_nvp("IsEmbedded", isEmbedded));
+
+            if (isEmbedded)
+            {
+                archive(cereal::make_nvp("Material", material));
+            }
+            else 
+            {
+                int typeInt;
+                archive(cereal::make_nvp("Type", typeInt));
+                ResourceType type = static_cast<ResourceType>(typeInt);
+
+                UUID materialUUID;
+                archive(cereal::make_nvp("MaterialUUID", materialUUID));
+ 
+                if (type == ResourceType::PBRMaterial)
+                {
+                    Ref<PBRMaterial> material = ResourceLoader::GetResource<PBRMaterial>(materialUUID);
+                    this->material = material;
+                }
+                else if (type == ResourceType::ShaderMaterial)
+                {
+                    Ref<ShaderMaterial> material = ResourceLoader::GetResource<ShaderMaterial>(materialUUID);
+                    this->material = material;
+                }
+            }
          }
      };
  
@@ -1030,6 +1088,9 @@
 
         SpriteComponent(const SpriteComponent& other) { *this = other; }
 
+        void SetTintColor(glm::vec4 newTint) { tintColor = newTint; }
+        glm::vec4 GetTintColor() { return tintColor; }
+        
         SpriteComponent& operator=(const SpriteComponent& other)
         {
             if (this != &other)
@@ -1054,11 +1115,18 @@
 
         template <class Archive> void load(Archive& archive, std::uint32_t const version)
         {
-            archive(cereal::make_nvp("TextureUUID", texture->GetUUID()));
+            UUID textureUUID;
+            
+            archive(cereal::make_nvp("TextureUUID", textureUUID));
             archive(cereal::make_nvp("TintColor", tintColor));
             archive(cereal::make_nvp("FlipX", flipX));
             archive(cereal::make_nvp("FlipY", flipY));
             archive(cereal::make_nvp("TilingFactor", tilingFactor));
+
+            if (textureUUID)
+            {
+                texture = ResourceLoader::GetResource<Texture2D>(textureUUID);
+            }
         }
     };
 
@@ -1150,6 +1218,7 @@
         float Kerning = 0.0f; ///< The kerning.
         float LineSpacing = 0.0f; ///< The line spacing.
         float FontSize = 16.0f; ///< The font size.
+        Renderer2D::TextAlignment Alignment = Renderer2D::TextAlignment::Left; ///< The text alignment.
 
         template<class Archive> void save(Archive& archive, std::uint32_t const version) const
         {
@@ -1158,7 +1227,8 @@
                     cereal::make_nvp("Color", Color),
                     cereal::make_nvp("Kerning", Kerning),
                     cereal::make_nvp("LineSpacing", LineSpacing),
-                    cereal::make_nvp("FontSize", FontSize));
+                    cereal::make_nvp("FontSize", FontSize),
+                    cereal::make_nvp("Alignment", Alignment));
             UIComponent::save(archive, version);
         }
 
@@ -1170,7 +1240,8 @@
                     cereal::make_nvp("Color", Color),
                     cereal::make_nvp("Kerning", Kerning),
                     cereal::make_nvp("LineSpacing", LineSpacing),
-                    cereal::make_nvp("FontSize", FontSize));
+                    cereal::make_nvp("FontSize", FontSize),
+                    cereal::make_nvp("Alignment", Alignment));
 
             if (!relativePath.empty())
             {
@@ -1297,6 +1368,7 @@
          {
              BackgroundTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
              HandleTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
+             DisabledHandleTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
              HandleScale = {1.0f, 1.0f};
          }
 
@@ -1306,6 +1378,8 @@
          glm::vec2 HandleScale; ///< The scale of the handle.
          Ref<Texture2D> BackgroundTexture; ///< The texture of the background.
          Ref<Texture2D> HandleTexture; ///< The texture of the handle.
+         Ref<Texture2D> DisabledHandleTexture; ///< The texture of the disabled handle.
+         bool Selected = false; ///< Flag to indicate if the slider is selected.
 
          template<class Archive> void save(Archive& archive, std::uint32_t const version) const
          {
@@ -1315,6 +1389,10 @@
                      cereal::make_nvp("HandleScale", HandleScale),
                      cereal::make_nvp("BackgroundTextureUUID", BackgroundTexture ? BackgroundTexture->GetUUID() : UUID(0)),
                      cereal::make_nvp("HandleTextureUUID", HandleTexture ? HandleTexture->GetUUID() : UUID(0)));
+             if (version >= 1)
+             {
+                 archive(cereal::make_nvp("DisabledHandleTextureUUID", DisabledHandleTexture ? DisabledHandleTexture->GetUUID() : UUID(0)));
+             }
              UIComponent::save(archive, version);
          }
 
@@ -1322,6 +1400,7 @@
          {
              UUID BackgroundTextureUUID;
              UUID HandleTextureUUID;
+             UUID DisabledHandleTextureUUID;
 
              archive(cereal::make_nvp("Value", Value),
                      cereal::make_nvp("MinValue", MinValue),
@@ -1329,10 +1408,19 @@
                      cereal::make_nvp("HandleScale", HandleScale),
                      cereal::make_nvp("BackgroundTextureUUID", BackgroundTextureUUID),
                      cereal::make_nvp("HandleTextureUUID", HandleTextureUUID));
+
              if (BackgroundTextureUUID != UUID(0))
                  BackgroundTexture = ResourceLoader::GetResource<Texture2D>(BackgroundTextureUUID);
              if (HandleTextureUUID != UUID(0))
                  HandleTexture = ResourceLoader::GetResource<Texture2D>(HandleTextureUUID);
+
+             if (version >= 1)
+             {
+                 archive(cereal::make_nvp("DisabledHandleTextureUUID", DisabledHandleTextureUUID));
+
+                 if (DisabledHandleTextureUUID != UUID(0))
+                     DisabledHandleTexture = ResourceLoader::GetResource<Texture2D>(DisabledHandleTextureUUID);
+             }
              UIComponent::load(archive, version);
          }
      };
@@ -1343,7 +1431,7 @@
  CEREAL_CLASS_VERSION(Coffee::CameraComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::AnimatorComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::MeshComponent, 0);
- CEREAL_CLASS_VERSION(Coffee::MaterialComponent, 0);
+ CEREAL_CLASS_VERSION(Coffee::MaterialComponent, 1);
  CEREAL_CLASS_VERSION(Coffee::LightComponent, 1);
  CEREAL_CLASS_VERSION(Coffee::AudioSourceComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::AudioListenerComponent, 0);
@@ -1358,6 +1446,6 @@
  CEREAL_CLASS_VERSION(Coffee::UITextComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::UIToggleComponent, 0);
  CEREAL_CLASS_VERSION(Coffee::UIButtonComponent, 0);
- CEREAL_CLASS_VERSION(Coffee::UISliderComponent, 0);
+ CEREAL_CLASS_VERSION(Coffee::UISliderComponent, 1);
  
  /** @} */

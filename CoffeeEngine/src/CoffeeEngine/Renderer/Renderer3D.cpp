@@ -57,7 +57,8 @@ namespace Coffee {
         s_RendererData.SceneRenderDataUniformBuffer = UniformBuffer::Create(sizeof(Renderer3DData::RenderData), 1);
 
         Ref<Shader> missingShader = CreateRef<Shader>("MissingShader", std::string(missingShaderSource));
-        s_RendererData.DefaultMaterial = CreateRef<Material>("Missing Material", missingShader); //TODO: Port it to use the Material::Create
+        s_RendererData.DefaultMaterial = ShaderMaterial::Create("Missing Material", missingShader);
+        //s_RendererData.DefaultMaterial = nullptr;/* CreateRef<Material>("Missing Material", missingShader); //TODO: Port it to use the Material::Create and use ShaderMaterial */
 
         // TODO: This is a hack to get the missing mesh add it to the PrimitiveMesh class
         Ref<Model> m = Model::Load("assets/models/MissingMesh.glb");
@@ -81,7 +82,22 @@ namespace Coffee {
 
     void Renderer3D::Submit(const RenderCommand& command)
     {
-        s_RendererData.renderQueue.push_back(command);
+        if (!command.material)
+        {
+            s_RendererData.opaqueRenderQueue.push_back(command);
+            return;
+        }
+
+        const auto& settings = command.material->GetRenderSettings();
+
+        if (settings.transparencyMode == MaterialRenderSettings::TransparencyMode::Disabled)
+        {
+            s_RendererData.opaqueRenderQueue.push_back(command);
+        }
+        else
+        {
+            s_RendererData.transparentRenderQueue.push_back(command);
+        }
     }
 
     // Temporal, this should be removed because this is rendering immediately.
@@ -151,7 +167,7 @@ namespace Coffee {
 
                 RendererAPI::SetCullFace(CullFace::Front);
     
-                for (const auto& command : s_RendererData.renderQueue)
+                for (const auto& command : s_RendererData.opaqueRenderQueue)
                 {
                     // Set the model matrix
                     shadowShader->setMat4("model", command.transform);
@@ -235,13 +251,18 @@ namespace Coffee {
             // Stop after processing the first 4 directional lights
             if (directionalLightCount >= Renderer3DData::MAX_DIRECTIONAL_SHADOWS)
                 break;
-        } 
+        }
 
-        for(const auto& command : s_RendererData.renderQueue)
+        // Sort the render queue based on material and mesh
+        std::sort(s_RendererData.opaqueRenderQueue.begin(), s_RendererData.opaqueRenderQueue.end(), [](const RenderCommand& a, const RenderCommand& b) {
+            return std::tie(a.material, a.mesh) < std::tie(b.material, b.mesh);
+        });
+
+        for(const auto& command : s_RendererData.opaqueRenderQueue)
         {
             Material* material = command.material.get();
 
-            if(material == nullptr)
+            if(material == nullptr or material->GetShader() == nullptr)
             {
                 material = s_RendererData.DefaultMaterial.get();
             }
@@ -295,20 +316,58 @@ namespace Coffee {
             {
                 mesh = s_RendererData.MissingMesh.get();
             }
-            
+
+            // Apply material settings
+            const MaterialRenderSettings& settings = material->GetRenderSettings();
+            switch (settings.cullMode)
+            {
+                case MaterialRenderSettings::CullMode::Front:
+                    RendererAPI::SetCullFace(CullFace::Front);
+                    break;
+                case MaterialRenderSettings::CullMode::Back:
+                    RendererAPI::SetCullFace(CullFace::Back);
+                    break;
+                case MaterialRenderSettings::CullMode::None:
+                    RendererAPI::SetFaceCulling(false);
+                    break;
+            }
+
+            if (settings.depthTest)
+            {
+                RendererAPI::SetDepthMask(true);
+            }
+            else
+            {
+                RendererAPI::SetDepthMask(false);
+            }
+
+            if (settings.wireframe)
+            {
+                RendererAPI::SetPolygonMode(PolygonMode::Line);
+            }
+            else
+            {
+                RendererAPI::SetPolygonMode(PolygonMode::Fill);
+            }
+
             RendererAPI::DrawIndexed(mesh->GetVertexArray());
 
-            /*
+            
             s_Stats.DrawCalls++;
 
             s_Stats.VertexCount += mesh->GetVertices().size();
             s_Stats.IndexCount += mesh->GetIndices().size();
-            */
         }
 
         forwardBuffer->UnBind();
 
+        // Reset render settings to default
+        RendererAPI::SetCullFace(CullFace::Back);
+        RendererAPI::SetFaceCulling(true);
+        RendererAPI::SetDepthMask(true);
+        RendererAPI::SetPolygonMode(PolygonMode::Fill);
     }
+
     void Renderer3D::SkyboxPass(const RenderTarget& target)
     {
         ZoneScoped;
@@ -317,7 +376,7 @@ namespace Coffee {
         const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
 
         forwardBuffer->Bind();
-        forwardBuffer->SetDrawBuffers({0});
+        forwardBuffer->SetDrawBuffers({0, 1});
 
         RendererAPI::SetDepthMask(false);
         s_EnvironmentMap->Bind(0);
@@ -326,6 +385,113 @@ namespace Coffee {
         RendererAPI::SetDepthMask(true);
 
         forwardBuffer->UnBind();
+    }
+
+    void Renderer3D::TransparentPass(const RenderTarget& target)
+    {
+        ZoneScoped;
+
+        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        forwardBuffer->Bind();
+        forwardBuffer->SetDrawBuffers({0, 1}); //TODO: This should only be done in the editor
+
+        // Bind the irradiance map
+        s_EnvironmentMap->BindIrradianceMap(6);
+        s_EnvironmentMap->BindPrefilteredMap(7);
+        s_EnvironmentMap->BindBRDFLUT(8);
+
+        // Render transparent objects (back to front)
+        glm::vec3 cameraPos = target.GetCameraTransform()[3];
+        std::sort(s_RendererData.transparentRenderQueue.begin(), s_RendererData.transparentRenderQueue.end(), [&cameraPos](const RenderCommand& a, const RenderCommand& b) {
+            float distA = glm::length(cameraPos - glm::vec3(a.transform[3]));
+            float distB = glm::length(cameraPos - glm::vec3(b.transform[3]));
+            return distA > distB;
+        });
+
+        RendererAPI::SetDepthMask(false);
+
+        for (const auto& command : s_RendererData.transparentRenderQueue)
+        {
+            Material* material = command.material.get();
+
+            if(material == nullptr)
+            {
+                material = s_RendererData.DefaultMaterial.get();
+            }
+
+            material->Use();
+
+            const Ref<Shader>& shader = material->GetShader();
+
+            shader->Bind();
+
+            // Set the irradiance map, is 6 because the first 6 slots are used by the material
+            shader->setInt("irradianceMap", 6);
+            shader->setInt("prefilterMap", 7);
+            shader->setInt("brdfLUT", 8);
+
+            if (command.animator)
+                AnimationSystem::SetBoneTransformations(shader, command.animator);
+            else
+                shader->setBool("animated", false);
+
+            shader->setMat4("model", command.transform);
+            shader->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(command.transform))));
+
+            //REMOVE: This is for the first release of the engine it should be handled differently
+            shader->setBool("showNormals", s_RenderSettings.showNormals);
+
+            // Convert entityID to vec3
+            uint32_t r = (command.entityID & 0x000000FF) >> 0;
+            uint32_t g = (command.entityID & 0x0000FF00) >> 8;
+            uint32_t b = (command.entityID & 0x00FF0000) >> 16;
+            glm::vec3 entityIDVec3 = glm::vec3(r / 255.0f, g / 255.0f, b / 255.0f);
+
+            shader->setVec3("entityID", entityIDVec3);
+
+            Mesh* mesh = command.mesh.get();
+            
+            if(mesh == nullptr)
+            {
+                mesh = s_RendererData.MissingMesh.get();
+            }
+
+                // Apply material settings
+                const MaterialRenderSettings& settings = material->GetRenderSettings();
+                switch (settings.cullMode)
+                {
+                    case MaterialRenderSettings::CullMode::Front:
+                        RendererAPI::SetCullFace(CullFace::Front);
+                        break;
+                    case MaterialRenderSettings::CullMode::Back:
+                        RendererAPI::SetCullFace(CullFace::Back);
+                        break;
+                    case MaterialRenderSettings::CullMode::None:
+                        RendererAPI::SetFaceCulling(false);
+                        break;
+                }
+    
+                if (settings.wireframe)
+                {
+                    RendererAPI::SetPolygonMode(PolygonMode::Line);
+                }
+                else
+                {
+                    RendererAPI::SetPolygonMode(PolygonMode::Fill);
+                }
+
+            RendererAPI::DrawIndexed(mesh->GetVertexArray());
+        }
+
+        RendererAPI::SetDepthMask(true);
+
+        forwardBuffer->UnBind();
+
+        // Reset render settings to default
+        RendererAPI::SetCullFace(CullFace::Back);
+        RendererAPI::SetFaceCulling(true);
+        RendererAPI::SetDepthMask(true);
+        RendererAPI::SetPolygonMode(PolygonMode::Fill);
     }
 
     void Renderer3D::PostProcessingPass(const RenderTarget &target)
@@ -371,6 +537,7 @@ namespace Coffee {
     void Renderer3D::ResetCalls()
     {
         s_RendererData.RenderData.lightCount = 0;
-        s_RendererData.renderQueue.clear();
+        s_RendererData.opaqueRenderQueue.clear();
+        s_RendererData.transparentRenderQueue.clear();
     }
 }

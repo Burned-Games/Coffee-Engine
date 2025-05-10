@@ -20,6 +20,13 @@ namespace Coffee {
         FrontAndBack = 2
      };
 
+        enum class PolygonMode
+        {
+            Fill = 0,
+            Line = 1,
+            Point = 2
+        };
+
     /**
      * @brief Class representing the Renderer API.
      */
@@ -52,6 +59,8 @@ namespace Coffee {
         static void SetFaceCulling(bool enabled);
 
         static void SetCullFace(CullFace face);
+
+        static void SetPolygonMode(PolygonMode mode);
 
         /**
          * @brief Draws the indexed vertices from the specified vertex array.
