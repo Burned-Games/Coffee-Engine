@@ -327,18 +327,12 @@ namespace Coffee
     glm::mat4 ParticleEmitter::CalculateBillboardTransform(const glm::mat4& particleTransform,
                                                            const glm::mat4& viewMatrix)
     {
-        // Extract the particle's position
         glm::vec3 position = glm::vec3(particleTransform[3]);
 
-        // Remove the particle's rotation (keep only scale and position)
-        glm::mat4 billboardTransform = glm::mat4(1.0f);
+        glm::mat4 rotationMatrix = glm::mat4(glm::mat3(viewMatrix));
+
+        glm::mat4 billboardTransform = glm::inverse(rotationMatrix);
         billboardTransform[3] = glm::vec4(position, 1.0f);
-
-        // Apply the inverse of the camera's rotation to make the particle face the camera
-        glm::mat4 inverseView = glm::inverse(viewMatrix);
-        inverseView[3] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f); // Ignore the camera's translation
-
-        billboardTransform = billboardTransform * inverseView;
 
         return billboardTransform;
     }
