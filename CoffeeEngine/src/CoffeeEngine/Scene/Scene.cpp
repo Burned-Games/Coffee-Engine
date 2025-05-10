@@ -463,11 +463,20 @@ namespace Coffee {
         {
             auto& particlesSystemComponent = particleSystemView.get<ParticlesSystemComponent>(entity);
             auto& transformComponent = particleSystemView.get<TransformComponent>(entity);
-
-            particlesSystemComponent.GetParticleEmitter()->transformComponentMatrix = transformComponent.GetWorldTransform();
-            particlesSystemComponent.GetParticleEmitter()->cameraViewMatrix = camera.GetViewMatrix();
-            particlesSystemComponent.GetParticleEmitter()->Update(dt);
-            particlesSystemComponent.GetParticleEmitter()->DrawDebug();
+            if (particlesSystemComponent.NeedsUpdate)
+            {
+                particlesSystemComponent.NeedsUpdate = false;
+                particlesSystemComponent.GetParticleEmitter()->transformComponentMatrix = transformComponent.GetWorldTransform();
+                particlesSystemComponent.GetParticleEmitter()->cameraViewMatrix = camera.GetViewMatrix();
+                particlesSystemComponent.GetParticleEmitter()->Update(dt);
+                particlesSystemComponent.GetParticleEmitter()->DrawDebug();
+            }
+            else {
+                Renderer2D::DrawQuad(transformComponent.GetWorldTransform(), 
+                    particlesSystemComponent.GetParticleEmitter()->particleTexture, 1, 
+                    particlesSystemComponent.GetParticleEmitter()->colorNormal, Renderer2D::RenderMode::World);
+            }
+ 
         }
 
         auto spriteView = m_Registry.view<ActiveComponent, SpriteComponent, TransformComponent>();

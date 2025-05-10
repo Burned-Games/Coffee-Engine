@@ -2289,6 +2289,7 @@ namespace Coffee
         if (entity.HasComponent<ParticlesSystemComponent>())
         {
             auto& particles = entity.GetComponent<ParticlesSystemComponent>();
+            particles.NeedsUpdate = true;
             Ref<ParticleEmitter> emitter = particles.GetParticleEmitter();
             bool isCollapsingHeaderOpen = true;
 
