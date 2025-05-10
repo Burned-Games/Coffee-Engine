@@ -156,6 +156,7 @@ namespace Coffee {
 
     void Input::SendRumble(uint16_t lowFreqPower, uint16_t highFreqPower, uint32_t duration)
     {
+        if (m_Gamepads.empty()) return;
         if (auto g = m_Gamepads[0]->GetGamepad())
         {
             if (!SDL_RumbleGamepad(g,lowFreqPower, highFreqPower, duration))
