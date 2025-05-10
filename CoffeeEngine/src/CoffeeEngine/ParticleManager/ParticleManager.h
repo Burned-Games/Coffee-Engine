@@ -185,7 +185,7 @@ namespace Coffee
         glm::vec3 minSpread = {-0.1f, -0.1f, -0.1f}; // Minimum spread for emission
         glm::vec3 maxSpread = {0.1f, 0.1f, 0.1f};    // Maximum spread for emission
         bool useShape = true;                        // Whether to use a shape for emission
-        float shapeAngle = 2.0f;                    // Angle for cone shape
+        float shapeAngle = 0.75f;                    // Angle for cone shape
         float shapeRadius = 1.0f;                    // Radius for circle shape
         float shapeRadiusThickness = 0.1f;           // Thickness for circle shape
 
