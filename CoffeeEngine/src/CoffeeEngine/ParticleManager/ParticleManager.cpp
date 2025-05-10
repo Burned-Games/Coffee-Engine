@@ -102,7 +102,7 @@ namespace Coffee
 
         }
 
-
+        particle->localPosition = glm::vec3(0);
         particle->color = useColorRandom ? glm::linearRand(colorNormal, colorRandom) : colorNormal;
         particle->current_texture = particleTexture;
         particle->lifetime = useRandomLifeTime ? glm::linearRand(startLifeTimeMin, startLifeTimeMax) : startLifeTime;
@@ -301,11 +301,13 @@ namespace Coffee
 
         newVelocity += gravity * (particle->lifetime - particle->startLifetime);
 
+
+        
+        particle->localPosition += particle->direction * deltaTime * newVelocity * particle->startSpeed;
         if (simulationSpace == SimulationSpace::Local)
         {
-
             glm::vec3 emissorPosition = transformComponentMatrix[3];
-            particle->SetPosition(emissorPosition + particle->direction * deltaTime * newVelocity * particle->startSpeed);
+            particle->SetPosition(emissorPosition + particle->localPosition);
         }
         else
         {

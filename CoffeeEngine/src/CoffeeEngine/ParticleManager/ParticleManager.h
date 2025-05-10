@@ -46,6 +46,7 @@ namespace Coffee
         glm::vec3 startSize;       // Initial size of the particle
         glm::vec3 startRotation;   // Initial rotation of the particle
         Ref<Texture2D> current_texture; //Current texture of the particle
+        glm::vec3 localPosition;
 
         /**
          * @brief Default constructor for Particle.
