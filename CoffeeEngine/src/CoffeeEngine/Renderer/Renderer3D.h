@@ -160,6 +160,7 @@ namespace Coffee {
         static Ref<Mesh> s_ScreenQuad; ///< Screen quad mesh.
 
         static Ref<Shader> s_ToneMappingShader; ///< Tone mapping shader.
+        static Ref<Shader> s_FXAAShader; ///< Fast Approximate AntiAliasing shader
         static Ref<Shader> s_FinalPassShader; ///< Final pass shader.
     };
 

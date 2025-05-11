@@ -29,6 +29,7 @@ namespace Coffee {
     Ref<Mesh> Renderer3D::s_ScreenQuad;
 
     Ref<Shader> Renderer3D::s_ToneMappingShader;
+    Ref<Shader> Renderer3D::s_FXAAShader;
     Ref<Shader> Renderer3D::s_FinalPassShader;
 
     static Ref<Cubemap> s_EnvironmentMap;
@@ -67,6 +68,7 @@ namespace Coffee {
         s_ScreenQuad = PrimitiveMesh::CreateQuad();
 
         s_ToneMappingShader = CreateRef<Shader>("ToneMappingShader", std::string(toneMappingShaderSource));
+        s_FXAAShader = CreateRef<Shader>("assets/shaders/FXAAShader.glsl"); // Shader source is too large
         s_FinalPassShader = CreateRef<Shader>("FinalPassShader", std::string(finalPassShaderSource));
     }
 
@@ -513,6 +515,15 @@ namespace Coffee {
         RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
         s_ToneMappingShader->Unbind();
+
+        if (s_RenderSettings.FXAA)
+        {
+            s_FXAAShader->Bind();
+            s_FXAAShader->setInt("screenTexture", 0);
+            s_FXAAShader->setVec2("RCPFrame", {1/postBuffer->GetWidth(), 1/postBuffer->GetHeight()});
+
+            s_FXAAShader->Unbind();
+        }
 
         //This has to be set because the s_ScreenQuad overwrites the depth buffer
         RendererAPI::SetDepthMask(false);
