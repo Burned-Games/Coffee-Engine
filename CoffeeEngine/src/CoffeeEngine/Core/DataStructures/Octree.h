@@ -4,6 +4,7 @@
 #include "CoffeeEngine/Math/BoundingBox.h"
 #include "CoffeeEngine/Math/Frustum.h"
 #include "CoffeeEngine/Renderer/Renderer2D.h"
+#include <tracy/Tracy.hpp>
 #include <unordered_map>
 #include <vector>
 
@@ -14,8 +15,18 @@ namespace Coffee {
     {
         const glm::mat4 transform;
         const AABB aabb;
+        mutable AABB transformedAABB;
         const T object;
         mutable int id; //REMOVE
+
+        ObjectContainer(const glm::mat4& transform, const AABB& aabb, const T& obj)
+            : transform(transform), aabb(aabb), object(obj) {
+            UpdateTransformedAABB();
+        }
+
+        void UpdateTransformedAABB() const {
+            transformedAABB = aabb.CalculateTransformedAABB(transform);
+        }
     };
 
     template <typename T>
@@ -66,6 +77,7 @@ namespace Coffee {
     void Octree<T>::Insert(Ref<ObjectContainer<T>> object)
     {
         object->id = objectsCounter++;
+        object->UpdateTransformedAABB();
         objectMap[object->id] = object; // Store in centralized map
         Insert(rootNode, object->id);
     }
@@ -79,7 +91,7 @@ namespace Coffee {
     template <typename T>
     void Octree<T>::Insert(OctreeNode<T>& node, int objectID)
     {
-        AABB objectTransformedAABB = objectMap.at(objectID)->aabb.CalculateTransformedAABB(objectMap.at(objectID)->transform);
+        AABB objectTransformedAABB = objectMap.at(objectID)->transformedAABB;
 
         switch (node.aabb.Intersect(objectTransformedAABB))
         {
@@ -117,7 +129,7 @@ namespace Coffee {
         {
             if (!child)
                 continue;
-            if (child->aabb.Intersect(objectMap.at(objectID)->aabb.CalculateTransformedAABB(objectMap.at(objectID)->transform)) !=
+            if (child->aabb.Intersect(objectMap.at(objectID)->transformedAABB) !=
                 IntersectionType::Outside)
             {
                 Insert(*child, objectID);
@@ -172,26 +184,34 @@ namespace Coffee {
     template <typename T>
     void Octree<T>::Query(const OctreeNode<T>& node, const Frustum& frustum, std::vector<T>& results) const
     {
+        ZoneScoped;
+
         if (!frustum.Contains(node.aabb))
             return;
-    
-        for (int id : node.objectIDs)
+
         {
-            const Ref<ObjectContainer<T>>& object = objectMap.at(id);
-            if (frustum.Contains(object->aabb.CalculateTransformedAABB(object->transform)))
+            ZoneScopedN("Object_Processing");
+            for (int id : node.objectIDs)
             {
-                results.push_back(object->object);
+                const Ref<ObjectContainer<T>>& object = objectMap.at(id);
+
+                if (frustum.Contains(object->transformedAABB))
+                {
+                    results.push_back(object->object);
+                }
             }
         }
-    
+
         if (node.isLeaf)
             return;
-    
-        for (const auto& child : node.children)
+
         {
-            if (child)
+            for (const auto& child : node.children)
             {
-                Query(*child, frustum, results);
+                if (child)
+                {
+                    Query(*child, frustum, results);
+                }
             }
         }
     }
@@ -221,8 +241,8 @@ namespace Coffee {
 
             for (int id : objectIDs)
             {
-                const ObjectContainer<T>& obj = *objectMap.at(id);
-                AABB aabb = obj.aabb.CalculateTransformedAABB(obj.transform);
+                const auto& obj = objectMap.at(id);
+                AABB aabb = obj->transformedAABB;
                 Renderer2D::DrawBox(aabb.min, aabb.max, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
             }
 
@@ -254,6 +274,7 @@ namespace Coffee {
     template <typename T>
     std::vector<T> Octree<T>::Query(const Frustum& frustum) const
     {
+        ZoneScopedN("Octree");
         std::vector<T> results;
         Query(rootNode, frustum, results);
         return results;
