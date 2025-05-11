@@ -26,6 +26,7 @@ namespace Coffee {
     Renderer3DData Renderer3D::s_RendererData;
     Renderer3DStats Renderer3D::s_Stats;
     Renderer3DSettings Renderer3D::s_RenderSettings;
+    Ref<Texture2D> Renderer3D::s_BRDFLUT;
 
     Ref<Mesh> Renderer3D::s_ScreenQuad;
 
