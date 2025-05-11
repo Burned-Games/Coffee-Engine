@@ -85,6 +85,7 @@ namespace Coffee {
     template <typename T>
     void Octree<T>::DebugDraw()
     {
+        ZoneScoped;
         rootNode.DebugDrawAABB(objectMap);
     }
 
