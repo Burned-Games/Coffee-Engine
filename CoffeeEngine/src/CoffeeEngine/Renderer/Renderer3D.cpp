@@ -14,6 +14,7 @@
 #include "CoffeeEngine/Embedded/FinalPassShader.inl"
 #include "CoffeeEngine/Embedded/MissingShader.inl"
 #include "CoffeeEngine/Embedded/ShadowShader.inl"
+#include "CoffeeEngine/Embedded/BRDFLUTShader.inl"
 
 #include <cstdint>
 #include <glm/fwd.hpp>
@@ -215,7 +216,9 @@ namespace Coffee {
         // Bind the irradiance map
         s_EnvironmentMap->BindIrradianceMap(6);
         s_EnvironmentMap->BindPrefilteredMap(7);
-        s_EnvironmentMap->BindBRDFLUT(8);
+        
+        // Bind the BRDF LUT
+        s_BRDFLUT->Bind(8);
 
         // TEMPORAL: lightSpaceMatrix array for shadow mapping
         glm::mat4 lightSpaceMatrices[Renderer3DData::MAX_DIRECTIONAL_SHADOWS];
@@ -398,7 +401,9 @@ namespace Coffee {
         // Bind the irradiance map
         s_EnvironmentMap->BindIrradianceMap(6);
         s_EnvironmentMap->BindPrefilteredMap(7);
-        s_EnvironmentMap->BindBRDFLUT(8);
+
+        // Bind the BRDF LUT
+        s_BRDFLUT->Bind(8);
 
         // Render transparent objects (back to front)
         glm::vec3 cameraPos = target.GetCameraTransform()[3];
@@ -539,5 +544,39 @@ namespace Coffee {
         s_RendererData.RenderData.lightCount = 0;
         s_RendererData.opaqueRenderQueue.clear();
         s_RendererData.transparentRenderQueue.clear();
+    }
+
+    void Renderer3D::GenerateBRDFLUT()
+    {
+        TextureProperties properties;
+        properties.Format = ImageFormat::RGBA16F;
+        properties.Width = 512;
+        properties.Height = 512;
+        properties.GenerateMipmaps = false;
+        properties.Wrapping = TextureWrap::ClampToEdge;
+        properties.MinFilter = TextureFilter::Linear;
+        properties.MagFilter = TextureFilter::Linear;
+
+        s_BRDFLUT = Texture2D::Create(properties);
+        
+        Framebuffer framebuffer = Framebuffer(properties.Width, properties.Height, {{ImageFormat::DEPTH24STENCIL8, "Depth"}});
+        framebuffer.AttachColorTexture(s_BRDFLUT, "BRDFLUT");
+        framebuffer.Bind();
+        framebuffer.SetDrawBuffers({0});
+
+        RendererAPI::SetViewport(0, 0, properties.Width, properties.Height);
+
+        static Ref<Shader> brdfShader = CreateRef<Shader>("BRDFLUT", BRDFLUTSource);
+        brdfShader->Bind();
+
+        static Ref<Mesh> quad = PrimitiveMesh::CreateQuad();
+
+        RendererAPI::SetClearColor({0.0f, 0.0f, 0.0f, 1.0f});
+        RendererAPI::Clear();
+
+        quad->GetVertexArray()->Bind();
+        RendererAPI::DrawIndexed(quad->GetVertexArray());
+
+        framebuffer.UnBind();
     }
 }

@@ -151,6 +151,9 @@ namespace Coffee {
             - Reset Render Queue
         */
         static void ResetCalls();
+    
+    private:
+        static void GenerateBRDFLUT();
 
     private:
         static Renderer3DData s_RendererData; ///< Renderer data.
@@ -161,6 +164,8 @@ namespace Coffee {
 
         static Ref<Shader> s_ToneMappingShader; ///< Tone mapping shader.
         static Ref<Shader> s_FinalPassShader; ///< Final pass shader.
+
+        static Ref<Texture2D> s_BRDFLUT; ///< BRDF LUT texture.
     };
 
     /** @} */
