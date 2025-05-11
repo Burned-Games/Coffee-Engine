@@ -58,7 +58,7 @@ namespace Coffee {
 
     }
 
-    Scene::Scene() : m_Octree({glm::vec3(-50.0f), glm::vec3(50.0f)}, 10, 5)
+    Scene::Scene() : m_Octree({glm::vec3(-150.0f), glm::vec3(150.0f)}, 10, 5)
     {
         m_SceneTree = CreateScope<SceneTree>(this);
 
@@ -602,76 +602,25 @@ namespace Coffee {
         // TODO: Ask to Guillem if this is a candidate for frustum culling
         UpdateAudioComponentsPositions();
 
-        //======== STATIC ENTITIES UPDATE ========//
-
         // Get all the static entities from the Octree
 
         Frustum frustum = Frustum(camera->GetProjection() * glm::inverse(cameraTransform));
 
-        auto staticEntities = m_Octree.Query(frustum);
+        auto visibleStaticEntities  = m_Octree.Query(frustum);
 
-        for (auto& e : staticEntities)
-        {
-            auto entity = Entity{e, this};
-            auto& transformComponent = m_Registry.get<TransformComponent>(entity);
+        std::unordered_set<entt::entity> visibleEntitySet(visibleStaticEntities.begin(), visibleStaticEntities.end());
 
-            //Animator update
-            auto animatorComponent = m_Registry.try_get<AnimatorComponent>(entity);
-            if (animatorComponent)
-            {
-                AnimationSystem::Update(dt, animatorComponent);
-            }
 
-            // Mesh Rendering
-            auto meshComponent = m_Registry.try_get<MeshComponent>(entity);
-            auto materialComponent = m_Registry.try_get<MaterialComponent>(entity);
-
-            if(meshComponent)
-            {
-                Ref<Mesh> mesh = meshComponent->GetMesh();
-                Ref<Material> material = (materialComponent) ? materialComponent->material : nullptr;
-
-                Renderer3D::Submit(RenderCommand{transformComponent.GetWorldTransform(), mesh, material, (uint32_t)entity, meshComponent->animator});
-            }
-
-            // Light Rendering
-            auto lightComponent = m_Registry.try_get<LightComponent>(entity);
-            if(lightComponent)
-            {
-                lightComponent->Position = transformComponent.GetWorldTransform()[3];
-                lightComponent->Direction = glm::normalize(glm::vec3(-transformComponent.GetWorldTransform()[1]));
-
-                Renderer3D::Submit(*lightComponent);
-            }
-
-            // Script Updating
-            auto scriptComponent = m_Registry.try_get<ScriptComponent>(entity);
-            if (scriptComponent)
-            {
-                scriptComponent->script->OnUpdate(dt);
-                if(SceneManager::GetActiveScene().get() != this)
-                    return;
-            }
-
-            auto spriteComponent = m_Registry.try_get<SpriteComponent>(entity);
-            if (spriteComponent)
-            {
-                if (spriteComponent->texture)
-                {
-                    Renderer2D::DrawQuad(transformComponent.GetWorldTransform(), spriteComponent->texture,
-                                         spriteComponent->tilingFactor, spriteComponent->tintColor,
-                                         Renderer2D::RenderMode::World);
-                }
-            }
-        }
-
-        //======== DYNAMIC ENTITIES UPDATE ========//
+        auto staticView = m_Registry.view<StaticComponent>();
 
         // Get all entities with ScriptComponent
-        auto scriptView = m_Registry.view<ActiveComponent, ScriptComponent>(entt::exclude<StaticComponent>);
+        auto scriptView = m_Registry.view<ActiveComponent, ScriptComponent>();
 
         for (auto& entity : scriptView)
         {
+            /*if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
+                continue;*/
+
             auto& scriptComponent = scriptView.get<ScriptComponent>(entity);
             scriptComponent.script->OnUpdate(dt);
             if(SceneManager::GetActiveScene().get() != this)
@@ -684,20 +633,25 @@ namespace Coffee {
         //TODO: Add this to a function bc it is repeated in OnUpdateEditor
         Renderer::GetCurrentRenderTarget()->SetCamera(*camera, cameraTransform);
 
-        auto animatorView = m_Registry.view<ActiveComponent, AnimatorComponent>(entt::exclude<StaticComponent>);
+        auto animatorView = m_Registry.view<ActiveComponent, AnimatorComponent>();
 
         for (auto& entity : animatorView)
         {
+            /*if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
+                continue;*/
+
             AnimatorComponent* animatorComponent = &animatorView.get<AnimatorComponent>(entity);
             AnimationSystem::Update(dt, animatorComponent);
         }
 
         // Get all entities with ModelComponent and TransformComponent
-        auto view = m_Registry.view<ActiveComponent, MeshComponent, TransformComponent>(entt::exclude<StaticComponent>);
+        auto view = m_Registry.view<ActiveComponent, MeshComponent, TransformComponent>();
 
         // Loop through each entity with the specified components
         for (auto& entity : view)
         {
+            if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
+                continue;
 
             // Get the ModelComponent and TransformComponent for the current entity
             auto& meshComponent = view.get<MeshComponent>(entity);
@@ -711,11 +665,14 @@ namespace Coffee {
         }
 
         //Get all entities with LightComponent and TransformComponent
-        auto lightView = m_Registry.view<ActiveComponent, LightComponent, TransformComponent>(entt::exclude<StaticComponent>);
+        auto lightView = m_Registry.view<ActiveComponent, LightComponent, TransformComponent>();
 
         //Loop through each entity with the specified components
         for(auto& entity : lightView)
         {
+            if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
+                continue;
+
             auto& lightComponent = lightView.get<LightComponent>(entity);
             auto& transformComponent = lightView.get<TransformComponent>(entity);
 
@@ -726,9 +683,12 @@ namespace Coffee {
         }
 
         // Get all entities with ParticlesSystemComponent and TransformComponent
-        auto particleSystemView = m_Registry.view<ActiveComponent, ParticlesSystemComponent, TransformComponent>(entt::exclude<StaticComponent>);
+        auto particleSystemView = m_Registry.view<ActiveComponent, ParticlesSystemComponent, TransformComponent>();
         for (auto& entity : particleSystemView)
         {
+            /*if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
+                continue;*/
+
             auto& particlesSystemComponent = particleSystemView.get<ParticlesSystemComponent>(entity);
             auto& transformComponent = particleSystemView.get<TransformComponent>(entity);
 
@@ -738,9 +698,12 @@ namespace Coffee {
 
         }
 
-        auto spriteView = m_Registry.view<ActiveComponent, SpriteComponent, TransformComponent>(entt::exclude<StaticComponent>);
+        auto spriteView = m_Registry.view<ActiveComponent, SpriteComponent, TransformComponent>();
         for (auto& entity : spriteView)
         {
+            if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
+                continue;
+
             auto& spriteComponent = spriteView.get<SpriteComponent>(entity);
             auto& transformComponent = spriteView.get<TransformComponent>(entity);
 
