@@ -37,6 +37,10 @@ namespace Coffee {
             case ImageFormat::SRGB8: return GL_SRGB8; break;
             case ImageFormat::RGBA8: return GL_RGBA8; break;
             case ImageFormat::SRGBA8: return GL_SRGB8_ALPHA8; break;
+            case ImageFormat::R16F: return GL_R16F; break;
+            case ImageFormat::RG16F: return GL_RG16F; break;
+            case ImageFormat::RGB16F: return GL_RGB16F; break;
+            case ImageFormat::RGBA16F: return GL_RGBA16F; break;
             case ImageFormat::R32F: return GL_R32F; break;
             case ImageFormat::RGB32F: return GL_RGB32F; break;
             case ImageFormat::RGBA32F: return GL_RGBA32F; break;
@@ -54,6 +58,10 @@ namespace Coffee {
             case ImageFormat::SRGB8: return GL_RGB; break;
             case ImageFormat::RGBA8: return GL_RGBA; break;
             case ImageFormat::SRGBA8: return GL_RGBA; break;
+            case ImageFormat::R16F: return GL_RED; break;
+            case ImageFormat::RG16F: return GL_RG; break;
+            case ImageFormat::RGB16F: return GL_RGB; break;
+            case ImageFormat::RGBA16F: return GL_RGBA; break;
             case ImageFormat::R32F: return GL_RED; break;
             case ImageFormat::RGB32F: return GL_RGB; break;
             case ImageFormat::RGBA32F: return GL_RGBA; break;
@@ -71,10 +79,38 @@ namespace Coffee {
             case ImageFormat::SRGB8: return 3; break;
             case ImageFormat::RGBA8: return 4; break;
             case ImageFormat::SRGBA8: return 4; break;
+            case ImageFormat::R16F: return 1; break;
+            case ImageFormat::RG16F: return 2; break;
+            case ImageFormat::RGB16F: return 3; break;
+            case ImageFormat::RGBA16F: return 4; break;
             case ImageFormat::R32F: return 1; break;
             case ImageFormat::RGB32F: return 3; break;
             case ImageFormat::RGBA32F: return 4; break;
             case ImageFormat::DEPTH24STENCIL8: return 1; break;
+        }
+    }
+    
+    int TextureWrapToOpenGL(TextureWrap wrap)
+    {
+        switch(wrap)
+        {
+            case TextureWrap::Repeat: return GL_REPEAT; break;
+            case TextureWrap::MirroredRepeat: return GL_MIRRORED_REPEAT; break;
+            case TextureWrap::ClampToEdge: return GL_CLAMP_TO_EDGE; break;
+            case TextureWrap::ClampToBorder: return GL_CLAMP_TO_BORDER; break;
+        }
+    }
+
+    int TextureFilterToOpenGL(TextureFilter filter)
+    {
+        switch (filter)
+        {
+            case TextureFilter::Nearest: return GL_NEAREST; break;
+            case TextureFilter::Linear: return GL_LINEAR; break;
+            case TextureFilter::NearestMipmapNearest: return GL_NEAREST_MIPMAP_NEAREST; break;
+            case TextureFilter::LinearMipmapNearest: return GL_LINEAR_MIPMAP_NEAREST; break;
+            case TextureFilter::NearestMipmapLinear: return GL_NEAREST_MIPMAP_LINEAR; break;
+            case TextureFilter::LinearMipmapLinear: return GL_LINEAR_MIPMAP_LINEAR; break;
         }
     }
 
@@ -86,8 +122,10 @@ namespace Coffee {
         InitializeTexture2D();
     }
 
-    Texture2D::Texture2D(uint32_t width, uint32_t height, ImageFormat imageFormat)
-        : Texture(ResourceType::Texture2D), m_Width(width), m_Height(height), m_Properties({ imageFormat, width, height })
+    Texture2D::Texture2D(uint32_t width, uint32_t height, ImageFormat imageFormat, TextureWrap wrapping,
+                         TextureFilter minFilter, TextureFilter magFilter, TextureFilter mipMapFilter, const glm::vec4& borderColor)
+        : Texture(ResourceType::Texture2D), m_Width(width), m_Height(height),
+          m_Properties({imageFormat, wrapping, minFilter, magFilter, mipMapFilter, borderColor})
     {
         ZoneScoped;
 
@@ -213,6 +251,11 @@ namespace Coffee {
         return CreateRef<Texture2D>(width, height, format);
     }
 
+    Ref<Texture2D> Texture2D::Create(const TextureProperties& properties)
+    {
+        return CreateRef<Texture2D>(properties);
+    }
+
     void Texture2D::LoadFromFile(const std::filesystem::path& path)
     {
         int nrComponents;
@@ -259,24 +302,38 @@ namespace Coffee {
         glCreateTextures(GL_TEXTURE_2D, 1, &m_textureID);
         glTextureStorage2D(m_textureID, mipLevels, internalFormat, m_Width, m_Height);
 
-        glTextureParameteri(m_textureID, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTextureParameteri(m_textureID, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        GLenum wrap = TextureWrapToOpenGL(m_Properties.Wrapping);
+        glTextureParameteri(m_textureID, GL_TEXTURE_WRAP_S, wrap);
+        glTextureParameteri(m_textureID, GL_TEXTURE_WRAP_T, wrap);
 
-        glTextureParameteri(m_textureID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTextureParameteri(m_textureID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTextureParameterfv(m_textureID, GL_TEXTURE_BORDER_COLOR, &m_Properties.BorderColor[0]);
+
+        GLenum minFilter = TextureFilterToOpenGL(m_Properties.MinFilter);
+        GLenum magFilter = TextureFilterToOpenGL(m_Properties.MagFilter);
+        glTextureParameteri(m_textureID, GL_TEXTURE_MIN_FILTER, minFilter);
+        glTextureParameteri(m_textureID, GL_TEXTURE_MAG_FILTER, magFilter);
 
         //Add an option to choose the anisotropic filtering level
         glTextureParameterf(m_textureID, GL_TEXTURE_MAX_ANISOTROPY, 16.0f);
     }
 
-    Cubemap::Cubemap(const std::filesystem::path& path) : Texture(ResourceType::Cubemap)
+    Cubemap::Cubemap()
+        : Texture(ResourceType::Cubemap)
+    {
+        ZoneScoped;
+
+        m_Properties.srgb = false;
+        m_Properties.Format = ImageFormat::RGB32F;
+    }
+
+    Cubemap::Cubemap(const std::filesystem::path& path) : Cubemap()
     {
         ZoneScoped;
 
         LoadFromFile(path);
     }
 
-    Cubemap::Cubemap(ImportData& importData)
+    Cubemap::Cubemap(ImportData& importData) : Cubemap()
     {
         if(importData.IsValid())
         {
@@ -312,11 +369,6 @@ namespace Coffee {
         glBindTextureUnit(slot, m_PrefilteredMapID);
     }
 
-    void Cubemap::BindBRDFLUT(uint32_t slot)
-    {
-        glBindTextureUnit(slot, m_BRDFLUTID);
-    }
-
     void Cubemap::LoadFromFile(const std::filesystem::path& path)
     {
         m_FilePath = path;
@@ -324,21 +376,17 @@ namespace Coffee {
 
         m_Properties.srgb = false;
 
-        if(path.extension() == ".hdr")
-        {
-            LoadHDRFromFile(path);
-        }
-        else
-        {
-            LoadStandardFromFile(path);
-        }
+        LoadEquirectangularMapFromFile(path);
+        GenerateIrradianceMap();
+        GeneratePrefilteredMap();
     }
 
-    void Cubemap::LoadHDRFromFile(const std::filesystem::path& path)
+    void Cubemap::LoadEquirectangularMapFromFile(const std::filesystem::path& path)
     {
         int nrChannels;
+        int width, height;
         stbi_set_flip_vertically_on_load(true);
-        float* data = stbi_loadf(path.string().c_str(), &m_Width, &m_Height, &nrChannels, 0);
+        float* data = stbi_loadf(path.string().c_str(), &width, &height, &nrChannels, 0);
         if (!data) {
             COFFEE_CORE_ERROR("Failed to load cubemap texture: {0} (REASON: {1})", m_FilePath.string(), stbi_failure_reason());
             return;
@@ -357,10 +405,7 @@ namespace Coffee {
                 break;
         }
 
-        EquirectToCubemap(data, m_Width, m_Height);
-        GenerateIrradianceMap();
-        GeneratePrefilteredMap();
-        GenerateBRDFLUT();
+        EquirectToCubemap(data, width, height);
 
         stbi_image_free(data);
     }
@@ -380,7 +425,10 @@ namespace Coffee {
         // Create a framebuffer to render the cubemap
         
         // Resolution of the cubemap faces
-        int cubemapFaceSize = 512; // Adjust as needed
+        int cubemapFaceSize = width / 4;
+
+        m_Properties.Width = cubemapFaceSize;
+        m_Properties.Height = cubemapFaceSize;
 
         // TODO: rewrite this to reuse the framebuffer for the irradiance map
         uint32_t fbo, rbo;
@@ -450,10 +498,9 @@ namespace Coffee {
     void Cubemap::GenerateIrradianceMap()
     {
         glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_IrradianceMapID);
-        glTextureStorage2D(m_IrradianceMapID, 1, GL_RGB32F, 32, 32);
+        glTextureStorage2D(m_IrradianceMapID, 1, GL_RGB32F, IrradianceMapResolution, IrradianceMapResolution);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -461,7 +508,7 @@ namespace Coffee {
         uint32_t fbo, rbo;
         glCreateFramebuffers(1, &fbo);
         glCreateRenderbuffers(1, &rbo);
-        glNamedRenderbufferStorage(rbo, GL_DEPTH_COMPONENT24, 32, 32);
+        glNamedRenderbufferStorage(rbo, GL_DEPTH_COMPONENT24, IrradianceMapResolution, IrradianceMapResolution);
         glNamedFramebufferRenderbuffer(fbo, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
 
         glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
@@ -483,7 +530,7 @@ namespace Coffee {
         irradianceShader->setMat4("projection", captureProjection);
         glBindTextureUnit(0, m_CubeMapID);
 
-        glViewport(0, 0, 32, 32);
+        glViewport(0, 0, IrradianceMapResolution, IrradianceMapResolution);
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
         for (uint32_t i = 0; i < 6; ++i)
         {
@@ -495,6 +542,8 @@ namespace Coffee {
             glDrawElements(GL_TRIANGLES, cube->GetVertexArray()->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, 0);
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDeleteFramebuffers(1, &fbo);
+        glDeleteRenderbuffers(1, &rbo);
     }
 
     void Cubemap::GeneratePrefilteredMap()
@@ -502,7 +551,7 @@ namespace Coffee {
         unsigned int maxMipLevels = 5;
 
         glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_PrefilteredMapID);
-        glTextureStorage2D(m_PrefilteredMapID, maxMipLevels, GL_RGB32F, 128, 128);
+        glTextureStorage2D(m_PrefilteredMapID, maxMipLevels, GL_RGB32F, PrefilteredMapResolution, PrefilteredMapResolution);
         glTextureParameteri(m_PrefilteredMapID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTextureParameteri(m_PrefilteredMapID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTextureParameteri(m_PrefilteredMapID, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -512,7 +561,7 @@ namespace Coffee {
         uint32_t fbo, rbo;
         glCreateFramebuffers(1, &fbo);
         glCreateRenderbuffers(1, &rbo);
-        glNamedRenderbufferStorage(rbo, GL_DEPTH_COMPONENT24, 128, 128);
+        glNamedRenderbufferStorage(rbo, GL_DEPTH_COMPONENT24, PrefilteredMapResolution, PrefilteredMapResolution);
         glNamedFramebufferRenderbuffer(fbo, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
 
         glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
@@ -538,8 +587,8 @@ namespace Coffee {
         for (unsigned int mip = 0; mip < maxMipLevels; mip++)
         {
             // Resize framebuffer according to mip-level size.
-            unsigned int mipWidth = 128 * std::pow(0.5, mip);
-            unsigned int mipHeight = 128 * std::pow(0.5, mip);
+            unsigned int mipWidth = PrefilteredMapResolution * std::pow(0.5, mip);
+            unsigned int mipHeight = PrefilteredMapResolution * std::pow(0.5, mip);
             glBindRenderbuffer(GL_RENDERBUFFER, rbo);
             glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
             glViewport(0, 0, mipWidth, mipHeight);
@@ -556,39 +605,6 @@ namespace Coffee {
                 glDrawElements(GL_TRIANGLES, cube->GetVertexArray()->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, 0);
             }
         }
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDeleteFramebuffers(1, &fbo);
-        glDeleteRenderbuffers(1, &rbo);
-    }
-
-    void Cubemap::GenerateBRDFLUT()
-    {
-        glCreateTextures(GL_TEXTURE_2D, 1, &m_BRDFLUTID);
-        glTextureStorage2D(m_BRDFLUTID, 1, GL_RG16F, 512, 512);
-        glTextureParameteri(m_BRDFLUTID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTextureParameteri(m_BRDFLUTID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTextureParameteri(m_BRDFLUTID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTextureParameteri(m_BRDFLUTID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-        // Reuse the framebuffer for the irradiance map
-        uint32_t fbo, rbo;
-        glCreateFramebuffers(1, &fbo);
-        glCreateRenderbuffers(1, &rbo);
-        glNamedRenderbufferStorage(rbo, GL_DEPTH_COMPONENT24, 512, 512);
-        glNamedFramebufferRenderbuffer(fbo, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
-        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_BRDFLUTID, 0);
-        
-        static Ref<Shader> brdfShader = CreateRef<Shader>("BRDFLUT", BRDFLUTSource);
-        static Ref<Mesh> quad = PrimitiveMesh::CreateQuad();
-        
-        glViewport(0, 0, 512, 512);
-        brdfShader->Bind();
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        quad->GetVertexArray()->Bind();
-        glDrawElements(GL_TRIANGLES, quad->GetVertexArray()->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, 0);
-
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glDeleteFramebuffers(1, &fbo);
         glDeleteRenderbuffers(1, &rbo);

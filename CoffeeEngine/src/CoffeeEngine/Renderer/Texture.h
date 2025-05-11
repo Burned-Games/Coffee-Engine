@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoffeeEngine/Core/Base.h"
-#include "CoffeeEngine/IO/ImportData/Texture2DImportData.h"
+#include "CoffeeEngine/IO/ImportData/ImportData.h"
 #include "CoffeeEngine/IO/Resource.h"
 #include "CoffeeEngine/IO/Serialization/FilesystemPathSerialization.h"
 
@@ -9,10 +9,8 @@
 #include <cereal/types/polymorphic.hpp>
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/vector.hpp>
+#include <glm/glm.hpp>
 #include <cstdint>
-#include <glm/fwd.hpp>
-#include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace Coffee {
@@ -25,15 +23,42 @@ namespace Coffee {
         SRGB8,
         RGBA8,
         SRGBA8,
+        R16F,
+        RG16F,
+        RGB16F,
+        RGBA16F,
         R32F,
         RGB32F,
         RGBA32F,
         DEPTH24STENCIL8
     };
 
+    enum class TextureWrap
+    {
+        Repeat,
+        MirroredRepeat,
+        ClampToEdge,
+        ClampToBorder
+    };
+
+    enum class TextureFilter
+    {
+        Nearest,
+        Linear,
+        NearestMipmapNearest,
+        LinearMipmapNearest,
+        NearestMipmapLinear,
+        LinearMipmapLinear
+    };
+
     struct TextureProperties
     {
         ImageFormat Format;
+        TextureWrap Wrapping = TextureWrap::Repeat;
+        TextureFilter MinFilter = TextureFilter::Linear;
+        TextureFilter MagFilter = TextureFilter::Linear;
+        TextureFilter MipMapFilter = TextureFilter::Linear;
+        glm::vec4 BorderColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
         uint32_t Width, Height;
         bool GenerateMipmaps = true;
         bool srgb = true;
@@ -46,6 +71,8 @@ namespace Coffee {
             Format = static_cast<ImageFormat>(formatInt);
         } 
     };
+    
+
 
     class Texture : public Resource
     {
@@ -80,7 +107,9 @@ namespace Coffee {
     public:
         Texture2D() = default;
         Texture2D(const TextureProperties& properties);
-        Texture2D(uint32_t width, uint32_t height, ImageFormat imageFormat);
+        Texture2D(uint32_t width, uint32_t height, ImageFormat imageFormat, TextureWrap wrapping = TextureWrap::Repeat,
+                  TextureFilter minFilter = TextureFilter::Linear, TextureFilter magFilter = TextureFilter::Linear,
+                  TextureFilter mipMapFilter = TextureFilter::Linear, const glm::vec4& borderColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
         Texture2D(const std::filesystem::path& path, bool srgb = true);
         Texture2D(ImportData& importData);
         ~Texture2D();
@@ -98,6 +127,7 @@ namespace Coffee {
 
         static Ref<Texture2D> Load(const std::filesystem::path& path);
         static Ref<Texture2D> Create(uint32_t width, uint32_t height, ImageFormat format);
+        static Ref<Texture2D> Create(const TextureProperties& properties);
 
     private:
         void LoadFromFile(const std::filesystem::path& path);
@@ -139,7 +169,7 @@ namespace Coffee {
     class Cubemap : public Texture
     {
     public:
-        Cubemap() = default;
+        Cubemap();
         Cubemap(const std::filesystem::path& path);
         Cubemap(ImportData& importData);
         ~Cubemap();
@@ -148,29 +178,24 @@ namespace Coffee {
         // Temporal, in the future i think it would be nice that the irradiance is a Cubemap object
         void BindIrradianceMap(uint32_t slot);
         void BindPrefilteredMap(uint32_t slot);
-        void BindBRDFLUT(uint32_t slot);
         uint32_t GetID() override { return m_CubeMapID; };
         uint32_t GetIrradianceMapID() { return m_IrradianceMapID; };
         uint32_t GetPrefilteredMapID() { return m_PrefilteredMapID; };
-        uint32_t GetBRDFLUTID() { return m_BRDFLUTID; };
 
-        uint32_t GetWidth() override { return m_Width; };
-        uint32_t GetHeight() override { return m_Height; };
+        uint32_t GetWidth() override { return m_Properties.Width; };
+        uint32_t GetHeight() override { return m_Properties.Height; };
         ImageFormat GetImageFormat() override { return m_Properties.Format; };
 
         static Ref<Cubemap> Load(const std::filesystem::path& path);
         static Ref<Cubemap> Create(const std::filesystem::path& path);
     private:
         void LoadFromFile(const std::filesystem::path& path);
-        void LoadStandardFromFile(const std::filesystem::path& path) {}
-        void LoadHDRFromFile(const std::filesystem::path& path);
-        void LoadStandardFromData(const std::vector<unsigned char>& data) {}
-        void LoadHDRFromData(const std::vector<float>& data);
-
+        void LoadFromData(const std::vector<float>& data);
+        
+        void LoadEquirectangularMapFromFile(const std::filesystem::path& path);
         void EquirectToCubemap(float* data, int width, int height);
         void GenerateIrradianceMap();
         void GeneratePrefilteredMap();
-        void GenerateBRDFLUT();
 
 /*         friend class cereal::access;
 
@@ -207,12 +232,13 @@ namespace Coffee {
 
     private:
         TextureProperties m_Properties;
-        std::vector<std::vector<std::vector<float>>> m_HDRData; // m_HDRData[faceIndex][mipLevel][pixelIndex]
+        //std::vector<std::vector<std::vector<float>>> m_HDRData; // m_HDRData[faceIndex][mipLevel][pixelIndex]
         uint32_t m_CubeMapID;
         uint32_t m_IrradianceMapID;
         uint32_t m_PrefilteredMapID;
-        uint32_t m_BRDFLUTID;
-        int m_Width, m_Height;
+
+        uint32_t IrradianceMapResolution = 32;
+        uint32_t PrefilteredMapResolution = 128;
     };
 
 }
