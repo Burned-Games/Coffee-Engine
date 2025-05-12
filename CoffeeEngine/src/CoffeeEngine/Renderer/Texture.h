@@ -265,7 +265,7 @@ namespace Coffee {
 
             for (int i = 0; i < 6; ++i)
             {
-                glTextureSubImage3D(m_CubeMapID, 0, 0, 0, i, m_Properties.Width, m_Properties.Height, 6, GL_RGB, GL_FLOAT, cubeMapData.data() + offset);
+                glTextureSubImage3D(m_CubeMapID, 0, 0, 0, i, m_Properties.Width, m_Properties.Height, 1, GL_RGB, GL_FLOAT, cubeMapData.data() + offset);
                 offset += faceSize;
             }
 
