@@ -58,7 +58,7 @@ namespace Coffee {
 
     }
 
-    Scene::Scene() : m_Octree({glm::vec3(-150.0f), glm::vec3(150.0f)}, 10, 5)
+    Scene::Scene()
     {
         m_SceneTree = CreateScope<SceneTree>(this);
 
@@ -344,8 +344,40 @@ namespace Coffee {
 
         CollisionSystem::Initialize(this);
 
-        // Static entities octree
         auto staticView = m_Registry.view<StaticComponent, TransformComponent>();
+
+        // Create octree bounds based on the static entities
+        glm::vec3 minOctreeBounds = glm::vec3(0.0f);
+        glm::vec3 maxOctreeBounds = glm::vec3(0.0f);
+
+        for (auto entity : staticView)
+        {
+            auto& transformComponent = staticView.get<TransformComponent>(entity);
+            auto meshComponent = m_Registry.try_get<MeshComponent>(entity);
+
+            AABB aabb;
+
+            if(meshComponent)
+            {
+                Ref<Mesh> mesh = meshComponent->GetMesh();
+                aabb = mesh->GetAABB();
+            }
+            else
+            {
+                aabb = AABB(glm::vec3(-0.5f), glm::vec3(0.5f));
+            }
+
+            AABB transformedAABB = aabb.CalculateTransformedAABB(transformComponent.GetWorldTransform());
+
+            minOctreeBounds = glm::min(minOctreeBounds, transformedAABB.min);
+            maxOctreeBounds = glm::max(maxOctreeBounds, transformedAABB.max);
+
+
+        }
+
+        m_Octree = CreateScope<Octree<entt::entity>>(AABB(minOctreeBounds, maxOctreeBounds), 10, 5);
+
+        // Static entities octree
         for (auto entity : staticView)
         {
             auto& transformComponent = staticView.get<TransformComponent>(entity);
@@ -364,7 +396,7 @@ namespace Coffee {
             }
 
             Ref<ObjectContainer<entt::entity>> object = CreateRef<ObjectContainer<entt::entity>>(transformComponent.GetWorldTransform(), aabb, entity);
-            m_Octree.Insert(object);
+            m_Octree->Insert(object);
         }
 
         Audio::StopAllEvents();
@@ -534,7 +566,7 @@ namespace Coffee {
         }
 
         // Debug Draw
-        if (m_SceneDebugFlags.ShowOctree) m_Octree.DebugDraw();
+        if (m_SceneDebugFlags.ShowOctree) m_Octree->DebugDraw();
         if (m_SceneDebugFlags.ShowColliders) m_PhysicsWorld.drawCollisionShapes();
         if (m_SceneDebugFlags.ShowNavMesh) {
             auto navMeshViewDebug = m_Registry.view<ActiveComponent, NavMeshComponent>();
@@ -659,7 +691,7 @@ namespace Coffee {
 
         // Get all the static entities from the Octree
         Frustum frustum = Frustum(camera->GetProjection() * glm::inverse(cameraTransform));
-        auto visibleStaticEntities = m_Octree.Query(frustum);
+        auto visibleStaticEntities = m_Octree->Query(frustum);
         std::unordered_set<entt::entity> visibleEntitySet(visibleStaticEntities.begin(), visibleStaticEntities.end());
 
         auto staticView = m_Registry.view<StaticComponent>();
@@ -786,7 +818,7 @@ namespace Coffee {
         }
 
         // Debug Draw
-        if (m_SceneDebugFlags.ShowOctree) m_Octree.DebugDraw();
+        if (m_SceneDebugFlags.ShowOctree) m_Octree->DebugDraw();
         if (m_SceneDebugFlags.ShowColliders) m_PhysicsWorld.drawCollisionShapes();
         if (m_SceneDebugFlags.ShowNavMesh) {
             auto navMeshViewDebug = m_Registry.view<ActiveComponent, NavMeshComponent>();
