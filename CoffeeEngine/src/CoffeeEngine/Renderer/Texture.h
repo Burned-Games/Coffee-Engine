@@ -13,6 +13,9 @@
 #include <cstdint>
 #include <vector>
 
+// Remove
+#include <glad/glad.h>
+
 namespace Coffee {
 
     enum class ImageFormat
@@ -166,6 +169,8 @@ namespace Coffee {
         int m_Width, m_Height;
     };
 
+    class Mesh;
+
     class Cubemap : public Texture
     {
     public:
@@ -194,51 +199,158 @@ namespace Coffee {
         
         void LoadEquirectangularMapFromFile(const std::filesystem::path& path);
         void EquirectToCubemap(float* data, int width, int height);
+
         void GenerateIrradianceMap();
         void GeneratePrefilteredMap();
 
-/*         friend class cereal::access;
+        friend class cereal::access;
 
         template<class Archive>
         void save(Archive& archive) const
         {
-            archive(m_Properties, m_Data, m_HDRData, m_Width, m_Height, cereal::base_class<Texture>(this));
+            archive(m_Properties);
+
+            // Get all the data from opengl and save it
+
+            // Cubemap data (faces and mip levels)
+            std::vector<float> cubeMapData;
+            int faceSize = m_Properties.Width;
+            int mipLevels = 1 + floor(log2(std::max(faceSize, faceSize)));
+
+            for (int i = 0; i < 6; ++i)
+            {
+                for (int j = 0; j < mipLevels; ++j)
+                {
+                    int width = faceSize >> j;
+                    int height = faceSize >> j;
+
+                    std::vector<float> data(width * height * 3);
+                    glGetTextureImage(m_CubeMapID, j, GL_RGB, GL_FLOAT, width * height * 3 * sizeof(float), data.data());
+                    cubeMapData.insert(cubeMapData.end(), data.begin(), data.end());
+                }
+            }
+
+            archive(cubeMapData, faceSize);
+
+            // Irradiance map data (faces only)
+
+            std::vector<float> irradianceMapData;
+            for (int i = 0; i < 6; ++i)
+            {
+                std::vector<float> data(m_IrradianceMapResolution * m_IrradianceMapResolution * 3);
+                glGetTextureImage(m_IrradianceMapID, 0, GL_RGB, GL_FLOAT, m_IrradianceMapResolution * m_IrradianceMapResolution * 3 * sizeof(float), data.data());
+                irradianceMapData.insert(irradianceMapData.end(), data.begin(), data.end());
+            }
+
+            archive(irradianceMapData, m_IrradianceMapResolution);
+
+            // Prefiltered map data (faces and mip levels)
+            std::vector<float> prefilteredMapData;
+            for (int i = 0; i < 6; ++i)
+            {
+                for (int j = 0; j < mipLevels; ++j)
+                {
+                    int width = m_PrefilteredMapResolution >> j;
+                    int height = m_PrefilteredMapResolution >> j;
+
+                    std::vector<float> data(width * height * 3);
+                    glGetTextureImage(m_PrefilteredMapID, j, GL_RGB, GL_FLOAT, width * height * 3 * sizeof(float), data.data());
+                    prefilteredMapData.insert(prefilteredMapData.end(), data.begin(), data.end());
+                }
+            }
+
+            archive(prefilteredMapData, m_PrefilteredMapResolution);
+
+            archive(cereal::base_class<Texture>(this));
         }
 
         template <class Archive>
         void load(Archive& archive)
         {
-            archive(m_Properties, m_Data, m_HDRData, m_Width, m_Height, cereal::base_class<Texture>(this));
+           archive(m_Properties);
+
+            // Load the cubemap data
+            std::vector<float> cubeMapData;
+            int faceSize;
+            archive(cubeMapData, faceSize);
+
+            m_Properties.Width = faceSize;
+            m_Properties.Height = faceSize;
+
+            glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_CubeMapID);
+            glTextureStorage2D(m_CubeMapID, 1, GL_RGB32F, faceSize, faceSize);
+            glTextureParameteri(m_CubeMapID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTextureParameteri(m_CubeMapID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTextureParameteri(m_CubeMapID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTextureParameteri(m_CubeMapID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+            for (int i = 0; i < 6; ++i)
+            {
+                for (int j = 0; j < 1 + floor(log2(std::max(faceSize, faceSize))); ++j)
+                {
+                    int width = faceSize >> j;
+                    int height = faceSize >> j;
+
+                    glTextureSubImage3D(m_CubeMapID, j, 0, 0, i, width, height, 1, GL_RGB, GL_FLOAT, cubeMapData.data());
+                }
+            }
+
+            // Load the irradiance map data
+            std::vector<float> irradianceMapData;
+            archive(irradianceMapData, m_IrradianceMapResolution);
+
+            glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_IrradianceMapID);
+            glTextureStorage2D(m_IrradianceMapID, 1, GL_RGB32F, m_IrradianceMapResolution, m_IrradianceMapResolution);
+            glTextureParameteri(m_IrradianceMapID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTextureParameteri(m_IrradianceMapID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTextureParameteri(m_IrradianceMapID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTextureParameteri(m_IrradianceMapID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+            for (int i = 0; i < 6; ++i)
+            {
+                glTextureSubImage3D(m_IrradianceMapID, 0, 0, 0, i, m_IrradianceMapResolution, m_IrradianceMapResolution, 1, GL_RGB, GL_FLOAT, irradianceMapData.data());
+            }
+
+            // Load the prefiltered map data
+            std::vector<float> prefilteredMapData;
+            archive(prefilteredMapData, m_PrefilteredMapResolution);
+            glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_PrefilteredMapID);
+            glTextureStorage2D(m_PrefilteredMapID, 1 + floor(log2(std::max(m_PrefilteredMapResolution, m_PrefilteredMapResolution))), GL_RGB32F, m_PrefilteredMapResolution, m_PrefilteredMapResolution);
+            glTextureParameteri(m_PrefilteredMapID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTextureParameteri(m_PrefilteredMapID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTextureParameteri(m_PrefilteredMapID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTextureParameteri(m_PrefilteredMapID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            for (int i = 0; i < 6; ++i)
+            {
+                for (int j = 0; j < 1 + floor(log2(std::max(m_PrefilteredMapResolution, m_PrefilteredMapResolution))); ++j)
+                {
+                    int width = m_PrefilteredMapResolution >> j;
+                    int height = m_PrefilteredMapResolution >> j;
+
+                    glTextureSubImage3D(m_PrefilteredMapID, j, 0, 0, i, width, height, 1, GL_RGB, GL_FLOAT, prefilteredMapData.data());
+                }
+            }
+            archive(cereal::base_class<Texture>(this));
         }
 
-        template <class Archive>
+/*         template <class Archive>
         static void load_and_construct(Archive& data, cereal::construct<Cubemap>& construct)
         {
-             construct();
-
-            data(construct->m_Properties, construct->m_Data, construct->m_HDRData, construct->m_Width, construct->m_Height,
-                 cereal::base_class<Texture>(construct.ptr()));
-
-            const ImageFormat& format = construct->m_Properties.Format;
-            if (format == ImageFormat::R8 || format == ImageFormat::RG8 || format == ImageFormat::RGB8 || format == ImageFormat::RGBA8)
-            {
-                construct->LoadStandardFromData(construct->m_Data);
-            }
-            else
-            {
-                construct->LoadHDRFromData(construct->m_HDRData);
-            } 
         } */
 
     private:
         TextureProperties m_Properties;
-        //std::vector<std::vector<std::vector<float>>> m_HDRData; // m_HDRData[faceIndex][mipLevel][pixelIndex]
+        
         uint32_t m_CubeMapID;
         uint32_t m_IrradianceMapID;
         uint32_t m_PrefilteredMapID;
 
-        uint32_t IrradianceMapResolution = 32;
-        uint32_t PrefilteredMapResolution = 128;
+        uint32_t m_IrradianceMapResolution = 32;
+        uint32_t m_PrefilteredMapResolution = 128;
+        
+        // common variables for map generation
+        uint32_t fbo, rbo;
+        static Ref<Mesh> m_CubeMesh;
     };
 
 }

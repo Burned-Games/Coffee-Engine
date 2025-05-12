@@ -317,6 +317,18 @@ namespace Coffee {
         glTextureParameterf(m_textureID, GL_TEXTURE_MAX_ANISOTROPY, 16.0f);
     }
 
+    static glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+    static glm::mat4 captureViews[6] = {
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.5f, 1.f), glm::vec3(1.f, -1.f, -1.f)),
+        glm::lookAt(glm::vec3(2.f, -2.f, -2.f), glm::vec3(-2.f, -2.f, -2.f), glm::vec3(-2.f, -2.f, -2.f)),
+        glm::lookAt(glm::vec3(-2.f, -2.f, -2.f), glm::vec3(-2.f, -2.f, -2.f), glm::vec3(-2.f, -2.f, -2.f))
+    };
+
+    Ref<Mesh> Cubemap::m_CubeMesh;
+
     Cubemap::Cubemap()
         : Texture(ResourceType::Cubemap)
     {
@@ -422,16 +434,12 @@ namespace Coffee {
         glTextureStorage2D(equirectTextureID, 1, GL_RGB32F, width, height);
         glTextureSubImage2D(equirectTextureID, 0, 0, 0, width, height, GL_RGB, GL_FLOAT, data);
         
-        // Create a framebuffer to render the cubemap
-        
         // Resolution of the cubemap faces
         int cubemapFaceSize = width / 4;
 
         m_Properties.Width = cubemapFaceSize;
         m_Properties.Height = cubemapFaceSize;
 
-        // TODO: rewrite this to reuse the framebuffer for the irradiance map
-        uint32_t fbo, rbo;
         glCreateFramebuffers(1, &fbo);
         glCreateRenderbuffers(1, &rbo);
         glNamedRenderbufferStorage(rbo, GL_DEPTH_COMPONENT24, cubemapFaceSize, cubemapFaceSize);
@@ -455,19 +463,8 @@ namespace Coffee {
         glTextureParameteri(m_CubeMapID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTextureParameteri(m_CubeMapID, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-        glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-        glm::mat4 captureViews[] = 
-        {
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
-        };
-
         static Ref<Shader> shader = CreateRef<Shader>("EquirectangularToCubemap", equirectToCubemapSource);
-        static Ref<Mesh> cube = PrimitiveMesh::CreateCube({-1.0f, -1.0f, -1.0f});
+        m_CubeMesh = PrimitiveMesh::CreateCube({-1.0f, -1.0f, -1.0f});
 
         shader->Bind();
         shader->setMat4("projection", captureProjection);
@@ -482,55 +479,36 @@ namespace Coffee {
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, m_CubeMapID, 0);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            cube->GetVertexArray()->Bind();
-            glDrawElements(GL_TRIANGLES, cube->GetVertexArray()->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, 0);
+            m_CubeMesh->GetVertexArray()->Bind();
+            glDrawElements(GL_TRIANGLES, m_CubeMesh->GetVertexArray()->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, 0);
         }
 
         glGenerateTextureMipmap(m_CubeMapID);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
         glDeleteTextures(1, &equirectTextureID);
-        glDeleteFramebuffers(1, &fbo);
-        glDeleteRenderbuffers(1, &rbo);
     }
 
     void Cubemap::GenerateIrradianceMap()
     {
         glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_IrradianceMapID);
-        glTextureStorage2D(m_IrradianceMapID, 1, GL_RGB32F, IrradianceMapResolution, IrradianceMapResolution);
+        glTextureStorage2D(m_IrradianceMapID, 1, GL_RGB32F, m_IrradianceMapResolution, m_IrradianceMapResolution);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        // TODO: rewrite this to reuse the framebuffer for the equirect map
-        uint32_t fbo, rbo;
-        glCreateFramebuffers(1, &fbo);
-        glCreateRenderbuffers(1, &rbo);
-        glNamedRenderbufferStorage(rbo, GL_DEPTH_COMPONENT24, IrradianceMapResolution, IrradianceMapResolution);
-        glNamedFramebufferRenderbuffer(fbo, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
-
-        glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-        glm::mat4 captureViews[] = 
-        {
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
-        };
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+        glNamedRenderbufferStorage(rbo, GL_DEPTH_COMPONENT24, m_IrradianceMapResolution, m_IrradianceMapResolution);
 
         static Ref<Shader> irradianceShader = CreateRef<Shader>("IrradianceConvolution", irradianceConvolutionSource);
-        static Ref<Mesh> cube = PrimitiveMesh::CreateCube({-1.0f, -1.0f, -1.0f});
 
         irradianceShader->Bind();
         irradianceShader->setInt("environmentMap", 0);
         irradianceShader->setMat4("projection", captureProjection);
         glBindTextureUnit(0, m_CubeMapID);
 
-        glViewport(0, 0, IrradianceMapResolution, IrradianceMapResolution);
+        glViewport(0, 0, m_IrradianceMapResolution, m_IrradianceMapResolution);
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
         for (uint32_t i = 0; i < 6; ++i)
         {
@@ -538,12 +516,9 @@ namespace Coffee {
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, m_IrradianceMapID, 0);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            cube->GetVertexArray()->Bind();
-            glDrawElements(GL_TRIANGLES, cube->GetVertexArray()->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, 0);
+            m_CubeMesh->GetVertexArray()->Bind();
+            glDrawElements(GL_TRIANGLES, m_CubeMesh->GetVertexArray()->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, 0);
         }
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDeleteFramebuffers(1, &fbo);
-        glDeleteRenderbuffers(1, &rbo);
     }
 
     void Cubemap::GeneratePrefilteredMap()
@@ -551,32 +526,18 @@ namespace Coffee {
         unsigned int maxMipLevels = 5;
 
         glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_PrefilteredMapID);
-        glTextureStorage2D(m_PrefilteredMapID, maxMipLevels, GL_RGB32F, PrefilteredMapResolution, PrefilteredMapResolution);
+        glTextureStorage2D(m_PrefilteredMapID, maxMipLevels, GL_RGB32F, m_PrefilteredMapResolution, m_PrefilteredMapResolution);
         glTextureParameteri(m_PrefilteredMapID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTextureParameteri(m_PrefilteredMapID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTextureParameteri(m_PrefilteredMapID, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
         glTextureParameteri(m_PrefilteredMapID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTextureParameteri(m_PrefilteredMapID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        uint32_t fbo, rbo;
-        glCreateFramebuffers(1, &fbo);
-        glCreateRenderbuffers(1, &rbo);
-        glNamedRenderbufferStorage(rbo, GL_DEPTH_COMPONENT24, PrefilteredMapResolution, PrefilteredMapResolution);
-        glNamedFramebufferRenderbuffer(fbo, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
-
-        glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-        glm::mat4 captureViews[] = 
-        {
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
-        };
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+        glNamedRenderbufferStorage(rbo, GL_DEPTH_COMPONENT24, m_PrefilteredMapResolution, m_PrefilteredMapResolution);
 
         static Ref<Shader> prefilterShader = CreateRef<Shader>("PreFilterConvolution", PreFilterConvolutionSource);
-        static Ref<Mesh> cube = PrimitiveMesh::CreateCube({-1.0f, -1.0f, -1.0f});
 
         prefilterShader->Bind();
         prefilterShader->setInt("environmentMap", 0);
@@ -587,8 +548,8 @@ namespace Coffee {
         for (unsigned int mip = 0; mip < maxMipLevels; mip++)
         {
             // Resize framebuffer according to mip-level size.
-            unsigned int mipWidth = PrefilteredMapResolution * std::pow(0.5, mip);
-            unsigned int mipHeight = PrefilteredMapResolution * std::pow(0.5, mip);
+            unsigned int mipWidth = m_PrefilteredMapResolution * std::pow(0.5, mip);
+            unsigned int mipHeight = m_PrefilteredMapResolution * std::pow(0.5, mip);
             glBindRenderbuffer(GL_RENDERBUFFER, rbo);
             glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
             glViewport(0, 0, mipWidth, mipHeight);
@@ -601,8 +562,8 @@ namespace Coffee {
                 glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, m_PrefilteredMapID, mip);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                cube->GetVertexArray()->Bind();
-                glDrawElements(GL_TRIANGLES, cube->GetVertexArray()->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, 0);
+                m_CubeMesh->GetVertexArray()->Bind();
+                glDrawElements(GL_TRIANGLES, m_CubeMesh->GetVertexArray()->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, 0);
             }
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
