@@ -2599,6 +2599,7 @@ namespace Coffee
                             ImGui::DragFloat3("##ParticleDirectionRandom", glm::value_ptr(emitter->directionRandom),
                                               0.1f, -1.0f, 1.0f);
                         }
+                        if (emitter->goCenter)
                         {
                             ImGui::PopItemFlag();
                             ImGui::PopStyleColor();

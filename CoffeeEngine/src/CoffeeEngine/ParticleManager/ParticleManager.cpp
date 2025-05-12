@@ -85,6 +85,7 @@ namespace Coffee
 
         if (shape != ShapeType::Cone)
         {
+            if (goCenter)
             {
                 glm::vec3 localCenter = glm::vec3(0.0f);
                 glm::vec3 dirLocal = glm::normalize(localCenter - startPos);
