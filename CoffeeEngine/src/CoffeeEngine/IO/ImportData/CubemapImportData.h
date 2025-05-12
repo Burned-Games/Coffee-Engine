@@ -9,10 +9,7 @@ namespace Coffee
 
     struct CubemapImportData : public ImportData
     {
-        CubemapImportData() : ImportData(ResourceType::Cubemap)
-        {
-            cache = false;
-        }
+        CubemapImportData() : ImportData(ResourceType::Cubemap) {}
 
         template <typename Archive> void serialize(Archive& archive, std::uint32_t const version)
         {

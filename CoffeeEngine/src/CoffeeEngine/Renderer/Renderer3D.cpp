@@ -70,6 +70,8 @@ namespace Coffee {
 
         s_ToneMappingShader = CreateRef<Shader>("ToneMappingShader", std::string(toneMappingShaderSource));
         s_FinalPassShader = CreateRef<Shader>("FinalPassShader", std::string(finalPassShaderSource));
+
+        GenerateBRDFLUT();
     }
 
     void Renderer3D::Shutdown()
