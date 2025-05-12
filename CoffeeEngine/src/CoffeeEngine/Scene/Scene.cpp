@@ -566,7 +566,7 @@ namespace Coffee {
         }
 
         // Debug Draw
-        if (m_SceneDebugFlags.ShowOctree) m_Octree->DebugDraw();
+        // if (m_SceneDebugFlags.ShowOctree) m_Octree->DebugDraw();
         if (m_SceneDebugFlags.ShowColliders) m_PhysicsWorld.drawCollisionShapes();
         if (m_SceneDebugFlags.ShowNavMesh) {
             auto navMeshViewDebug = m_Registry.view<ActiveComponent, NavMeshComponent>();
