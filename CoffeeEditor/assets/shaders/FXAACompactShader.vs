@@ -1,5 +1,5 @@
+// Simple passthrough vertex shader
 #[vertex]
-
 #version 450 core
 layout (location = 0) in vec3 aPosition;
 layout (location = 1) in vec2 aTexCoord;
@@ -12,73 +12,12 @@ void main()
     gl_Position = vec4(aPosition.x, aPosition.y, 0.0, 1.0);
 }
 
+// FXAA shader based on https://github.com/hghdev/NVIDIAGameWorks-GraphicsSamples/blob/master/samples/es3-kepler/FXAA/assets/shaders/FXAA_Default.frag
 #[fragment]
-
 #version 450 core
 #extension GL_ARB_gpu_shader5 : enable
 
-#define FXAA_PC 1
-#define FXAA_GLSL_130 1
-#define FXAA_QUALITY__PRESET 12
-
-//#define FXAA_GREEN_AS_LUMA 1
-
-// FXAA shader sourced from https://github.com/hghdev/NVIDIAGameWorks-GraphicsSamples/blob/master/samples/es3-kepler/FXAA/assets/shaders/FXAA_Default.frag
-
-/*--------------------------------------------------------------------------*/
-#ifndef FXAA_PC_CONSOLE
-    //
-    // The console algorithm for PC is included
-    // for developers targeting really low spec machines.
-    // Likely better to just run FXAA_PC, and use a really low preset.
-    //
-    #define FXAA_PC_CONSOLE 0
-#endif
-/*--------------------------------------------------------------------------*/
-#ifndef FXAA_GLSL_120
-    #define FXAA_GLSL_120 0
-#endif
-/*--------------------------------------------------------------------------*/
-#ifndef FXAA_GLSL_130
-    #define FXAA_GLSL_130 0
-#endif
-/*--------------------------------------------------------------------------*/
-#ifndef FXAA_HLSL_3
-    #define FXAA_HLSL_3 0
-#endif
-/*--------------------------------------------------------------------------*/
-#ifndef FXAA_HLSL_4
-    #define FXAA_HLSL_4 0
-#endif
-/*--------------------------------------------------------------------------*/
-#ifndef FXAA_HLSL_5
-    #define FXAA_HLSL_5 0
-#endif
-/*==========================================================================*/
-#ifndef FXAA_GREEN_AS_LUMA
-    //
-    // For those using non-linear color,
-    // and either not able to get luma in alpha, or not wanting to,
-    // this enables FXAA to run using green as a proxy for luma.
-    // So with this enabled, no need to pack luma in alpha.
-    //
-    // This will turn off AA on anything which lacks some amount of green.
-    // Pure red and blue or combination of only R and B, will get no AA.
-    //
-    // Might want to lower the settings for both,
-    //    fxaaConsoleEdgeThresholdMin
-    //    fxaaQualityEdgeThresholdMin
-    // In order to insure AA does not get turned off on colors
-    // which contain a minor amount of green.
-    //
-    // 1 = On.
-    // 0 = Off.
-    //
-    #define FXAA_GREEN_AS_LUMA 0
-#endif
-/*--------------------------------------------------------------------------*/
-#ifndef FXAA_EARLY_EXIT
-    //
+    // EARLY EXIT
     // Controls algorithm's early exit path.
     // On PS3 turning this ON adds 2 cycles to the shader.
     // On 360 turning this OFF adds 10ths of a millisecond to the shader.
@@ -89,41 +28,7 @@ void main()
     // 0 = Off.
     //
     #define FXAA_EARLY_EXIT 1
-#endif
-/*--------------------------------------------------------------------------*/
-#ifndef FXAA_DISCARD
-    //
-    // Only valid for PC OpenGL currently.
-    // Probably will not work when FXAA_GREEN_AS_LUMA = 1.
-    //
-    // 1 = Use discard on pixels which don't need AA.
-    //     For APIs which enable concurrent TEX+ROP from same surface.
-    // 0 = Return unchanged color on pixels which don't need AA.
-    //
-    #define FXAA_DISCARD 0
-#endif
-/*--------------------------------------------------------------------------*/
-#ifndef FXAA_FAST_PIXEL_OFFSET
-    //
-    // Used for GLSL 120 only.
-    //
-    // 1 = GL API supports fast pixel offsets
-    // 0 = do not use fast pixel offsets
-    //
-    #ifdef GL_EXT_gpu_shader4
-        #define FXAA_FAST_PIXEL_OFFSET 1
-    #endif
-    #ifdef GL_NV_gpu_shader5
-        #define FXAA_FAST_PIXEL_OFFSET 1
-    #endif
-    #ifdef GL_ARB_gpu_shader5
-        #define FXAA_FAST_PIXEL_OFFSET 1
-    #endif
-    #ifndef FXAA_FAST_PIXEL_OFFSET
-        #define FXAA_FAST_PIXEL_OFFSET 0
-    #endif
-#endif
-/*--------------------------------------------------------------------------*/
+
 #ifndef FXAA_GATHER4_ALPHA
     //
     // 1 = API supports gather4 on alpha channel.
@@ -142,7 +47,6 @@ void main()
         #define FXAA_GATHER4_ALPHA 0
     #endif
 #endif
-
 
 /*============================================================================
                         FXAA QUALITY - TUNING KNOBS
@@ -377,14 +281,8 @@ NOTE the other tuning knobs are now in the shader function inputs!
     #define FXAA_QUALITY__P11 8.0
 #endif
 
+// API porting to GLSL
 
-
-/*============================================================================
-
-                                API PORTING
-
-============================================================================*/
-#if (FXAA_GLSL_120 == 1) || (FXAA_GLSL_130 == 1)
     #define FxaaBool bool
     #define FxaaDiscard discard
     #define FxaaFloat float
@@ -398,42 +296,8 @@ NOTE the other tuning knobs are now in the shader function inputs!
     #define FxaaInt2 ivec2
     #define FxaaSat(x) clamp(x, 0.0, 1.0)
     #define FxaaTex sampler2D
-#else
-    #define FxaaBool bool
-    #define FxaaDiscard clip(-1)
-    #define FxaaFloat float
-    #define FxaaFloat2 float2
-    #define FxaaFloat3 float3
-    #define FxaaFloat4 float4
-    #define FxaaHalf half
-    #define FxaaHalf2 half2
-    #define FxaaHalf3 half3
-    #define FxaaHalf4 half4
-    #define FxaaSat(x) saturate(x)
-#endif
-/*--------------------------------------------------------------------------*/
-#if (FXAA_GLSL_120 == 1)
-    // Requires,
-    //  #version 120
-    // And at least,
-    //  #extension GL_EXT_gpu_shader4 : enable
-    //  (or set FXAA_FAST_PIXEL_OFFSET 1 to work like DX9)
-    #define FxaaTexTop(t, p) texture2DLod(t, p, 0.0)
-    #if (FXAA_FAST_PIXEL_OFFSET == 1)
-        #define FxaaTexOff(t, p, o, r) texture2DLodOffset(t, p, 0.0, o)
-    #else
-        #define FxaaTexOff(t, p, o, r) texture2DLod(t, p + (o * r), 0.0)
-    #endif
-    #if (FXAA_GATHER4_ALPHA == 1)
-        // use #extension GL_ARB_gpu_shader5 : enable
-        #define FxaaTexAlpha4(t, p) textureGather(t, p, 3)
-        #define FxaaTexOffAlpha4(t, p, o) textureGatherOffset(t, p, o, 3)
-        #define FxaaTexGreen4(t, p) textureGather(t, p, 1)
-        #define FxaaTexOffGreen4(t, p, o) textureGatherOffset(t, p, o, 1)
-    #endif
-#endif
-/*--------------------------------------------------------------------------*/
-#if (FXAA_GLSL_130 == 1)
+
+// GLSL function macros
     // Requires "#version 130" or better
     #define FxaaTexTop(t, p) textureLod(t, p, 0.0)
     #define FxaaTexOff(t, p, o, r) textureLodOffset(t, p, 0.0, o)
@@ -444,51 +308,17 @@ NOTE the other tuning knobs are now in the shader function inputs!
         #define FxaaTexGreen4(t, p) textureGather(t, p, 1)
         #define FxaaTexOffGreen4(t, p, o) textureGatherOffset(t, p, o, 1)
     #endif
-#endif
-/*--------------------------------------------------------------------------*/
-#if (FXAA_HLSL_3 == 1) || (FXAA_360 == 1) || (FXAA_PS3 == 1)
-    #define FxaaInt2 float2
-    #define FxaaTex sampler2D
-    #define FxaaTexTop(t, p) tex2Dlod(t, float4(p, 0.0, 0.0))
-    #define FxaaTexOff(t, p, o, r) tex2Dlod(t, float4(p + (o * r), 0, 0))
-#endif
-/*--------------------------------------------------------------------------*/
-#if (FXAA_HLSL_4 == 1)
-    #define FxaaInt2 int2
-    struct FxaaTex { SamplerState smpl; Texture2D tex; };
-    #define FxaaTexTop(t, p) t.tex.SampleLevel(t.smpl, p, 0.0)
-    #define FxaaTexOff(t, p, o, r) t.tex.SampleLevel(t.smpl, p, 0.0, o)
-#endif
-/*--------------------------------------------------------------------------*/
-#if (FXAA_HLSL_5 == 1)
-    #define FxaaInt2 int2
-    struct FxaaTex { SamplerState smpl; Texture2D tex; };
-    #define FxaaTexTop(t, p) t.tex.SampleLevel(t.smpl, p, 0.0)
-    #define FxaaTexOff(t, p, o, r) t.tex.SampleLevel(t.smpl, p, 0.0, o)
-    #define FxaaTexAlpha4(t, p) t.tex.GatherAlpha(t.smpl, p)
-    #define FxaaTexOffAlpha4(t, p, o) t.tex.GatherAlpha(t.smpl, p, o)
-    #define FxaaTexGreen4(t, p) t.tex.GatherGreen(t.smpl, p)
-    #define FxaaTexOffGreen4(t, p, o) t.tex.GatherGreen(t.smpl, p, o)
-#endif
 
+// Green as luma
 
-/*============================================================================
-                   GREEN AS LUMA OPTION SUPPORT FUNCTION
-============================================================================*/
 #if (FXAA_GREEN_AS_LUMA == 0)
     FxaaFloat FxaaLuma(FxaaFloat4 rgba) { return rgba.w; }
 #else
     FxaaFloat FxaaLuma(FxaaFloat4 rgba) { return rgba.y; }
 #endif
 
+//Actual shader starts here (TODO finish filtering out unneeded preprocessor directives for Coffee Engine)
 
-
-
-/*============================================================================
-
-                             FXAA3 QUALITY - PC
-
-============================================================================*/
 #if (FXAA_PC == 1)
 /*--------------------------------------------------------------------------*/
 FxaaFloat4 FxaaPixelShader(
