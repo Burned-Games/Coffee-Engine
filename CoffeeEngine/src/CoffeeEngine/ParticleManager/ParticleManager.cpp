@@ -85,8 +85,16 @@ namespace Coffee
 
         if (shape != ShapeType::Cone)
         {
-            glm::vec3 worldDirection = useDirectionRandom ? glm::linearRand(direction, directionRandom) : direction;
-            particle->direction = glm::vec3(transformComponentMatrix * glm::vec4(worldDirection, 0));
+            {
+                glm::vec3 localCenter = glm::vec3(0.0f);
+                glm::vec3 dirLocal = glm::normalize(localCenter - startPos);
+                particle->direction = dirLocal; // <- En espacio local, sin transformar
+            }
+            else
+            {
+                glm::vec3 worldDirection = useDirectionRandom ? glm::linearRand(direction, directionRandom) : direction;
+                particle->direction = glm::vec3(transformComponentMatrix * glm::vec4(worldDirection, 0));
+            }
         }
         else
         {
@@ -99,7 +107,6 @@ namespace Coffee
                                                      glm::linearRand(-1.0f, 1.0f)));
             } while (glm::dot(direction, glm::vec3(0, 1, 0)) < cosAngle); 
             particle->direction = glm::vec3(transformComponentMatrix * glm::vec4(direction,0));
-
         }
 
         particle->localPosition = startPos;
