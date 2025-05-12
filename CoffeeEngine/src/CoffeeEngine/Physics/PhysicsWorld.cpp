@@ -138,7 +138,7 @@ namespace Coffee {
                 if (!cylinderShape)
                     continue;
             
-                const btVector3 halfExtents = cylinderShape->getHalfExtentsWithoutMargin();
+                const btVector3 halfExtents = cylinderShape->getHalfExtentsWithMargin();
                 float radius = halfExtents.x() + margin; // x and z are equal for Y-axis cylinder
                 float height = (halfExtents.y() + margin) * 2.0f;
             
