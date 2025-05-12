@@ -230,6 +230,13 @@ namespace Coffee {
     {
         Entity newEntity = CreateEntity(sourceEntity.GetComponent<TagComponent>().Tag);
         CopyEntity<ALL_COMPONENTS>(newEntity, sourceEntity, m_Registry);
+
+        if (newEntity.HasComponent<ParticlesSystemComponent>())
+        {
+            Ref<ParticleEmitter> sourcePS = sourceEntity.GetComponent<ParticlesSystemComponent>().GetParticleEmitter();
+            newEntity.GetComponent<ParticlesSystemComponent>().SetParticleEmitter(
+                CreateRef<ParticleEmitter>(*sourcePS));
+        }
         
         if (parentEntity)
             newEntity.SetParent(*parentEntity);

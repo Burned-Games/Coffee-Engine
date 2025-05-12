@@ -425,7 +425,7 @@ namespace Coffee
         }
 
 
-template <class Archive> void load(Archive& archive, const std::uint32_t& version) 
+        template <class Archive> void load(Archive& archive, const std::uint32_t& version) 
         {
 
             if (version == 0)
