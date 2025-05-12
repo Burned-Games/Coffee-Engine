@@ -518,10 +518,12 @@ namespace Coffee {
 
         if (s_RenderSettings.FXAA)
         {
+
             s_FXAAShader->Bind();
-            s_FXAAShader->setInt("screenTexture", 0);
+            s_FXAAShader->setInt("screenTexture", 0); // TODO set screen texture to sampler
             s_FXAAShader->setVec2("RCPFrame", {1/postBuffer->GetWidth(), 1/postBuffer->GetHeight()});
 
+            RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
             s_FXAAShader->Unbind();
         }
 

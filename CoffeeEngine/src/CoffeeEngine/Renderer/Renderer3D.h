@@ -83,7 +83,7 @@ namespace Coffee {
     {
         bool SSAO = false; ///< Enable or disable SSAO.
         bool Bloom = false; ///< Enable or disable bloom.
-        bool FXAA = false; ///< Enable or disable FXAA.
+        bool FXAA = true; ///< Enable or disable FXAA.
         float Exposure = 1.0f; ///< Exposure value.
 
         // REMOVE: This is for the first release of the engine it should be handled differently
