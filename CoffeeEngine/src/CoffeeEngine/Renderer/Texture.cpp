@@ -294,7 +294,7 @@ namespace Coffee {
 
     void Texture2D::InitializeTexture2D()
     {
-        int mipLevels = 1 + floor(log2(std::max(m_Width, m_Height)));
+        int mipLevels = m_Properties.GenerateMipmaps ? 1 + floor(log2(std::max(m_Width, m_Height))) : 1;
 
         GLenum internalFormat = ImageFormatToOpenGLInternalFormat(m_Properties.Format);
         GLenum format = ImageFormatToOpenGLFormat(m_Properties.Format);
