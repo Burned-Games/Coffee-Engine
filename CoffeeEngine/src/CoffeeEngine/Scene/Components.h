@@ -640,6 +640,20 @@ namespace Coffee
 
         WorldEnvironmentComponent() = default;
         WorldEnvironmentComponent(const WorldEnvironmentComponent&) = default;
+
+
+        template <class Archive> void save(Archive& archive, std::uint32_t const version) const
+        {
+            if (Skybox)
+                archive(cereal::make_nvp("Skybox", Skybox->GetUUID()));
+        }
+
+        template <class Archive> void load(Archive& archive, std::uint32_t const version)
+        {
+            UUID skyboxUUID;
+            archive(cereal::make_nvp("Skybox", skyboxUUID));
+            this->Skybox = ResourceLoader::GetResource<Cubemap>(skyboxUUID);;
+        }
     };
 
     struct AudioSourceComponent

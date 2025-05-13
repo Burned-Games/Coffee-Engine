@@ -800,6 +800,16 @@ namespace Coffee
             }
         }
 
+        if (entity.HasComponent<WorldEnvironmentComponent>())
+        {
+            auto& worldEnvironmentComponent = entity.GetComponent<WorldEnvironmentComponent>();
+            bool isCollapsingHeaderOpen = true;
+            if (ImGui::CollapsingHeader("World Environment", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::Text("Test");
+            }
+        }
+
         if (entity.HasComponent<MeshComponent>())
         {
             auto& meshComponent = entity.GetComponent<MeshComponent>();
@@ -3175,7 +3185,7 @@ namespace Coffee
             static char buffer[256] = "";
             ImGui::InputTextWithHint("##Search Component", "Search Component:", buffer, 256);
 
-            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "Particles System Component", "NavMesh Component", "Navigation Agent Component", "Sprite Component", "UI Empty Component","UI Image Component", "UI Text Component", "UI Toggle Component", "UI Button Component", "UI Slider Component" };
+            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "World Environment Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "Particles System Component", "NavMesh Component", "Navigation Agent Component", "Sprite Component", "UI Empty Component","UI Image Component", "UI Text Component", "UI Toggle Component", "UI Button Component", "UI Slider Component" };
 
             static int item_current = 1;
 
@@ -3238,6 +3248,11 @@ namespace Coffee
                         entity.AddComponent<LightComponent>();
                     ImGui::CloseCurrentPopup();
                 }
+                else if (items[item_current] == "World Environment Component") {
+                    if (!entity.HasComponent<WorldEnvironmentComponent>())
+                        entity.AddComponent<WorldEnvironmentComponent>();
+                    ImGui::CloseCurrentPopup();
+                }
                 else if (items[item_current] == "Camera Component")
                 {
                     if (!entity.HasComponent<CameraComponent>())
@@ -3296,7 +3311,7 @@ namespace Coffee
                         ImGui::CloseCurrentPopup();
                     }
                 }  
-                else if(items[item_current] == "Rigidbody Component")
+                else if (items[item_current] == "Rigidbody Component")
                 {
                     if(!entity.HasComponent<RigidbodyComponent>())
                     {
@@ -3334,7 +3349,7 @@ namespace Coffee
                 
                     ImGui::CloseCurrentPopup();
                 }
-                else if(items[item_current] == "NavMesh Component")
+                else if (items[item_current] == "NavMesh Component")
                 {
                     if(!entity.HasComponent<NavMeshComponent>() && entity.HasComponent<MeshComponent>() && entity.HasComponent<TransformComponent>())
                     {
@@ -3345,7 +3360,7 @@ namespace Coffee
 
                     ImGui::CloseCurrentPopup();
                 }
-                else if(items[item_current] == "Navigation Agent Component")
+                else if (items[item_current] == "Navigation Agent Component")
                 {
                     if(!entity.HasComponent<NavigationAgentComponent>())
                     {
