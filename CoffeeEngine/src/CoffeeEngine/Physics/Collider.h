@@ -49,7 +49,7 @@ namespace Coffee {
                 switch (shapeType) {
                     case BOX_SHAPE_PROXYTYPE: {
                         auto* boxShape = static_cast<btBoxShape*>(shape);
-                        btVector3 halfExtents = boxShape->getHalfExtentsWithoutMargin();
+                        btVector3 halfExtents = boxShape->getHalfExtentsWithMargin();
                         glm::vec3 size(halfExtents.x(), halfExtents.y(), halfExtents.z());
                         archive(cereal::make_nvp("Size", size));
                         break;
@@ -79,7 +79,7 @@ namespace Coffee {
                     case CYLINDER_SHAPE_PROXYTYPE: {
                         auto* cylinderShape = static_cast<btCylinderShape*>(shape);
                         float radius = cylinderShape->getRadius();
-                        float height = cylinderShape->getHalfExtentsWithoutMargin().y() * 2.0f;
+                        float height = cylinderShape->getHalfExtentsWithMargin().y();
                         archive(cereal::make_nvp("Radius", radius));
                         archive(cereal::make_nvp("Height", height));
                         break;
@@ -174,7 +174,7 @@ namespace Coffee {
 
             if (m_Shape && m_Shape->getShapeType() == BOX_SHAPE_PROXYTYPE) {
                 const auto* boxShape = static_cast<btBoxShape*>(m_Shape);
-                const btVector3 halfExtents = boxShape->getHalfExtentsWithoutMargin();
+                const btVector3 halfExtents = boxShape->getHalfExtentsWithMargin();
                 m_Size = glm::vec3(halfExtents.x() * 2.0f, halfExtents.y() * 2.0f, halfExtents.z() * 2.0f);
             }
         }
@@ -407,7 +407,7 @@ namespace Coffee {
             if (m_Shape && m_Shape->getShapeType() == CYLINDER_SHAPE_PROXYTYPE) {
                 const auto* cylinderShape = static_cast<btCylinderShape*>(m_Shape);
                 m_Radius = cylinderShape->getRadius();
-                m_Height = cylinderShape->getHalfExtentsWithoutMargin().y() * 2.0f;
+                m_Height = cylinderShape->getHalfExtentsWithMargin().y();
             }
         }
     };
