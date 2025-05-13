@@ -614,7 +614,12 @@ namespace Coffee
 
     struct WorldEnvironmentComponent
     {
+        // Skybox
         Ref<Cubemap> Skybox; ///< The skybox reference.
+        float SkyboxIntensity = 1.0f; ///< The exposure of the skybox.
+        
+        // Tonemapping
+        float TonemappingExposure = 1.0f; ///< The exposure for tonemapping.
 
         // Mockup
         bool Fog = false;                        ///< Flag to enable fog.
@@ -646,6 +651,8 @@ namespace Coffee
         {
             if (Skybox)
                 archive(cereal::make_nvp("Skybox", Skybox->GetUUID()));
+
+            archive(cereal::make_nvp("SkyboxIntensity", SkyboxIntensity));
         }
 
         template <class Archive> void load(Archive& archive, std::uint32_t const version)
@@ -653,6 +660,7 @@ namespace Coffee
             UUID skyboxUUID;
             archive(cereal::make_nvp("Skybox", skyboxUUID));
             this->Skybox = ResourceLoader::GetResource<Cubemap>(skyboxUUID);;
+            archive(cereal::make_nvp("SkyboxIntensity", SkyboxIntensity));
         }
     };
 

@@ -390,8 +390,9 @@ namespace Coffee {
         auto cubemapView = m_Registry.view<WorldEnvironmentComponent>();
         if (!cubemapView.empty<WorldEnvironmentComponent>())
         {
-            auto& firstWolrdEnv = cubemapView.get<WorldEnvironmentComponent>(cubemapView.front());
-            Renderer3D::SetEnvironmentMap(firstWolrdEnv.Skybox);
+            auto& firstWorldEnv = cubemapView.get<WorldEnvironmentComponent>(cubemapView.front());
+            Renderer3D::SetEnvironmentMap(firstWorldEnv.Skybox);
+            Renderer3D::GetRenderSettings().EnvironmentExposure = firstWorldEnv.SkyboxIntensity;
         }
 
         // TEMPORAL - Navigation
@@ -548,8 +549,9 @@ namespace Coffee {
         auto cubemapView = m_Registry.view<WorldEnvironmentComponent>();
         if (!cubemapView.empty<WorldEnvironmentComponent>())
         {
-            auto& firstWolrdEnv = cubemapView.get<WorldEnvironmentComponent>(cubemapView.front());
-            Renderer3D::SetEnvironmentMap(firstWolrdEnv.Skybox);
+            auto& firstWorldEnv = cubemapView.get<WorldEnvironmentComponent>(cubemapView.front());
+            Renderer3D::SetEnvironmentMap(firstWorldEnv.Skybox);
+            Renderer3D::GetRenderSettings().EnvironmentExposure = firstWorldEnv.SkyboxIntensity;
         }
 
         Camera* camera = nullptr;

@@ -385,6 +385,7 @@ namespace Coffee {
         s_RendererData.EnvironmentMap->Bind(0);
         s_SkyboxShader->Bind();
         s_SkyboxShader->setInt("skybox", 0);
+        s_SkyboxShader->setFloat("exposure", s_RenderSettings.EnvironmentExposure);
         RendererAPI::DrawIndexed(s_CubeMesh->GetVertexArray());
         RendererAPI::SetDepthMask(true);
 

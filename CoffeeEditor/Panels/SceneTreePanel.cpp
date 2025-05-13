@@ -7,6 +7,7 @@
 #include "CoffeeEngine/Renderer/Camera.h"
 #include "CoffeeEngine/Renderer/Material.h"
 #include "CoffeeEngine/Renderer/Model.h"
+#include "CoffeeEngine/Renderer/Renderer3D.h"
 #include "CoffeeEngine/Renderer/Texture.h"
 #include "CoffeeEngine/Scene/Components.h"
 #include "CoffeeEngine/Scene/Entity.h"
@@ -876,7 +877,22 @@ namespace Coffee
 
             if (ImGui::CollapsingHeader("World Environment", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
-                DrawTextureWidget("##Cubemap", worldEnvironmentComponent.Skybox);
+                if(ImGui::TreeNode("Sky"))
+                {
+                    DrawTextureWidget("##Cubemap", worldEnvironmentComponent.Skybox);
+                    ImGui::Text("Skybox Intensity");
+                    ImGui::SameLine();
+                    float intensityPlaceholder = 1.0f;
+                    ImGui::DragFloat("##Skybox Intensity", /* worldEnvironmentComponent.SkyboxIntensity */&intensityPlaceholder, 0.001f, 100.0f);
+                    
+                    ImGui::TreePop();
+                }
+                if(ImGui::TreeNode("Tonemap"))
+                {
+                    ImGui::DragFloat("Exposure", &Renderer3D::GetRenderSettings().Exposure, 0.001f, 100.0f);
+
+                    ImGui::TreePop();
+                }
             }
         }
 
