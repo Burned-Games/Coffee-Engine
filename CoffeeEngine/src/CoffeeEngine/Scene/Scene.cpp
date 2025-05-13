@@ -386,6 +386,14 @@ namespace Coffee {
 
         Renderer::GetCurrentRenderTarget()->SetCamera(camera, glm::inverse(camera.GetViewMatrix()));
 
+        // TODO test change cubemap
+        auto cubemapView = m_Registry.view<WorldEnvironmentComponent>();
+        if (!cubemapView.empty<WorldEnvironmentComponent>())
+        {
+            auto& firstWolrdEnv = cubemapView.get<WorldEnvironmentComponent>(cubemapView.front());
+            Renderer3D::SetEnvironmentMap(firstWolrdEnv.Skybox);
+        }
+
         // TEMPORAL - Navigation
         auto navMeshView = m_Registry.view<ActiveComponent, NavMeshComponent>();
 
@@ -527,6 +535,13 @@ namespace Coffee {
         ZoneScoped;
 
         m_SceneTree->Update();
+
+        auto cubemapView = m_Registry.view<WorldEnvironmentComponent>();
+        if (!cubemapView.empty<WorldEnvironmentComponent>())
+        {
+            auto& firstWolrdEnv = cubemapView.get<WorldEnvironmentComponent>(cubemapView.front());
+            Renderer3D::SetEnvironmentMap(firstWolrdEnv.Skybox);
+        }
 
         Camera* camera = nullptr;
         glm::mat4 cameraTransform;

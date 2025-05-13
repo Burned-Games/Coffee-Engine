@@ -804,9 +804,79 @@ namespace Coffee
         {
             auto& worldEnvironmentComponent = entity.GetComponent<WorldEnvironmentComponent>();
             bool isCollapsingHeaderOpen = true;
+
+             auto DrawTextureWidget = [&](const std::string& label, Ref<Cubemap>& texture) {
+                 uint32_t textureID = texture ? texture->GetID() : 0;
+                 //ImGui::ImageButton(label.c_str(), (ImTextureID)textureID, {64, 64});
+                 ImGui::Text("Skybox:");
+                 //ImGui::SameLine();
+                 ImGui::Button((ICON_LC_CLOUD_SUN + std::string(" ") + (texture ? texture->GetName() : "No Cubemap")).c_str(), {128, 32});
+
+                auto textureImageFormat = [](ImageFormat format) -> std::string {
+                    switch (format)
+                    {
+                    case ImageFormat::R8:
+                        return "R8";
+                    case ImageFormat::RGB8:
+                        return "RGB8";
+                    case ImageFormat::RGBA8:
+                        return "RGBA8";
+                    case ImageFormat::SRGB8:
+                        return "SRGB8";
+                    case ImageFormat::SRGBA8:
+                        return "SRGBA8";
+                    case ImageFormat::RGBA32F:
+                        return "RGBA32F";
+                    case ImageFormat::DEPTH24STENCIL8:
+                        return "DEPTH24STENCIL8";
+                    }
+                };
+
+                if (ImGui::IsItemHovered() and texture)
+                {
+                    ImGui::SetTooltip("Name: %s\nSize: %d x %d\nPath: %s", texture->GetName().c_str(),
+                                      texture->GetWidth(), texture->GetHeight(),
+                                      // textureImageFormat(texture->GetImageFormat()).c_str(),
+                                      texture->GetPath().c_str());
+                }
+
+                if (ImGui::BeginDragDropTarget())
+                {
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("RESOURCE"))
+                    {
+                        const Ref<Resource>& resource = *(Ref<Resource>*)payload->Data;
+                        if (resource->GetType() == ResourceType::Cubemap)
+                        {
+                            const Ref<Cubemap>& t = std::static_pointer_cast<Cubemap>(resource);
+                            texture = t;
+                        }
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+
+                ImGui::SameLine();
+                if (ImGui::BeginCombo((label + "texture").c_str(), "", ImGuiComboFlags_NoPreview))
+                {
+                    if (ImGui::Selectable("Clear"))
+                    {
+                        texture = nullptr;
+                    }
+                    if (ImGui::Selectable("Open"))
+                    {
+                        std::string path = FileDialog::OpenFile({}).string();
+                        if (!path.empty())
+                        {
+                            Ref<Cubemap> t = Cubemap::Load(path);
+                            texture = t;
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+            };
+
             if (ImGui::CollapsingHeader("World Environment", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
             {
-                ImGui::Text("Test");
+                DrawTextureWidget("##Cubemap", worldEnvironmentComponent.Skybox);
             }
         }
 
@@ -875,7 +945,7 @@ namespace Coffee
 
         if (entity.HasComponent<MaterialComponent>())
         {
-            // Move this function to another site
+            // TODO Move this function to ImGuiExtras.cpp, this is duplicated in World Environment
             auto DrawTextureWidget = [&](const std::string& label, Ref<Texture2D>& texture) {
                 auto& materialComponent = entity.GetComponent<MaterialComponent>();
                 uint32_t textureID = texture ? texture->GetID() : 0;
