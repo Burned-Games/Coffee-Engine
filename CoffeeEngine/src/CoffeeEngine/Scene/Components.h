@@ -942,7 +942,7 @@ namespace Coffee
     struct ParticlesSystemComponent
     {
       public:
-        // Constructor por defecto
+        bool NeedsUpdate = true; ///< Flag to indicate if the animator needs an update.
         ParticlesSystemComponent() { m_Particles = CreateRef<ParticleEmitter>(); }
 
         Ref<ParticleEmitter> GetParticleEmitter() { return m_Particles; }
@@ -963,6 +963,8 @@ namespace Coffee
         {
             archive(cereal::make_nvp("ParticleEmitter", m_Particles));
         }
+
+
     };
 
     struct NavMeshComponent

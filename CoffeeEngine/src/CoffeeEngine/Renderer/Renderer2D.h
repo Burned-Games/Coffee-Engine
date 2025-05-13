@@ -81,6 +81,8 @@ namespace Coffee {
                                  const glm::vec4& color = glm::vec4(1.0f));
 
         static void DrawCone(glm::vec3 vec, glm::quat qua, float radius, float height, glm::vec4 vec4);
+        static void DrawTruncatedCone(glm::vec3 position, glm::quat rotation, float baseRadius, float topRadius,
+                                      float height, glm::vec4 color);
 
         enum class TextAlignment
         {

@@ -386,6 +386,14 @@ namespace Coffee {
 
         Renderer::GetCurrentRenderTarget()->SetCamera(camera, glm::inverse(camera.GetViewMatrix()));
 
+        // TODO test change cubemap
+        auto cubemapView = m_Registry.view<WorldEnvironmentComponent>();
+        if (!cubemapView.empty<WorldEnvironmentComponent>())
+        {
+            auto& firstWolrdEnv = cubemapView.get<WorldEnvironmentComponent>(cubemapView.front());
+            Renderer3D::SetEnvironmentMap(firstWolrdEnv.Skybox);
+        }
+
         // TEMPORAL - Navigation
         auto navMeshView = m_Registry.view<ActiveComponent, NavMeshComponent>();
 
@@ -463,11 +471,20 @@ namespace Coffee {
         {
             auto& particlesSystemComponent = particleSystemView.get<ParticlesSystemComponent>(entity);
             auto& transformComponent = particleSystemView.get<TransformComponent>(entity);
-
-            particlesSystemComponent.GetParticleEmitter()->transformComponentMatrix = transformComponent.GetWorldTransform();
-            particlesSystemComponent.GetParticleEmitter()->cameraViewMatrix = camera.GetViewMatrix();
-            particlesSystemComponent.GetParticleEmitter()->Update(dt);
-            particlesSystemComponent.GetParticleEmitter()->DrawDebug();
+            if (particlesSystemComponent.NeedsUpdate)
+            {
+                particlesSystemComponent.NeedsUpdate = false;
+                particlesSystemComponent.GetParticleEmitter()->transformComponentMatrix = transformComponent.GetWorldTransform();
+                particlesSystemComponent.GetParticleEmitter()->cameraViewMatrix = camera.GetViewMatrix();
+                particlesSystemComponent.GetParticleEmitter()->Update(dt);
+                particlesSystemComponent.GetParticleEmitter()->DrawDebug();
+            }
+            else {
+                Renderer2D::DrawQuad(transformComponent.GetWorldTransform(), 
+                    particlesSystemComponent.GetParticleEmitter()->particleTexture, 1, 
+                    particlesSystemComponent.GetParticleEmitter()->colorNormal, Renderer2D::RenderMode::World);
+            }
+ 
         }
 
         auto spriteView = m_Registry.view<ActiveComponent, SpriteComponent, TransformComponent>();
@@ -527,6 +544,13 @@ namespace Coffee {
         ZoneScoped;
 
         m_SceneTree->Update();
+
+        auto cubemapView = m_Registry.view<WorldEnvironmentComponent>();
+        if (!cubemapView.empty<WorldEnvironmentComponent>())
+        {
+            auto& firstWolrdEnv = cubemapView.get<WorldEnvironmentComponent>(cubemapView.front());
+            Renderer3D::SetEnvironmentMap(firstWolrdEnv.Skybox);
+        }
 
         Camera* camera = nullptr;
         glm::mat4 cameraTransform;
