@@ -631,6 +631,36 @@
              }
          }
      };
+
+     struct WorldEnvironmentComponent
+     {
+            Ref<Cubemap> Skybox; ///< The skybox reference.
+            
+            // Mockup
+            bool Fog = false; ///< Flag to enable fog.
+            glm::vec3 FogColor = { 1.0f, 1.0f, 1.0f }; ///< The color of the fog.
+            float FogDensity = 0.1f; ///< The density of the fog.
+            float FogGradient = 0.1f; ///< The gradient of the fog.
+            float FogStart = 0.0f; ///< The start distance of the fog.
+            float FogEnd = 100.0f; ///< The end distance of the fog.
+
+            // Mockup
+            bool SSAO = false; ///< Flag to enable screen space ambient occlusion.
+            float SSAORadius = 0.5f; ///< The radius of the SSAO.
+            float SSAOStrength = 1.0f; ///< The strength of the SSAO.
+            float SSAOIntensity = 1.0f; ///< The intensity of the SSAO.
+            float SSAOScale = 1.0f; ///< The scale of the SSAO.
+            float SSAOBias = 0.1f; ///< The bias of the SSAO.
+            
+            // Mockup
+            bool Bloom = false; ///< Flag to enable bloom.
+            float BloomThreshold = 1.0f; ///< The threshold of the bloom.
+            float BloomIntensity = 1.0f; ///< The intensity of the bloom.
+            float BloomRadius = 1.0f; ///< The radius of the bloom.
+
+            WorldEnvironmentComponent() = default;
+            WorldEnvironmentComponent(const WorldEnvironmentComponent&) = default;
+     };
  
      struct AudioSourceComponent
      {
