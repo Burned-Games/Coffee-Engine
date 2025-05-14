@@ -9,6 +9,15 @@ layout (location = 0) in vec3 aPosition;
 layout (location = 5) in ivec4 aBoneIDs;
 layout (location = 6) in vec4 aBoneWeights;
 
+layout (std140, binding = 0) uniform camera
+{
+    mat4 projection;
+    mat4 view;
+    vec3 cameraPos;
+};
+
+uniform bool useCameraProjView;
+
 uniform mat4 projView;
 uniform mat4 model;
 
@@ -47,7 +56,14 @@ void main()
         totalPosition = vec4(aPosition, 1.0f);
     }
 
-    gl_Position = projView * model * totalPosition;
+    vec3 worldPos = vec3(model * totalPosition);
+
+    if (useCameraProjView)
+        gl_Position = projection * view * vec4(worldPos, 1.0f);
+    else
+        gl_Position = projView * model * totalPosition;
+    
+    //gl_Position.z += 0.001f;
 }
 
 #[fragment]

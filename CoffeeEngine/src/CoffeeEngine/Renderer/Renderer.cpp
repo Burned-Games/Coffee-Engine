@@ -44,6 +44,7 @@ namespace Coffee {
 
             s_RendererData.CameraUniformBuffer->SetData(&cameraData, sizeof(CameraData));
 
+            Renderer3D::DepthPrePass(target);
             Renderer3D::ShadowPass(target);
             Renderer3D::ForwardPass(target);
             Renderer3D::SkyboxPass(target);

@@ -92,6 +92,7 @@ namespace Coffee {
 
         const auto& settings = command.material->GetRenderSettings();
 
+        // TODO: Research if the alpha cutoff should be in opaque or transparent queue
         if (settings.transparencyMode == MaterialRenderSettings::TransparencyMode::Disabled)
         {
             s_RendererData.opaqueRenderQueue.push_back(command);
@@ -132,7 +133,33 @@ namespace Coffee {
         const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
         forwardBuffer->Bind();
 
+        RendererAPI::SetColorMask(false, false, false, false);
+        RendererAPI::SetDepthMask(true);
+        RendererAPI::SetDepthFunc(DepthFunc::Less);
+        RendererAPI::Clear(ClearFlags::Depth);
 
+        depthShader->Bind();
+        depthShader->setBool("useCameraProjView", true);
+
+        for (const auto& command : s_RendererData.opaqueRenderQueue)
+        {
+            if (command.animator)
+                AnimationSystem::SetBoneTransformations(depthShader, command.animator);
+            else
+                depthShader->setBool("animated", false);
+
+            // Set the model matrix
+            depthShader->setMat4("model", command.transform);
+
+            Mesh* mesh = command.mesh.get();
+            
+            if(mesh == nullptr)
+            {
+                mesh = s_RendererData.MissingMesh.get();
+            }
+            
+            RendererAPI::DrawIndexed(mesh->GetVertexArray());
+        }
     }
 
     void Renderer3D::ShadowPass(const RenderTarget& target)
@@ -225,8 +252,12 @@ namespace Coffee {
         forwardBuffer->Bind();
         forwardBuffer->SetDrawBuffers({0, 1}); //TODO: This should only be done in the editor
 
+        RendererAPI::SetColorMask(true, true, true, true);
+        RendererAPI::SetDepthMask(false);
+        RendererAPI::SetDepthFunc(DepthFunc::LessEqual);
+
         RendererAPI::SetClearColor({0.03f,0.03f,0.03f,1.0});
-        RendererAPI::Clear();
+        RendererAPI::Clear(ClearFlags::Color);
         
         forwardBuffer->GetColorTexture("EntityID")->Clear({-1.0f,0.0f,0.0f,0.0f}); //TODO: This should only be done in the editor
 
@@ -357,14 +388,14 @@ namespace Coffee {
                     break;
             }
 
-            if (settings.depthTest)
+/*             if (settings.depthTest)
             {
                 RendererAPI::SetDepthMask(true);
             }
             else
             {
                 RendererAPI::SetDepthMask(false);
-            }
+            } */
 
             if (settings.wireframe)
             {
@@ -390,6 +421,7 @@ namespace Coffee {
         RendererAPI::SetCullFace(CullFace::Back);
         RendererAPI::SetFaceCulling(true);
         RendererAPI::SetDepthMask(true);
+        RendererAPI::SetDepthFunc(DepthFunc::Less);
         RendererAPI::SetPolygonMode(PolygonMode::Fill);
     }
 
@@ -404,12 +436,14 @@ namespace Coffee {
         forwardBuffer->SetDrawBuffers({0, 1});
 
         RendererAPI::SetDepthMask(false);
+        RendererAPI::SetDepthFunc(DepthFunc::LessEqual);
         s_RendererData.EnvironmentMap->Bind(0);
         s_SkyboxShader->Bind();
         s_SkyboxShader->setInt("skybox", 0);
         s_SkyboxShader->setFloat("exposure", s_RenderSettings.EnvironmentExposure);
         RendererAPI::DrawIndexed(s_CubeMesh->GetVertexArray());
         RendererAPI::SetDepthMask(true);
+        RendererAPI::SetDepthFunc(DepthFunc::Less);
 
         forwardBuffer->UnBind();
     }
