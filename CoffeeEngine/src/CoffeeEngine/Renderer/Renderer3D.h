@@ -130,7 +130,7 @@ namespace Coffee {
 
         static void SetEnvironmentMap(const Ref<Cubemap>& environmentMap) { s_RendererData.EnvironmentMap = environmentMap; }
         
-        //static void DepthPrePass(const RenderTarget& target);
+        static void DepthPrePass(const RenderTarget& target);
         //static void SSAOPass(const RenderTarget& target);
         static void ShadowPass(const RenderTarget& target);
         static void ForwardPass(const RenderTarget& target);
@@ -178,6 +178,8 @@ namespace Coffee {
         static Ref<Shader> s_ToneMappingShader; ///< Tone mapping shader.
         static Ref<Shader> s_FinalPassShader; ///< Final pass shader.
         static Ref<Shader> s_SkyboxShader; ///< Skybox shader.
+        static Ref<Shader> depthShader; ///< Depth shader.
+        static Ref<Shader> brdfShader; ///< BRDF shader.
     };
 
     /** @} */

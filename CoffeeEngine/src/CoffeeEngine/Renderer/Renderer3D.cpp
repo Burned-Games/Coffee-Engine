@@ -13,7 +13,7 @@
 #include "CoffeeEngine/Embedded/ToneMappingShader.inl"
 #include "CoffeeEngine/Embedded/FinalPassShader.inl"
 #include "CoffeeEngine/Embedded/MissingShader.inl"
-#include "CoffeeEngine/Embedded/ShadowShader.inl"
+#include "CoffeeEngine/Embedded/SimpleDepthShader.inl"
 #include "CoffeeEngine/Embedded/BRDFLUTShader.inl"
 
 #include <cstdint>
@@ -33,6 +33,8 @@ namespace Coffee {
     Ref<Shader> Renderer3D::s_ToneMappingShader;
     Ref<Shader> Renderer3D::s_FinalPassShader;
     Ref<Shader> Renderer3D::s_SkyboxShader;
+    Ref<Shader> Renderer3D::depthShader;
+    Ref<Shader> Renderer3D::brdfShader;
 
     void Renderer3D::Init()
     {
@@ -41,6 +43,10 @@ namespace Coffee {
         s_RendererData.DefaultSkybox = Cubemap::Load("assets/textures/StandardCubeMap.hdr");
         s_CubeMesh = PrimitiveMesh::CreateCube({-1.0f, -1.0f, -1.0f});
         s_SkyboxShader = CreateRef<Shader>("assets/shaders/SkyboxShader.glsl");
+
+        depthShader = CreateRef<Shader>("DepthShader", std::string(simpleDepthShaderSource));
+
+        brdfShader = CreateRef<Shader>("BRDFLUTShader", std::string(BRDFLUTSource));
 
         // Shadow map
         s_RendererData.ShadowMapFramebuffer = Framebuffer::Create(4096, 4096, {});
@@ -119,8 +125,20 @@ namespace Coffee {
         s_Stats.DrawCalls++;
     }
 
+    void Renderer3D::DepthPrePass(const RenderTarget &target)
+    {
+        ZoneScoped;
+
+        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        forwardBuffer->Bind();
+
+
+    }
+
     void Renderer3D::ShadowPass(const RenderTarget& target)
     {
+        ZoneScoped;
+
         int directionalLightCount = 0;
     
         for (int i = 0; i < s_RendererData.RenderData.lightCount; ++i)
@@ -157,16 +175,20 @@ namespace Coffee {
 
                 glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
-                static Ref<Shader> shadowShader = CreateRef<Shader>("ShadowShader", std::string(shadowShaderSource));
-                shadowShader->Bind();
-                shadowShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+                depthShader->Bind();
+                depthShader->setMat4("projView", lightSpaceMatrix);
 
                 RendererAPI::SetCullFace(CullFace::Front);
     
                 for (const auto& command : s_RendererData.opaqueRenderQueue)
                 {
+                    if (command.animator)
+                        AnimationSystem::SetBoneTransformations(depthShader, command.animator);
+                    else
+                        depthShader->setBool("animated", false);
+
                     // Set the model matrix
-                    shadowShader->setMat4("model", command.transform);
+                    depthShader->setMat4("model", command.transform);
 
                     Mesh* mesh = command.mesh.get();
                     
@@ -570,16 +592,13 @@ namespace Coffee {
 
         RendererAPI::SetViewport(0, 0, properties.Width, properties.Height);
 
-        static Ref<Shader> brdfShader = CreateRef<Shader>("BRDFLUT", BRDFLUTSource);
         brdfShader->Bind();
-
-        static Ref<Mesh> quad = PrimitiveMesh::CreateQuad();
 
         RendererAPI::SetClearColor({0.0f, 0.0f, 0.0f, 1.0f});
         RendererAPI::Clear();
 
-        quad->GetVertexArray()->Bind();
-        RendererAPI::DrawIndexed(quad->GetVertexArray());
+        s_ScreenQuad->GetVertexArray()->Bind();
+        RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
         framebuffer.UnBind();
     }
