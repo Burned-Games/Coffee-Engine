@@ -268,6 +268,7 @@ namespace Coffee {
 
     void SceneTree::Update()
     {
+        ZoneScoped;
         auto& registry = m_Context->m_Registry;
         auto view = registry.view<TransformComponent, ActiveComponent>();
         for (auto entity : view) {

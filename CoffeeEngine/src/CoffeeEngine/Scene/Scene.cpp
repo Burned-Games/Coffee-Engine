@@ -2,7 +2,6 @@
 
 #include "CoffeeEngine/Core/Base.h"
 #include "CoffeeEngine/Core/DataStructures/Octree.h"
-#include "CoffeeEngine/Core/Input.h"
 #include "CoffeeEngine/Core/Log.h"
 #include "CoffeeEngine/Math/Frustum.h"
 #include "CoffeeEngine/Physics/Collider.h"
@@ -20,12 +19,11 @@
 #include "CoffeeEngine/Scene/SceneCamera.h"
 #include "CoffeeEngine/Scene/SceneManager.h"
 #include "CoffeeEngine/Scene/SceneTree.h"
+#include <CoffeeEngine/Scripting/Script.h>
 #include "CoffeeEngine/Scripting/Lua/LuaScript.h"
 #include "CoffeeEngine/UI/UIManager.h"
-#include "PrimitiveMesh.h"
 #include "entt/entity/entity.hpp"
 #include "entt/entity/fwd.hpp"
-#include "entt/entity/snapshot.hpp"
 
 #include <cstdint>
 #include <cstdlib>
@@ -35,7 +33,6 @@
 #include <string>
 #include <tracy/Tracy.hpp>
 
-#include <CoffeeEngine/Scripting/Script.h>
 #include <cereal/archives/json.hpp>
 #include <fstream>
 
@@ -61,7 +58,7 @@ namespace Coffee {
 
     }
 
-    Scene::Scene() : m_Octree({glm::vec3(-50.0f), glm::vec3(50.0f)}, 10, 5)
+    Scene::Scene()
     {
         m_SceneTree = CreateScope<SceneTree>(this);
 
@@ -347,17 +344,60 @@ namespace Coffee {
 
         CollisionSystem::Initialize(this);
 
-/*         auto view = m_Registry.view<MeshComponent>();
+        auto staticView = m_Registry.view<StaticComponent, TransformComponent>();
 
-        for (auto& entity : view)
+        // Create octree bounds based on the static entities
+        glm::vec3 minOctreeBounds = glm::vec3(0.0f);
+        glm::vec3 maxOctreeBounds = glm::vec3(0.0f);
+
+        for (auto entity : staticView)
         {
-            auto& meshComponent = view.get<MeshComponent>(entity);
-            auto& transformComponent = m_Registry.get<TransformComponent>(entity);
+            auto& transformComponent = staticView.get<TransformComponent>(entity);
+            auto meshComponent = m_Registry.try_get<MeshComponent>(entity);
 
-            ObjectContainer<Ref<Mesh>> objectContainer = {transformComponent.GetWorldTransform(), meshComponent.GetMesh()->GetAABB(), meshComponent.GetMesh()};
+            AABB aabb;
 
-            m_Octree.Insert(objectContainer);
-        } */
+            if(meshComponent)
+            {
+                Ref<Mesh> mesh = meshComponent->GetMesh();
+                aabb = mesh->GetAABB();
+            }
+            else
+            {
+                aabb = AABB(glm::vec3(-0.5f), glm::vec3(0.5f));
+            }
+
+            AABB transformedAABB = aabb.CalculateTransformedAABB(transformComponent.GetWorldTransform());
+
+            minOctreeBounds = glm::min(minOctreeBounds, transformedAABB.min);
+            maxOctreeBounds = glm::max(maxOctreeBounds, transformedAABB.max);
+
+
+        }
+
+        m_Octree = CreateScope<Octree<entt::entity>>(AABB(minOctreeBounds, maxOctreeBounds), 10, 5);
+
+        // Static entities octree
+        for (auto entity : staticView)
+        {
+            auto& transformComponent = staticView.get<TransformComponent>(entity);
+            auto meshComponent = m_Registry.try_get<MeshComponent>(entity);
+
+            AABB aabb;
+
+            if(meshComponent)
+            {
+                Ref<Mesh> mesh = meshComponent->GetMesh();
+                aabb = mesh->GetAABB();
+            }
+            else
+            {
+                aabb = AABB(glm::vec3(-0.5f), glm::vec3(0.5f));
+            }
+
+            Ref<ObjectContainer<entt::entity>> object = CreateRef<ObjectContainer<entt::entity>>(transformComponent.GetWorldTransform(), aabb, entity);
+            m_Octree->Insert(object);
+        }
 
         Audio::StopAllEvents();
         Audio::PlayInitialAudios();
@@ -387,119 +427,151 @@ namespace Coffee {
         Renderer::GetCurrentRenderTarget()->SetCamera(camera, glm::inverse(camera.GetViewMatrix()));
 
         // TEMPORAL - Navigation
-        auto navMeshView = m_Registry.view<ActiveComponent, NavMeshComponent>();
-
-        for (auto& entity : navMeshView)
         {
-            auto& navMeshComponent = navMeshView.get<NavMeshComponent>(entity);
-            if (navMeshComponent.ShowDebug && navMeshComponent.GetNavMesh() && navMeshComponent.GetNavMesh()->IsCalculated())
+            auto navMeshView = m_Registry.view<ActiveComponent, NavMeshComponent>();
+            ZoneScopedN("NavMeshComponent View");
+
+            for (auto& entity : navMeshView)
             {
-                navMeshComponent.GetNavMesh()->RenderWalkableAreas();
+                auto& navMeshComponent = navMeshView.get<NavMeshComponent>(entity);
+                if (navMeshComponent.ShowDebug && navMeshComponent.GetNavMesh() &&
+                    navMeshComponent.GetNavMesh()->IsCalculated())
+                {
+                    navMeshComponent.GetNavMesh()->RenderWalkableAreas();
+                }
             }
         }
 
 
-        auto viewRigidbody = m_Registry.view<ActiveComponent, RigidbodyComponent, TransformComponent>();
-
-        for (auto entity : viewRigidbody) {
-            auto [rb, transform] = viewRigidbody.get<RigidbodyComponent, TransformComponent>(entity);
-            if (rb.rb) {
-                rb.rb->SetPosition(transform.GetLocalPosition());
-                rb.rb->SetRotation(transform.GetLocalRotation());
-            }
-        }
-
-        auto animatorView = m_Registry.view<ActiveComponent, AnimatorComponent>();
-
-        for (auto& entity : animatorView)
         {
-            AnimatorComponent* animatorComponent = &animatorView.get<AnimatorComponent>(entity);
-            if (animatorComponent->NeedsUpdate)
+            auto viewRigidbody = m_Registry.view<ActiveComponent, RigidbodyComponent, TransformComponent>();
+            ZoneScopedN("RigidbodyComponent View");
+
+            for (auto entity : viewRigidbody)
             {
-                AnimationSystem::Update(dt, animatorComponent);
-                animatorComponent->NeedsUpdate = false;
+                auto [rb, transform] = viewRigidbody.get<RigidbodyComponent, TransformComponent>(entity);
+                if (rb.rb)
+                {
+                    rb.rb->SetPosition(transform.GetLocalPosition());
+                    rb.rb->SetRotation(transform.GetLocalRotation());
+                }
             }
         }
 
-        UpdateAudioComponentsPositions();
-
-        // Get all entities with ModelComponent and TransformComponent
-        auto view = m_Registry.view<ActiveComponent, MeshComponent, TransformComponent>();
-
-        // Loop through each entity with the specified components
-        for (auto& entity : view)
         {
-            // Get the ModelComponent and TransformComponent for the current entity
-            auto& meshComponent = view.get<MeshComponent>(entity);
-            auto& transformComponent = view.get<TransformComponent>(entity);
-            auto materialComponent = m_Registry.try_get<MaterialComponent>(entity);
+            auto animatorView = m_Registry.view<ActiveComponent, AnimatorComponent>();
+            ZoneScopedN("AnimatorComponent View");
 
-            Ref<Mesh> mesh = meshComponent.GetMesh();
-            Ref<Material> material = (materialComponent) ? materialComponent->material : nullptr;
-
-            //Renderer::Submit(material, mesh, transformComponent.GetWorldTransform(), (uint32_t)entity);
-            Renderer3D::Submit(RenderCommand{transformComponent.GetWorldTransform(), mesh, material, (uint32_t)entity, meshComponent.animator});
-        }
-
-        //Get all entities with LightComponent and TransformComponent
-        auto lightView = m_Registry.view<ActiveComponent, LightComponent, TransformComponent>();
-
-        //Loop through each entity with the specified components
-        for(auto& entity : lightView)
-        {
-            auto& lightComponent = lightView.get<LightComponent>(entity);
-            auto& transformComponent = lightView.get<TransformComponent>(entity);
-
-            lightComponent.Position = transformComponent.GetWorldTransform()[3];
-            lightComponent.Direction = glm::normalize(glm::vec3(-transformComponent.GetWorldTransform()[1]));
-
-            Renderer3D::Submit(lightComponent);
-        }
-
-
-        // Get all entities with ParticlesSystemComponent and TransformComponent
-        auto particleSystemView = m_Registry.view<ActiveComponent, ParticlesSystemComponent, TransformComponent>();
-        for (auto& entity : particleSystemView)
-        {
-            auto& particlesSystemComponent = particleSystemView.get<ParticlesSystemComponent>(entity);
-            auto& transformComponent = particleSystemView.get<TransformComponent>(entity);
-            if (particlesSystemComponent.NeedsUpdate)
+            for (auto& entity : animatorView)
             {
-                particlesSystemComponent.NeedsUpdate = false;
-                particlesSystemComponent.GetParticleEmitter()->transformComponentMatrix = transformComponent.GetWorldTransform();
-                particlesSystemComponent.GetParticleEmitter()->cameraViewMatrix = camera.GetViewMatrix();
-                particlesSystemComponent.GetParticleEmitter()->Update(dt);
-                particlesSystemComponent.GetParticleEmitter()->DrawDebug();
+                AnimatorComponent* animatorComponent = &animatorView.get<AnimatorComponent>(entity);
+                if (animatorComponent->NeedsUpdate)
+                {
+                    AnimationSystem::Update(dt, animatorComponent);
+                    animatorComponent->NeedsUpdate = false;
+                }
             }
-            else {
-                Renderer2D::DrawQuad(transformComponent.GetWorldTransform(), 
-                    particlesSystemComponent.GetParticleEmitter()->particleTexture, 1, 
-                    particlesSystemComponent.GetParticleEmitter()->colorNormal, Renderer2D::RenderMode::World);
-            }
- 
         }
 
-        auto spriteView = m_Registry.view<ActiveComponent, SpriteComponent, TransformComponent>();
-        for (auto& entity : spriteView)
         {
-            auto& spriteComponent = spriteView.get<SpriteComponent>(entity);
-            auto& transformComponent = spriteView.get<TransformComponent>(entity);
+            ZoneScopedN("UpdateAudioComponentsPositions");
+            UpdateAudioComponentsPositions();
+        }
 
-            if (spriteComponent.texture)
+        {
+            // Get all entities with ModelComponent and TransformComponent
+            auto view = m_Registry.view<ActiveComponent, MeshComponent, TransformComponent>();
+            ZoneScopedN("MeshComponent View");
+
+            // Loop through each entity with the specified components
+            for (auto& entity : view)
             {
-                Renderer2D::DrawQuad(transformComponent.GetWorldTransform(), spriteComponent.texture,
-                                     spriteComponent.tilingFactor, spriteComponent.tintColor,
-                                     Renderer2D::RenderMode::World);
+                // Get the ModelComponent and TransformComponent for the current entity
+                auto& meshComponent = view.get<MeshComponent>(entity);
+                auto& transformComponent = view.get<TransformComponent>(entity);
+                auto materialComponent = m_Registry.try_get<MaterialComponent>(entity);
+
+                Ref<Mesh> mesh = meshComponent.GetMesh();
+                Ref<Material> material = (materialComponent) ? materialComponent->material : nullptr;
+
+                //Renderer::Submit(material, mesh, transformComponent.GetWorldTransform(), (uint32_t)entity);
+                Renderer3D::Submit(RenderCommand{transformComponent.GetWorldTransform(), mesh, material, (uint32_t)entity, meshComponent.animator});
             }
         }
 
-        UIManager::UpdateUI(m_Registry);
+        {
+            //Get all entities with LightComponent and TransformComponent
+            auto lightView = m_Registry.view<ActiveComponent, LightComponent, TransformComponent>();
+            ZoneScopedN("LightComponent View");
+
+            //Loop through each entity with the specified components
+            for(auto& entity : lightView)
+            {
+                auto& lightComponent = lightView.get<LightComponent>(entity);
+                auto& transformComponent = lightView.get<TransformComponent>(entity);
+
+                lightComponent.Position = transformComponent.GetWorldTransform()[3];
+                lightComponent.Direction = glm::normalize(glm::vec3(-transformComponent.GetWorldTransform()[1]));
+
+                Renderer3D::Submit(lightComponent);
+            }
+        }
+
+        {
+            // Get all entities with ParticlesSystemComponent and TransformComponent
+            auto particleSystemView = m_Registry.view<ActiveComponent, ParticlesSystemComponent, TransformComponent>();
+            ZoneScopedN("ParticlesSystemComponent View");
+
+            for (auto& entity : particleSystemView)
+            {
+                auto& particlesSystemComponent = particleSystemView.get<ParticlesSystemComponent>(entity);
+                auto& transformComponent = particleSystemView.get<TransformComponent>(entity);
+                if (particlesSystemComponent.NeedsUpdate)
+                {
+                    particlesSystemComponent.NeedsUpdate = false;
+                    particlesSystemComponent.GetParticleEmitter()->transformComponentMatrix = transformComponent.GetWorldTransform();
+                    particlesSystemComponent.GetParticleEmitter()->cameraViewMatrix = camera.GetViewMatrix();
+                    particlesSystemComponent.GetParticleEmitter()->Update(dt);
+                    particlesSystemComponent.GetParticleEmitter()->DrawDebug();
+                }
+                else {
+                    Renderer2D::DrawQuad(transformComponent.GetWorldTransform(),
+                        particlesSystemComponent.GetParticleEmitter()->particleTexture, 1,
+                        particlesSystemComponent.GetParticleEmitter()->colorNormal, Renderer2D::RenderMode::World);
+                }
+            }
+        }
+
+        {
+            auto spriteView = m_Registry.view<ActiveComponent, SpriteComponent, TransformComponent>();
+            ZoneScopedN("SpriteComponent View");
+
+            for (auto& entity : spriteView)
+            {
+                auto& spriteComponent = spriteView.get<SpriteComponent>(entity);
+                auto& transformComponent = spriteView.get<TransformComponent>(entity);
+
+                if (spriteComponent.texture)
+                {
+                    Renderer2D::DrawQuad(transformComponent.GetWorldTransform(), spriteComponent.texture,
+                                         spriteComponent.tilingFactor, spriteComponent.tintColor,
+                                         Renderer2D::RenderMode::World);
+                }
+            }
+        }
+
+        {
+            ZoneScopedN("UIManager::UpdateUI");
+            UIManager::UpdateUI(m_Registry);
+        }
 
         // Debug Draw
-        if (m_SceneDebugFlags.ShowOctree) m_Octree.DebugDraw();
+        // if (m_SceneDebugFlags.ShowOctree) m_Octree->DebugDraw();
         if (m_SceneDebugFlags.ShowColliders) m_PhysicsWorld.drawCollisionShapes();
         if (m_SceneDebugFlags.ShowNavMesh) {
             auto navMeshViewDebug = m_Registry.view<ActiveComponent, NavMeshComponent>();
+            ZoneScopedN("NavMesh Debug View");
+
             for (auto& entity : navMeshViewDebug) {
                 auto& navMeshComponent = navMeshViewDebug.get<NavMeshComponent>(entity);
                 if (navMeshComponent.GetNavMesh() && navMeshComponent.GetNavMesh()->IsCalculated()) {
@@ -508,6 +580,8 @@ namespace Coffee {
             }
         } else {
             auto navMeshViewDebug = m_Registry.view<ActiveComponent, NavMeshComponent>();
+            ZoneScopedN("NavMesh Debug View - Disable");
+
             for (auto& entity : navMeshViewDebug) {
                 auto& navMeshComponent = navMeshViewDebug.get<NavMeshComponent>(entity);
                 navMeshComponent.ShowDebug = false;
@@ -516,6 +590,8 @@ namespace Coffee {
 
         if (m_SceneDebugFlags.ShowNavMeshPath) {
             auto navigationAgentViewDebug = m_Registry.view<ActiveComponent, NavigationAgentComponent>();
+            ZoneScopedN("NavigationAgent Debug View");
+
             for (auto& agent : navigationAgentViewDebug) {
                 auto& navAgentComponent = navigationAgentViewDebug.get<NavigationAgentComponent>(agent);
                 if (navAgentComponent.GetNavMeshComponent())
@@ -523,13 +599,14 @@ namespace Coffee {
             }
         } else {
             auto navigationAgentViewDebug = m_Registry.view<ActiveComponent, NavigationAgentComponent>();
+            ZoneScopedN("NavigationAgent Debug View - Disable");
+
             for (auto& agent : navigationAgentViewDebug) {
                 auto& navAgentComponent = navigationAgentViewDebug.get<NavigationAgentComponent>(agent);
                 navAgentComponent.ShowDebug = false;
             }
         }
     }
-
 
     void Scene::OnUpdateRuntime(float dt)
     {
@@ -539,17 +616,21 @@ namespace Coffee {
 
         Camera* camera = nullptr;
         glm::mat4 cameraTransform;
-        auto cameraView = m_Registry.view<ActiveComponent, TransformComponent, CameraComponent>();
-        for(auto entity : cameraView)
         {
-            auto [transform, cameraComponent] = cameraView.get<TransformComponent, CameraComponent>(entity);
+            auto cameraView = m_Registry.view<ActiveComponent, TransformComponent, CameraComponent>();
+            ZoneScopedN("CameraComponent View");
 
-            //TODO: Multiple cameras support (for now, the last camera found will be used)
-            camera = &cameraComponent.Camera;
-            cameraTransform = transform.GetWorldTransform();
+            for (auto entity : cameraView)
+            {
+                auto [transform, cameraComponent] = cameraView.get<TransformComponent, CameraComponent>(entity);
+
+                // TODO: Multiple cameras support (for now, the last camera found will be used)
+                camera = &cameraComponent.Camera;
+                cameraTransform = transform.GetWorldTransform();
+            }
         }
 
-        if(!camera)
+        if (!camera)
         {
             COFFEE_ERROR("No camera entity found!");
 
@@ -558,50 +639,79 @@ namespace Coffee {
 
             cameraTransform = glm::mat4(1.0f);
         }
-        
-        auto navMeshView = m_Registry.view<ActiveComponent, NavMeshComponent>();
 
-        for (auto& entity : navMeshView)
         {
-            auto& navMeshComponent = navMeshView.get<NavMeshComponent>(entity);
-            if (navMeshComponent.ShowDebug && navMeshComponent.GetNavMesh() && navMeshComponent.GetNavMesh()->IsCalculated())
+            auto navMeshView = m_Registry.view<ActiveComponent, NavMeshComponent>();
+            ZoneScopedN("NavMeshComponent View");
+
+            for (auto& entity : navMeshView)
             {
-                navMeshComponent.GetNavMesh()->RenderWalkableAreas();
+                auto& navMeshComponent = navMeshView.get<NavMeshComponent>(entity);
+                if (navMeshComponent.ShowDebug && navMeshComponent.GetNavMesh() && navMeshComponent.GetNavMesh()->IsCalculated())
+                {
+                    navMeshComponent.GetNavMesh()->RenderWalkableAreas();
+                }
             }
         }
 
-        auto navigationAgentView = m_Registry.view<ActiveComponent, NavigationAgentComponent>();
-
-        for (auto& agent : navigationAgentView)
         {
-            auto& navAgentComponent = navigationAgentView.get<NavigationAgentComponent>(agent);
-            if (navAgentComponent.ShowDebug && navAgentComponent.GetPathFinder())
-                navAgentComponent.GetPathFinder()->RenderPath(navAgentComponent.Path);
+            auto navigationAgentView = m_Registry.view<ActiveComponent, NavigationAgentComponent>();
+            ZoneScopedN("NavigationAgentComponent View");
+
+            for (auto& agent : navigationAgentView)
+            {
+                auto& navAgentComponent = navigationAgentView.get<NavigationAgentComponent>(agent);
+                if (navAgentComponent.ShowDebug && navAgentComponent.GetPathFinder())
+                    navAgentComponent.GetPathFinder()->RenderPath(navAgentComponent.Path);
+            }
         }
 
         m_PhysicsWorld.stepSimulation(dt);
 
-        // Update transforms from physics
-        auto viewPhysics = m_Registry.view<ActiveComponent, RigidbodyComponent, TransformComponent>();
-        for (auto entity : viewPhysics) {
-            auto [rb, transform] = viewPhysics.get<RigidbodyComponent, TransformComponent>(entity);
-            if (rb.rb) {
-                transform.SetLocalPosition(rb.rb->GetPosition());
-                transform.SetLocalRotation(rb.rb->GetRotation());
+        {
+            // Update transforms from physics
+            auto viewPhysics = m_Registry.view<ActiveComponent, RigidbodyComponent, TransformComponent>();
+            ZoneScopedN("Physics Update View");
+
+            for (auto entity : viewPhysics) {
+                auto [rb, transform] = viewPhysics.get<RigidbodyComponent, TransformComponent>(entity);
+                if (rb.rb) {
+                    transform.SetLocalPosition(rb.rb->GetPosition());
+                    transform.SetLocalRotation(rb.rb->GetRotation());
+                }
             }
         }
 
-        UpdateAudioComponentsPositions();
-
-        // Get all entities with ScriptComponent
-        auto scriptView = m_Registry.view<ActiveComponent, ScriptComponent>();
-
-        for (auto& entity : scriptView)
         {
-            auto& scriptComponent = scriptView.get<ScriptComponent>(entity);
-            scriptComponent.script->OnUpdate(dt);
-            if(SceneManager::GetActiveScene().get() != this)
-                return;
+            ZoneScopedN("UpdateAudioComponentsPositions");
+            // TODO: Ask to Guillem if this is a candidate for frustum culling
+            UpdateAudioComponentsPositions();
+        }
+
+
+        // Get all the static entities from the Octree
+        Frustum frustum = Frustum(camera->GetProjection() * glm::inverse(cameraTransform));
+        auto visibleStaticEntities = m_Octree->Query(frustum);
+        std::unordered_set<entt::entity> visibleEntitySet(visibleStaticEntities.begin(), visibleStaticEntities.end());
+
+        auto staticView = m_Registry.view<StaticComponent>();
+        {
+            // Get all entities with ScriptComponent
+            auto scriptView = m_Registry.view<ActiveComponent, ScriptComponent>();
+            ZoneScopedN("ScriptComponent View");
+
+            for (auto& entity : scriptView)
+            {
+                /*if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
+                    continue;*/
+
+                auto& scriptComponent = scriptView.get<ScriptComponent>(entity);
+                ZoneScoped;
+                ZoneText(scriptComponent.script->GetPath().filename().string().c_str(), scriptComponent.script->GetPath().filename().string().length());
+                scriptComponent.script->OnUpdate(dt);
+                if(SceneManager::GetActiveScene().get() != this)
+                    return;
+            }
         }
 
         if(SceneManager::GetActiveScene().get() != this)
@@ -610,95 +720,110 @@ namespace Coffee {
         //TODO: Add this to a function bc it is repeated in OnUpdateEditor
         Renderer::GetCurrentRenderTarget()->SetCamera(*camera, cameraTransform);
 
-        //m_Octree.DebugDraw();
-
-        // Get all the static meshes from the Octree
-/*
-        glm::mat4 testProjection = glm::perspective(glm::radians(90.0f), 16.0f / 9.0f, 0.1f, 100.0f);
-
-        Frustum frustum = Frustum(camera->GetProjection() * glm::inverse(cameraTransform));
-        Renderer2D::DrawFrustum(frustum, glm::vec4(1.0f), 1.0f);
-
-        auto meshes = m_Octree.Query(frustum);
-
-        for(auto& mesh : meshes)
         {
-            Renderer::Submit(RenderCommand{mesh.transform, mesh.object, mesh.object->GetMaterial(), 0});
-        } */
+            auto animatorView = m_Registry.view<ActiveComponent, AnimatorComponent>();
+            ZoneScopedN("AnimatorComponent View");
 
-        auto animatorView = m_Registry.view<ActiveComponent, AnimatorComponent>();
+            for (auto& entity : animatorView)
+            {
+                /*if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
+                    continue;*/
 
-        for (auto& entity : animatorView)
-        {
-            AnimatorComponent* animatorComponent = &animatorView.get<AnimatorComponent>(entity);
-            AnimationSystem::Update(dt, animatorComponent);
-        }
-
-        // Get all entities with ModelComponent and TransformComponent
-        auto view = m_Registry.view<ActiveComponent, MeshComponent, TransformComponent>();
-
-        // Loop through each entity with the specified components
-        for (auto& entity : view)
-        {
-
-            // Get the ModelComponent and TransformComponent for the current entity
-            auto& meshComponent = view.get<MeshComponent>(entity);
-            auto& transformComponent = view.get<TransformComponent>(entity);
-            auto materialComponent = m_Registry.try_get<MaterialComponent>(entity);
-
-            Ref<Mesh> mesh = meshComponent.GetMesh();
-            Ref<Material> material = (materialComponent) ? materialComponent->material : nullptr;
-
-            Renderer3D::Submit(RenderCommand{transformComponent.GetWorldTransform(), mesh, material, (uint32_t)entity, meshComponent.animator});
-        }
-
-        //Get all entities with LightComponent and TransformComponent
-        auto lightView = m_Registry.view<ActiveComponent, LightComponent, TransformComponent>();
-
-        //Loop through each entity with the specified components
-        for(auto& entity : lightView)
-        {
-            auto& lightComponent = lightView.get<LightComponent>(entity);
-            auto& transformComponent = lightView.get<TransformComponent>(entity);
-
-            lightComponent.Position = transformComponent.GetWorldTransform()[3];
-            lightComponent.Direction = glm::normalize(glm::vec3(-transformComponent.GetWorldTransform()[1]));
-
-            Renderer3D::Submit(lightComponent);
-        }
-
-        // Get all entities with ParticlesSystemComponent and TransformComponent
-        auto particleSystemView = m_Registry.view<ActiveComponent, ParticlesSystemComponent, TransformComponent>();
-        for (auto& entity : particleSystemView)
-        {
-            auto& particlesSystemComponent = particleSystemView.get<ParticlesSystemComponent>(entity);
-            auto& transformComponent = particleSystemView.get<TransformComponent>(entity);
-
-            particlesSystemComponent.GetParticleEmitter()->transformComponentMatrix = transformComponent.GetWorldTransform();
-            particlesSystemComponent.GetParticleEmitter()->cameraViewMatrix = glm::inverse(cameraTransform);
-            particlesSystemComponent.GetParticleEmitter()->Update(dt);
-
-        }
-
-        auto spriteView = m_Registry.view<ActiveComponent, SpriteComponent, TransformComponent>();
-        for (auto& entity : spriteView)
-        {
-            auto& spriteComponent = spriteView.get<SpriteComponent>(entity);
-            auto& transformComponent = spriteView.get<TransformComponent>(entity);
-
-            if (spriteComponent.texture) {
-                Renderer2D::DrawQuad(transformComponent.GetWorldTransform(), spriteComponent.texture,
-                                     spriteComponent.tilingFactor, spriteComponent.tintColor,
-                                     Renderer2D::RenderMode::World);
+                AnimatorComponent* animatorComponent = &animatorView.get<AnimatorComponent>(entity);
+                AnimationSystem::Update(dt, animatorComponent);
             }
+        }
 
+        {
+            // Get all entities with ModelComponent and TransformComponent
+            auto view = m_Registry.view<ActiveComponent, MeshComponent, TransformComponent>();
+            ZoneScopedN("MeshComponent View");
+
+            // Loop through each entity with the specified components
+            for (auto& entity : view)
+            {
+                if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
+                    continue;
+
+                // Get the ModelComponent and TransformComponent for the current entity
+                auto& meshComponent = view.get<MeshComponent>(entity);
+                auto& transformComponent = view.get<TransformComponent>(entity);
+                auto materialComponent = m_Registry.try_get<MaterialComponent>(entity);
+
+                Ref<Mesh> mesh = meshComponent.GetMesh();
+                Ref<Material> material = (materialComponent) ? materialComponent->material : nullptr;
+
+                Renderer3D::Submit(RenderCommand{transformComponent.GetWorldTransform(), mesh, material, (uint32_t)entity, meshComponent.animator});
+            }
+        }
+
+        {
+            //Get all entities with LightComponent and TransformComponent
+            auto lightView = m_Registry.view<ActiveComponent, LightComponent, TransformComponent>();
+            ZoneScopedN("LightComponent View");
+
+            //Loop through each entity with the specified components
+            for(auto& entity : lightView)
+            {
+                if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
+                    continue;
+
+                auto& lightComponent = lightView.get<LightComponent>(entity);
+                auto& transformComponent = lightView.get<TransformComponent>(entity);
+
+                lightComponent.Position = transformComponent.GetWorldTransform()[3];
+                lightComponent.Direction = glm::normalize(glm::vec3(-transformComponent.GetWorldTransform()[1]));
+
+                Renderer3D::Submit(lightComponent);
+            }
+        }
+
+        {
+            // Get all entities with ParticlesSystemComponent and TransformComponent
+            auto particleSystemView = m_Registry.view<ActiveComponent, ParticlesSystemComponent, TransformComponent>();
+            ZoneScopedN("ParticlesSystemComponent View");
+
+            for (auto& entity : particleSystemView)
+            {
+                /*if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
+                    continue;*/
+
+                auto& particlesSystemComponent = particleSystemView.get<ParticlesSystemComponent>(entity);
+                auto& transformComponent = particleSystemView.get<TransformComponent>(entity);
+
+                particlesSystemComponent.GetParticleEmitter()->transformComponentMatrix = transformComponent.GetWorldTransform();
+                particlesSystemComponent.GetParticleEmitter()->cameraViewMatrix = glm::inverse(cameraTransform);
+                particlesSystemComponent.GetParticleEmitter()->Update(dt);
+            }
+        }
+
+        {
+            auto spriteView = m_Registry.view<ActiveComponent, SpriteComponent, TransformComponent>();
+            ZoneScopedN("SpriteComponent View");
+
+            for (auto& entity : spriteView)
+            {
+                if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
+                    continue;
+
+                auto& spriteComponent = spriteView.get<SpriteComponent>(entity);
+                auto& transformComponent = spriteView.get<TransformComponent>(entity);
+
+                if (spriteComponent.texture) {
+                    Renderer2D::DrawQuad(transformComponent.GetWorldTransform(), spriteComponent.texture,
+                                         spriteComponent.tilingFactor, spriteComponent.tintColor,
+                                         Renderer2D::RenderMode::World);
+                }
+            }
         }
 
         // Debug Draw
-        if (m_SceneDebugFlags.ShowOctree) m_Octree.DebugDraw();
+        if (m_SceneDebugFlags.ShowOctree) m_Octree->DebugDraw();
         if (m_SceneDebugFlags.ShowColliders) m_PhysicsWorld.drawCollisionShapes();
         if (m_SceneDebugFlags.ShowNavMesh) {
             auto navMeshViewDebug = m_Registry.view<ActiveComponent, NavMeshComponent>();
+            ZoneScopedN("NavMesh Debug View");
+
             for (auto& entity : navMeshViewDebug) {
                 auto& navMeshComponent = navMeshViewDebug.get<NavMeshComponent>(entity);
                 if (navMeshComponent.GetNavMesh() && navMeshComponent.GetNavMesh()->IsCalculated()) {
@@ -707,6 +832,8 @@ namespace Coffee {
             }
         } else {
             auto navMeshViewDebug = m_Registry.view<ActiveComponent, NavMeshComponent>();
+            ZoneScopedN("NavMesh Debug View - Disable");
+
             for (auto& entity : navMeshViewDebug) {
                 auto& navMeshComponent = navMeshViewDebug.get<NavMeshComponent>(entity);
                 navMeshComponent.ShowDebug = false;
@@ -715,6 +842,8 @@ namespace Coffee {
 
         if (m_SceneDebugFlags.ShowNavMeshPath) {
             auto navigationAgentViewDebug = m_Registry.view<ActiveComponent, NavigationAgentComponent>();
+            ZoneScopedN("NavigationAgent Debug View");
+
             for (auto& agent : navigationAgentViewDebug) {
                 auto& navAgentComponent = navigationAgentViewDebug.get<NavigationAgentComponent>(agent);
                 if (navAgentComponent.GetNavMeshComponent())
@@ -722,6 +851,8 @@ namespace Coffee {
             }
         } else {
             auto navigationAgentViewDebug = m_Registry.view<ActiveComponent, NavigationAgentComponent>();
+            ZoneScopedN("NavigationAgent Debug View - Disable");
+
             for (auto& agent : navigationAgentViewDebug) {
                 auto& navAgentComponent = navigationAgentViewDebug.get<NavigationAgentComponent>(agent);
                 navAgentComponent.ShowDebug = false;
@@ -893,6 +1024,8 @@ namespace Coffee {
     }
     void Scene::UpdateAudioComponentsPositions()
     {
+        ZoneScopedN("Scene::UpdateAudioComponentsPositions");
+
         auto audioSourceView = m_Registry.view<AudioSourceComponent, TransformComponent>();
 
         for (auto& entity : audioSourceView)
