@@ -58,7 +58,7 @@ namespace Coffee {
     {
         ImageFormat Format;
         TextureWrap Wrapping = TextureWrap::Repeat;
-        TextureFilter MinFilter = TextureFilter::Linear;
+        TextureFilter MinFilter = TextureFilter::LinearMipmapLinear;
         TextureFilter MagFilter = TextureFilter::Linear;
         TextureFilter MipMapFilter = TextureFilter::Linear;
         glm::vec4 BorderColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
