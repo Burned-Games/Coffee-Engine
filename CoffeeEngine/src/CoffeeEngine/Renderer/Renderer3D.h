@@ -50,10 +50,15 @@ namespace Coffee {
 
         Ref<Material> DefaultMaterial; ///< Default material.
         Ref<Mesh> MissingMesh; ///< Missing mesh.
+        Ref<Cubemap> DefaultSkybox; ///< Default skybox.
+
+        Ref<Texture2D> BRDFLUT; ///< BRDF LUT texture.
 
         Ref<Framebuffer> ShadowMapFramebuffer;
         static constexpr int MAX_DIRECTIONAL_SHADOWS = 4;
         Ref<Texture2D> DirectionalShadowMapTextures[4];
+
+        Ref<Cubemap> EnvironmentMap;
 
         std::vector<RenderCommand> opaqueRenderQueue; ///< Opaque render queue.
         std::vector<RenderCommand> transparentRenderQueue; ///< Transparent render queue.
@@ -83,8 +88,13 @@ namespace Coffee {
     {
         bool SSAO = false; ///< Enable or disable SSAO.
         bool Bloom = false; ///< Enable or disable bloom.
+        float BloomThreshold = 1.0f; ///< Bloom threshold.
+        float BloomIntensity = 1.0f; ///< Bloom intensity.
+        float BloomRadius = 1.0f; ///< Bloom radius.
+        float BloomScale = 1.0f; ///< Bloom scale.
         bool FXAA = false; ///< Enable or disable FXAA.
         float Exposure = 1.0f; ///< Exposure value.
+        float EnvironmentExposure = 1.0f; ///< Environment exposure value.
 
         // REMOVE: This is for the first release of the engine it should be handled differently
         bool showNormals = false;
@@ -117,6 +127,8 @@ namespace Coffee {
 
          //Todo change this to a light class and not a component
         static void Submit(const LightComponent& light);
+
+        static void SetEnvironmentMap(const Ref<Cubemap>& environmentMap) { s_RendererData.EnvironmentMap = environmentMap; }
         
         //static void DepthPrePass(const RenderTarget& target);
         //static void SSAOPass(const RenderTarget& target);
@@ -151,6 +163,9 @@ namespace Coffee {
             - Reset Render Queue
         */
         static void ResetCalls();
+    
+    private:
+        static void GenerateBRDFLUT();
 
     private:
         static Renderer3DData s_RendererData; ///< Renderer data.
@@ -158,9 +173,11 @@ namespace Coffee {
         static Renderer3DSettings s_RenderSettings; ///< Render settings.
 
         static Ref<Mesh> s_ScreenQuad; ///< Screen quad mesh.
+        static Ref<Mesh> s_CubeMesh; ///< Cube mesh.
 
         static Ref<Shader> s_ToneMappingShader; ///< Tone mapping shader.
         static Ref<Shader> s_FinalPassShader; ///< Final pass shader.
+        static Ref<Shader> s_SkyboxShader; ///< Skybox shader.
     };
 
     /** @} */

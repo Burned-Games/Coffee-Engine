@@ -7,6 +7,7 @@
 #include "CoffeeEngine/Renderer/Camera.h"
 #include "CoffeeEngine/Renderer/Material.h"
 #include "CoffeeEngine/Renderer/Model.h"
+#include "CoffeeEngine/Renderer/Renderer3D.h"
 #include "CoffeeEngine/Renderer/Texture.h"
 #include "CoffeeEngine/Scene/Components.h"
 #include "CoffeeEngine/Scene/Entity.h"
@@ -880,6 +881,101 @@ namespace Coffee
             }
         }
 
+        if (entity.HasComponent<WorldEnvironmentComponent>())
+        {
+            auto& worldEnvironmentComponent = entity.GetComponent<WorldEnvironmentComponent>();
+            bool isCollapsingHeaderOpen = true;
+
+             auto DrawTextureWidget = [&](const std::string& label, Ref<Cubemap>& texture) {
+                 uint32_t textureID = texture ? texture->GetID() : 0;
+                 //ImGui::ImageButton(label.c_str(), (ImTextureID)textureID, {64, 64});
+                 ImGui::Text("Skybox:");
+                 //ImGui::SameLine();
+                 ImGui::Button((ICON_LC_CLOUD_SUN + std::string(" ") + (texture ? texture->GetName() : "No Cubemap")).c_str(), {128, 32});
+
+                auto textureImageFormat = [](ImageFormat format) -> std::string {
+                    switch (format)
+                    {
+                    case ImageFormat::R8:
+                        return "R8";
+                    case ImageFormat::RGB8:
+                        return "RGB8";
+                    case ImageFormat::RGBA8:
+                        return "RGBA8";
+                    case ImageFormat::SRGB8:
+                        return "SRGB8";
+                    case ImageFormat::SRGBA8:
+                        return "SRGBA8";
+                    case ImageFormat::RGBA32F:
+                        return "RGBA32F";
+                    case ImageFormat::DEPTH24STENCIL8:
+                        return "DEPTH24STENCIL8";
+                    }
+                };
+
+                if (ImGui::IsItemHovered() and texture)
+                {
+                    ImGui::SetTooltip("Name: %s\nSize: %d x %d\nPath: %s", texture->GetName().c_str(),
+                                      texture->GetWidth(), texture->GetHeight(),
+                                      // textureImageFormat(texture->GetImageFormat()).c_str(),
+                                      texture->GetPath().c_str());
+                }
+
+                if (ImGui::BeginDragDropTarget())
+                {
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("RESOURCE"))
+                    {
+                        const Ref<Resource>& resource = *(Ref<Resource>*)payload->Data;
+                        if (resource->GetType() == ResourceType::Cubemap)
+                        {
+                            const Ref<Cubemap>& t = std::static_pointer_cast<Cubemap>(resource);
+                            texture = t;
+                        }
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+
+                ImGui::SameLine();
+                if (ImGui::BeginCombo((label + "texture").c_str(), "", ImGuiComboFlags_NoPreview))
+                {
+                    if (ImGui::Selectable("Clear"))
+                    {
+                        texture = nullptr;
+                    }
+                    if (ImGui::Selectable("Open"))
+                    {
+                        std::string path = FileDialog::OpenFile({}).string();
+                        if (!path.empty())
+                        {
+                            Ref<Cubemap> t = Cubemap::Load(path);
+                            texture = t;
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+            };
+
+            if (ImGui::CollapsingHeader("World Environment", &isCollapsingHeaderOpen, ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                if(ImGui::TreeNode("Sky"))
+                {
+                    DrawTextureWidget("##Cubemap", worldEnvironmentComponent.Skybox);
+                    ImGui::Text("Skybox Intensity");
+                    ImGui::SameLine();
+                    float intensityPlaceholder = 1.0f;
+                    ImGui::DragFloat("##Skybox Intensity", /* worldEnvironmentComponent.SkyboxIntensity */&intensityPlaceholder, 0.001f, 100.0f);
+                    
+                    ImGui::TreePop();
+                }
+                if(ImGui::TreeNode("Tonemap"))
+                {
+                    ImGui::DragFloat("Exposure", &Renderer3D::GetRenderSettings().Exposure, 0.001f, 100.0f);
+
+                    ImGui::TreePop();
+                }
+            }
+        }
+
         if (entity.HasComponent<MeshComponent>())
         {
             auto& meshComponent = entity.GetComponent<MeshComponent>();
@@ -945,7 +1041,7 @@ namespace Coffee
 
         if (entity.HasComponent<MaterialComponent>())
         {
-            // Move this function to another site
+            // TODO Move this function to ImGuiExtras.cpp, this is duplicated in World Environment
             auto DrawTextureWidget = [&](const std::string& label, Ref<Texture2D>& texture) {
                 auto& materialComponent = entity.GetComponent<MaterialComponent>();
                 uint32_t textureID = texture ? texture->GetID() : 0;
@@ -3291,7 +3387,7 @@ namespace Coffee
             static char buffer[256] = "";
             ImGui::InputTextWithHint("##Search Component", "Search Component:", buffer, 256);
 
-            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "Particles System Component", "NavMesh Component", "Navigation Agent Component", "Sprite Component", "UI Empty Component","UI Image Component", "UI Text Component", "UI Toggle Component", "UI Button Component", "UI Slider Component" };
+            std::string items[] = { "Tag Component", "Transform Component", "Mesh Component", "Material Component", "Light Component", "World Environment Component", "Camera Component", "Audio Source Component", "Audio Listener Component", "Audio Zone Component", "Lua Script Component", "Rigidbody Component", "Particles System Component", "NavMesh Component", "Navigation Agent Component", "Sprite Component", "UI Empty Component","UI Image Component", "UI Text Component", "UI Toggle Component", "UI Button Component", "UI Slider Component" };
 
             static int item_current = 1;
 
@@ -3354,6 +3450,11 @@ namespace Coffee
                         entity.AddComponent<LightComponent>();
                     ImGui::CloseCurrentPopup();
                 }
+                else if (items[item_current] == "World Environment Component") {
+                    if (!entity.HasComponent<WorldEnvironmentComponent>())
+                        entity.AddComponent<WorldEnvironmentComponent>();
+                    ImGui::CloseCurrentPopup();
+                }
                 else if (items[item_current] == "Camera Component")
                 {
                     if (!entity.HasComponent<CameraComponent>())
@@ -3412,7 +3513,7 @@ namespace Coffee
                         ImGui::CloseCurrentPopup();
                     }
                 }  
-                else if(items[item_current] == "Rigidbody Component")
+                else if (items[item_current] == "Rigidbody Component")
                 {
                     if(!entity.HasComponent<RigidbodyComponent>())
                     {
@@ -3450,7 +3551,7 @@ namespace Coffee
                 
                     ImGui::CloseCurrentPopup();
                 }
-                else if(items[item_current] == "NavMesh Component")
+                else if (items[item_current] == "NavMesh Component")
                 {
                     if(!entity.HasComponent<NavMeshComponent>() && entity.HasComponent<MeshComponent>() && entity.HasComponent<TransformComponent>())
                     {
@@ -3461,7 +3562,7 @@ namespace Coffee
 
                     ImGui::CloseCurrentPopup();
                 }
-                else if(items[item_current] == "Navigation Agent Component")
+                else if (items[item_current] == "Navigation Agent Component")
                 {
                     if(!entity.HasComponent<NavigationAgentComponent>())
                     {
