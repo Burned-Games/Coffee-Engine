@@ -139,7 +139,7 @@ namespace Coffee
 
     bool AudioZone::SearchAvailableBusChannels()
     {
-        std::ifstream file("Assets/Audio/Wwise Project/GeneratedSoundBanks/Windows/SoundbanksInfo.json");
+        std::ifstream file(Audio::GetAudioPath() / "SoundbanksInfo.json");
         if (!file.is_open())
             return false;
 

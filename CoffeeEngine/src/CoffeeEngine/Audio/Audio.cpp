@@ -8,7 +8,7 @@
 
 namespace Coffee
 {
-    const std::filesystem::path Audio::DefaultAudioPath = "assets/audio/Wwise Project/GeneratedSoundBanks/Windows";
+    const std::filesystem::path Audio::DefaultAudioPath = std::filesystem::current_path() / "assets/audio/Wwise Project/GeneratedSoundBanks/Windows";
     std::filesystem::path Audio::m_ActiveAudioPath = Audio::DefaultAudioPath;
 
     // Global pointer for the low-level IO
@@ -43,7 +43,10 @@ namespace Coffee
 
         g_lowLevelIO->SetBasePath(m_ActiveAudioPath.c_str());
 
-        LoadAudioBanks();
+        if (LoadAudioBanks())
+            COFFEE_CORE_INFO("Loaded audio banks");
+        else
+            COFFEE_CORE_ERROR("Failed to load audio banks");
 
         AudioZone::SearchAvailableBusChannels();
     }
@@ -223,7 +226,7 @@ namespace Coffee
     }
     void Audio::OnProjectUnload()
     {
-        COFFEE_CORE_INFO("Loading default audio banks");
+        COFFEE_CORE_INFO("Loading default audio banks...");
 
         Shutdown();
         Init();
@@ -334,7 +337,8 @@ namespace Coffee
 
     bool Audio::LoadAudioBanks()
     {
-        std::ifstream file("assets/audio/Wwise Project/GeneratedSoundBanks/Windows/SoundbanksInfo.json");
+        std::string audioPath = (m_ActiveAudioPath / "SoundbanksInfo.json").string();
+        std::ifstream file(audioPath);
         if (!file.is_open())
             return false;
 
