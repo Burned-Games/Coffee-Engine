@@ -516,35 +516,51 @@ namespace Coffee {
 
         s_ToneMappingShader->Unbind();
 
+        // TODO better logic for dynamically enabling and disabling individual post-processing effects
+        // Fast aproXimate AntiAliasing
         if (s_RenderSettings.FXAA)
         {
 
+            //This has to be set because the s_ScreenQuad overwrites the depth buffer
+            RendererAPI::SetDepthMask(false);
+
+            forwardBuffer->Bind();
+            forwardBuffer->SetDrawBuffers({0});
+
             s_FXAAShader->Bind();
-            s_FXAAShader->setInt("screenTexture", 0); // TODO set screen texture to sampler
-            s_FXAAShader->setVec2("RCPFrame", {1/postBuffer->GetWidth(), 1/postBuffer->GetHeight()});
+            s_FXAAShader->setInt("screenTexture", 0);
+            s_FXAAShader->setVec2("RCPFrame", {1/forwardBuffer->GetWidth(), 1/forwardBuffer->GetHeight()});
+            postBuffer->GetColorTexture("Color")->Bind(0);
 
             RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+
             s_FXAAShader->Unbind();
+
+            RendererAPI::SetDepthMask(true);
+
+            forwardBuffer->UnBind();
         }
+        else
+        {
+            //This has to be set because the s_ScreenQuad overwrites the depth buffer
+            RendererAPI::SetDepthMask(false);
 
-        //This has to be set because the s_ScreenQuad overwrites the depth buffer
-        RendererAPI::SetDepthMask(false);
+            // Copy PostProcessing Texture to the Main Render Texture
+            forwardBuffer->Bind();
+            forwardBuffer->SetDrawBuffers({0});
 
-        // Copy PostProcessing Texture to the Main Render Texture
-        forwardBuffer->Bind();
-        forwardBuffer->SetDrawBuffers({0});
+            s_FinalPassShader->Bind();
+            s_FinalPassShader->setInt("screenTexture", 0);
+            postBuffer->GetColorTexture("Color")->Bind(0);
 
-        s_FinalPassShader->Bind();
-        s_FinalPassShader->setInt("screenTexture", 0);
-        postBuffer->GetColorTexture("Color")->Bind(0);
+            RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
-        RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+            s_FinalPassShader->Unbind();
 
-        s_FinalPassShader->Unbind();
+            RendererAPI::SetDepthMask(true);
 
-        RendererAPI::SetDepthMask(true);
-
-        forwardBuffer->UnBind();
+            forwardBuffer->UnBind();
+        }
     }
 
     void Renderer3D::ResetCalls()
