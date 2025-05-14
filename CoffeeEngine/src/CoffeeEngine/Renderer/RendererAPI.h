@@ -14,13 +14,25 @@ namespace Coffee {
      * @{
      */
 
-    enum class ClearFlags : uint32_t
+    enum ClearFlags : uint32_t
     {
-        None = 0,
         Color = 1 << 0,
         Depth = 1 << 1,
         Stencil = 1 << 2,
         ColorDepth = Color | Depth
+    };
+
+    enum class DepthFunc
+    {
+        Never,
+        Less,
+        Equal,
+        LessEqual,
+        Greater,
+        NotEqual,
+        GreaterEqual,
+        Always
+
     };
 
      enum class CullFace 
@@ -58,7 +70,7 @@ namespace Coffee {
         /**
          * @brief Clears the current buffer.
          */
-        static void Clear(uint32_t clearFlags = (uint32_t)ClearFlags::ColorDepth);
+        static void Clear(uint32_t clearFlags = (uint32_t)ClearFlags::Color | (uint32_t)ClearFlags::Depth);
 
         static void SetColorMask(bool red, bool green, bool blue, bool alpha);
 
@@ -67,6 +79,8 @@ namespace Coffee {
          * @param enabled True to enable the depth mask, false to disable it.
          */
         static void SetDepthMask(bool enabled);
+
+        static void SetDepthFunc(DepthFunc func);
 
         static void SetFaceCulling(bool enabled);
 

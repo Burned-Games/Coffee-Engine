@@ -108,6 +108,24 @@ namespace Coffee {
 		glDepthMask(enabled);
 	}
 
+	void RendererAPI::SetDepthFunc(DepthFunc func)
+	{
+		ZoneScoped;
+
+		switch (func)
+		{
+			case DepthFunc::Never:        glDepthFunc(GL_NEVER); break;
+			case DepthFunc::Less:         glDepthFunc(GL_LESS); break;
+			case DepthFunc::Equal:        glDepthFunc(GL_EQUAL); break;
+			case DepthFunc::LessEqual:    glDepthFunc(GL_LEQUAL); break;
+			case DepthFunc::Greater:      glDepthFunc(GL_GREATER); break;
+			case DepthFunc::NotEqual:     glDepthFunc(GL_NOTEQUAL); break;
+			case DepthFunc::GreaterEqual: glDepthFunc(GL_GEQUAL); break;
+			case DepthFunc::Always:       glDepthFunc(GL_ALWAYS); break;
+			default: COFFEE_CORE_ASSERT(false, "Unknown depth function!"); break;
+		}
+	}
+
 	void RendererAPI::SetFaceCulling(bool enabled)
 	{
 		ZoneScoped;
