@@ -529,7 +529,7 @@ namespace Coffee {
 
             s_FXAAShader->Bind();
             s_FXAAShader->setInt("screenTexture", 0);
-            s_FXAAShader->setVec2("RCPFrame", {1/forwardBuffer->GetWidth(), 1/forwardBuffer->GetHeight()});
+            s_FXAAShader->setVec2("screenSize", {forwardBuffer->GetWidth(), forwardBuffer->GetHeight()});
             postBuffer->GetColorTexture("Color")->Bind(0);
 
             RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
