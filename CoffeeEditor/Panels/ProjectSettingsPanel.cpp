@@ -18,7 +18,7 @@ namespace Coffee {
         m_SelectedInputKey = actionName;
         m_SelectedInputBinding = binding;
         // Copy name to modifiable array to enable Input Action name change
-        std::copy_n(m_SelectedInputKey.begin(), min(m_SelectedInputKey.size(), 255),arr_newBindName.begin());
+        std::copy_n(m_SelectedInputKey.begin(), std::min<size_t>(m_SelectedInputKey.size(), 255), arr_newBindName.begin());
 
     }
     void ProjectSettingsPanel::RenderInputSettings(const ImGuiWindowFlags flags)
