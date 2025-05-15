@@ -31,9 +31,11 @@ layout(location = 1) out vec4 EntityID;
 in vec3 TexCoord;
 
 uniform samplerCube skybox;
+uniform float exposure;
 
 void main()
 {
-    FragColor = texture(skybox, TexCoord);
+    vec3 color = texture(skybox, TexCoord).rgb * exposure;
+    FragColor = vec4(color, 1.0);
     EntityID = vec4(1.0, 1.0, 1.0, 1.0);
 }

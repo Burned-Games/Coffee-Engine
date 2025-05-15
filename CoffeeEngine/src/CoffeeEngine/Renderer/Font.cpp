@@ -149,7 +149,7 @@ namespace Coffee {
 	{
 		static Ref<Font> DefaultFont;
 		if (!DefaultFont)
-			DefaultFont = CreateRef<Font>("assets/fonts/OpenSans-SemiBold.ttf");
+			DefaultFont = CreateRef<Font>("assets/fonts/Brawler-Regular.ttf");
 
 		return DefaultFont;
 	}

@@ -45,6 +45,7 @@ namespace Coffee {
     }
 
     void PhysicsWorld::stepSimulation(const float dt) const {
+        ZoneScoped;
         dynamicsWorld->stepSimulation(dt);
         CollisionSystem::checkCollisions(*this);
     }
@@ -64,6 +65,7 @@ namespace Coffee {
 
     void PhysicsWorld::drawCollisionShapes() const
     {
+        ZoneScoped;
         if (!dynamicsWorld)
             return;
         const int numCollisionObjects = dynamicsWorld->getNumCollisionObjects();

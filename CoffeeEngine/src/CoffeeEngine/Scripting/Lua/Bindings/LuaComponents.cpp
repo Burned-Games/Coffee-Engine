@@ -3,6 +3,7 @@
 #include "CoffeeEngine/Scene/Components.h"
 #include "CoffeeEngine/Scripting/GameSaver.h"
 #include "CoffeeEngine/Scripting/Lua/LuaScript.h"
+#include "CoffeeEngine/UI/UIManager.h"
 #include <memory>
 
 void Coffee::RegisterComponentsBindings(sol::state& luaState)
@@ -215,5 +216,18 @@ void Coffee::RegisterComponentsBindings(sol::state& luaState)
         }
 
         return defaultValue;
+    });
+
+    luaState.set_function("scale_ui_element", [](const Entity entity, float scaleX, sol::optional<float> optScaleY) {
+        float scaleY = optScaleY.value_or(scaleX);
+        UIManager::MarkToTransform(entity, glm::vec2(scaleX, scaleY));
+    });
+
+    luaState.set_function("move_ui_element", [](const Entity entity, float offsetX, float offsetY) {
+        UIManager::MarkToTransform(entity, glm::vec2(offsetX, offsetY), true);
+    });
+
+    luaState.set_function("rotate_ui_element", [](const Entity entity, float angle) {
+        UIManager::MarkToTransform(entity, angle);
     });
 }
