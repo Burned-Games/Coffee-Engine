@@ -204,6 +204,20 @@ namespace Coffee {
         }
     }
 
+    template <>
+    void CopyComponentIfExists<ParticlesSystemComponent>(entt::entity destinyEntity, entt::entity sourceEntity,
+                                              entt::registry& registry){
+
+        if (registry.all_of<ParticlesSystemComponent>(sourceEntity))
+            {
+            auto& srcComponent = registry.get<ParticlesSystemComponent>(sourceEntity);
+            ParticlesSystemComponent newComponent(srcComponent);
+            newComponent.SetParticleEmitter(CreateRef<ParticleEmitter>(*srcComponent.GetParticleEmitter()));
+            registry.emplace<ParticlesSystemComponent>(destinyEntity, std::move(newComponent));
+            
+        }
+    }
+
     template <typename... Components>
     static void CopyEntity(entt::entity destinyEntity, entt::entity sourceEntity, entt::registry& registry)
     {
@@ -227,10 +241,9 @@ namespace Coffee {
     {
         Entity newEntity = CreateEntity(sourceEntity.GetComponent<TagComponent>().Tag);
         CopyEntity<ALL_COMPONENTS>(newEntity, sourceEntity, m_Registry);
-        
+
         if (parentEntity)
             newEntity.SetParent(*parentEntity);
-
         
         auto children = sourceEntity.GetChildren();
         for (auto& child : children)

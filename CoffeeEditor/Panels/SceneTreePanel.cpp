@@ -2751,6 +2751,14 @@ namespace Coffee
                         emitter->shape == ParticleEmitter::ShapeType::Circle)
                     {
                         // Direction
+                        ImGui::Checkbox("Go Center Direction", &emitter->goCenter);
+
+                        if (emitter->goCenter)
+                        {
+                            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f)); // Gray
+                            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);                   // Disable controls
+                        }
+
                         ImGui::Checkbox("##ParticleDirectionUseRandom", &emitter->useDirectionRandom);
                         if (ImGui::IsItemHovered())
                         {
@@ -2766,6 +2774,11 @@ namespace Coffee
                         {
                             ImGui::DragFloat3("##ParticleDirectionRandom", glm::value_ptr(emitter->directionRandom),
                                               0.1f, -1.0f, 1.0f);
+                        }
+                        if (emitter->goCenter)
+                        {
+                            ImGui::PopItemFlag();
+                            ImGui::PopStyleColor();
                         }
                     }
                     

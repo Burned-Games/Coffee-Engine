@@ -954,6 +954,7 @@ namespace Coffee
         ParticlesSystemComponent() { m_Particles = CreateRef<ParticleEmitter>(); }
 
         Ref<ParticleEmitter> GetParticleEmitter() { return m_Particles; }
+        void SetParticleEmitter(Ref<ParticleEmitter> newParticleEmitter) { m_Particles = newParticleEmitter; }
 
         void Emit(int quantity) { m_Particles->Emit(quantity); }
         void SetLooping(bool active) { m_Particles->looping = active; }

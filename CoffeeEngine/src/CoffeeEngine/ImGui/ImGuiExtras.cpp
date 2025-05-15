@@ -25,82 +25,71 @@ void GradientEditor::DrawGradientBar(const std::vector<GradientPoint>& points, I
 void GradientEditor::EditGradientPoints(std::vector<GradientPoint>& points, ImVec2 canvas_pos, ImVec2 canvas_size)
 {
     int pointToDelete = -1;
-    bool addNewPoint = false;
-    float newPointPos = 0.0f;
+
+    // Sort points by time before drawing
+    std::sort(points.begin(), points.end(),
+              [](const GradientPoint& a, const GradientPoint& b) { return a.position < b.position; });
 
     for (size_t i = 0; i < points.size(); ++i)
     {
         auto& p = points[i];
         float x_pos = canvas_pos.x + p.position * canvas_size.x;
-        ImVec2 handle_pos = ImVec2(x_pos, canvas_pos.y + canvas_size.y);
+        ImVec2 handle_pos = ImVec2(x_pos, canvas_pos.y + canvas_size.y + 10);
 
-        ImGui::SetCursorScreenPos(ImVec2(handle_pos.x - 5, handle_pos.y - 5));
-        ImGui::PushID(i);
-
-        if (ImGui::ColorEdit4("", (float*)&p.color, ImGuiColorEditFlags_NoInputs))
-        {
-            // Color updated
-        }
-
-        ImGui::PopID();
-
-        // Drag gradient points
         ImGui::SetCursorScreenPos(handle_pos);
-        ImGui::InvisibleButton("DragHandle", ImVec2(10, 10),
-                               ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+        ImGui::PushID(static_cast<int>(i));
 
-        // If the user is moving the point
-        if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0))
+
+        ImGui::ColorEdit4("##color", (float*)&p.color,
+                          ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar |
+                              ImGuiColorEditFlags_NoDragDrop);
+
+        if (i != 0 && i != points.size() - 1)
         {
-            float new_pos = (ImGui::GetMousePos().x - canvas_pos.x) / canvas_size.x;
-            p.position = ImClamp(new_pos, 0.0f, 1.0f);
+            // Arrastrar el punto horizontalmente
+            if (ImGui::IsItemHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+            {
+                float new_pos = ((ImGui::GetMousePos().x - 5) - canvas_pos.x) / canvas_size.x;
+                p.position = ImClamp(new_pos, 0.0f, 1.0f);
+            }
+
+            // Clic derecho para eliminar
+            if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+            {
+                pointToDelete = static_cast<int>(i);
+            }
         }
-
-        // If the user right-clicks a point, mark it for deletion
-        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-        {
-            pointToDelete = static_cast<int>(i);
-        }
+        ImGui::PopID();
     }
 
-    // Add a new point by clicking on the gradient bar
-    if (ImGui::InvisibleButton("AddGradientPoint", canvas_size, ImGuiButtonFlags_MouseButtonLeft) &&
-        ImGui::IsMouseClicked(0))
-    {
-        newPointPos = (ImGui::GetMousePos().x - canvas_pos.x) / canvas_size.x;
-        addNewPoint = true;
-    }
-
-    // Add the new point if a click on the bar was detected
-    if (addNewPoint)
-    {
-        points.push_back({ImClamp(newPointPos, 0.0f, 1.0f), ImVec4(1, 1, 1, 1)});
-
-        // Sort points by position to keep the gradient clean
-        std::sort(points.begin(), points.end(),
-                  [](const GradientPoint& a, const GradientPoint& b) { return a.position < b.position; });
-    }
-
-    // Delete the point if it was marked for deletion
+    // Eliminar punto si hay más de 2
     if (pointToDelete >= 0 && points.size() > 2)
-    { // Always keep at least 2 points
+    {
         points.erase(points.begin() + pointToDelete);
     }
 }
+
 
 
 void GradientEditor::ShowGradientEditor(std::vector<GradientPoint>& points)
 {
     if (ImGui::TreeNodeEx("Gradient Editor", ImGuiTreeNodeFlags_None))
     {
-        // Draw gradient
         ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
         ImVec2 canvas_size = ImVec2(ImGui::GetContentRegionAvail().x - 10, 30);
-        DrawGradientBar(points, canvas_pos, canvas_size);
-        ImGui::InvisibleButton("GradientCanvas", canvas_size);
 
-        // Edit gradient points
+        DrawGradientBar(points, canvas_pos, canvas_size);
+
+        // Llama al editor de puntos
         EditGradientPoints(points, canvas_pos, canvas_size);
+
+        ImGui::Dummy(ImVec2(0, 10)); // Espacio visual
+        if (ImGui::Button("Add Point"))
+        {
+            points.push_back({0.5f, ImVec4(1, 1, 1, 1)});
+            std::sort(points.begin(), points.end(),
+                      [](const GradientPoint& a, const GradientPoint& b) { return a.position < b.position; });
+        }
 
         ImGui::TreePop();
     }
