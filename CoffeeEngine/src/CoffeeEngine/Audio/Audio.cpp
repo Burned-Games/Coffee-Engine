@@ -8,7 +8,7 @@
 
 namespace Coffee
 {
-    const std::filesystem::path Audio::DefaultAudioPath = std::filesystem::current_path() / "assets/audio/Wwise Project/GeneratedSoundBanks/Windows";
+    const std::filesystem::path Audio::DefaultAudioPath = std::filesystem::absolute(std::filesystem::current_path() / "assets/audio/Wwise Project/GeneratedSoundBanks/Windows");
     std::filesystem::path Audio::m_ActiveAudioPath = Audio::DefaultAudioPath;
 
     // Global pointer for the low-level IO
@@ -217,7 +217,7 @@ namespace Coffee
             COFFEE_CORE_WARN("Audio folder path not defined in project");
             return;
         }
-        COFFEE_CORE_INFO("Project audio directory found, loading audio banks...");
+        COFFEE_CORE_INFO("Project audio directory found, loading audio banks from " + std::filesystem::absolute(audioPath).string());
 
 
         m_ActiveAudioPath = audioPath;
@@ -336,7 +336,7 @@ namespace Coffee
 
     bool Audio::LoadAudioBanks()
     {
-        std::string audioPath = (m_ActiveAudioPath / "SoundbanksInfo.json").string();
+        std::string audioPath = std::filesystem::absolute(m_ActiveAudioPath / "SoundbanksInfo.json").string();
         std::ifstream file(audioPath);
         if (!file.is_open())
             return false;
