@@ -179,9 +179,13 @@ namespace Coffee {
                 s_RendererData.ShadowMapFramebuffer->AttachDepthTexture(shadowMap);
     
                 s_RendererData.ShadowMapFramebuffer->Bind();
-    
+                
+                RendererAPI::SetColorMask(false, false, false, false);
+                RendererAPI::SetDepthMask(true);
+                RendererAPI::SetDepthFunc(DepthFunc::Less);
+
                 RendererAPI::SetViewport(0, 0, 4096, 4096);
-                RendererAPI::Clear();
+                RendererAPI::Clear(ClearFlags::Depth);
 
                 // Adjust the orthographic projection bounds based on ShadowMaxDistance
                 float orthoBounds = light.ShadowMaxDistance * 0.5f;
@@ -254,7 +258,7 @@ namespace Coffee {
 
         RendererAPI::SetColorMask(true, true, true, true);
         RendererAPI::SetDepthMask(false);
-        RendererAPI::SetDepthFunc(DepthFunc::LessEqual);
+        RendererAPI::SetDepthFunc(DepthFunc::Equal);
 
         RendererAPI::SetClearColor({0.03f,0.03f,0.03f,1.0});
         RendererAPI::Clear(ClearFlags::Color);
