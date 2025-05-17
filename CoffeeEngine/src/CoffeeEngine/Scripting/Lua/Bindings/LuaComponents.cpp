@@ -142,12 +142,15 @@ void Coffee::RegisterComponentsBindings(sol::state& luaState)
 
     luaState.new_usertype<UIImageComponent>("UIImageComponent", sol::constructors<UIImageComponent()>(),
         "set_color", [](UIImageComponent& self, const glm::vec4& color) { self.Color = color; },
+        "get_color", [](const UIImageComponent& self) { return self.Color; },
         "set_rect", [](UIImageComponent& self, const glm::vec4& uvRect) { self.UVRect = uvRect; }
     );
 
     luaState.new_usertype<UITextComponent>("UITextComponent",
         "set_text", [](UITextComponent& self, const std::string& text) { self.Text = text; },
+        "get_text", [](const UITextComponent& self) { return self.Text; },
         "set_color", [](UITextComponent& self, const glm::vec4& color) { self.Color = color; },
+        "get_color", [](const UITextComponent& self) { return self.Color; },
         "kerning", &UITextComponent::Kerning,
         "line_spacing", &UITextComponent::LineSpacing,
         "font_size", &UITextComponent::FontSize
