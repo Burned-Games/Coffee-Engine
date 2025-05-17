@@ -259,6 +259,8 @@ namespace Coffee {
          * @return True if successful, false otherwise.
          */
         static bool LoadAudioBanks();
+
+        static bool ReloadAudioBanks();
     };
 } // namespace Coffee
 CEREAL_CLASS_VERSION(Coffee::Audio::AudioBank, 0);

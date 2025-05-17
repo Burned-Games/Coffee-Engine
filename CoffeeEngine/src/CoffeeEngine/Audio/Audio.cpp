@@ -220,16 +220,15 @@ namespace Coffee
         COFFEE_CORE_INFO("Project audio directory found, loading audio banks...");
 
 
-        Shutdown();
         m_ActiveAudioPath = audioPath;
-        Init();
+        ReloadAudioBanks();
     }
     void Audio::OnProjectUnload()
     {
         COFFEE_CORE_INFO("Loading default audio banks...");
 
-        Shutdown();
-        Init();
+        m_ActiveAudioPath = DefaultAudioPath;
+        ReloadAudioBanks();
     }
 
     void Audio::ProcessAudio()
@@ -347,9 +346,8 @@ namespace Coffee
         file.close();
 
         rapidjson::Document banksInfo;
-        if (banksInfo.Parse(buffer.str().c_str()).HasParseError()
-            || !banksInfo.HasMember("SoundBanksInfo")
-            || !banksInfo["SoundBanksInfo"].HasMember("SoundBanks"))
+        if (banksInfo.Parse(buffer.str().c_str()).HasParseError() || !banksInfo.HasMember("SoundBanksInfo") ||
+            !banksInfo["SoundBanksInfo"].HasMember("SoundBanks"))
         {
             return false;
         }
@@ -387,6 +385,24 @@ namespace Coffee
         }
 
         return true;
+    }
+    bool Audio::ReloadAudioBanks()
+    {
+        // Stop currently playing audio
+        StopAllEvents();
+
+        // Unload the soundbanks
+        AK::SoundEngine::ClearBanks();
+        audioBanks.clear();
+
+        g_lowLevelIO->SetBasePath(m_ActiveAudioPath.c_str());
+
+        bool ret = LoadAudioBanks();
+        if (ret)
+            COFFEE_CORE_INFO("Loaded audio banks");
+        else
+            COFFEE_CORE_ERROR("Failed to load audio banks");
+        return ret;
     }
 
     void Audio::Shutdown()
