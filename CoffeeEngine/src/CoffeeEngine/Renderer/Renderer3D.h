@@ -175,6 +175,7 @@ namespace Coffee {
         static Ref<Mesh> s_ScreenQuad; ///< Screen quad mesh.
         static Ref<Mesh> s_CubeMesh; ///< Cube mesh.
 
+        static Ref<Shader> s_FogShader; ///< Fog shader.
         static Ref<Shader> s_ToneMappingShader; ///< Tone mapping shader.
         static Ref<Shader> s_FinalPassShader; ///< Final pass shader.
         static Ref<Shader> s_SkyboxShader; ///< Skybox shader.

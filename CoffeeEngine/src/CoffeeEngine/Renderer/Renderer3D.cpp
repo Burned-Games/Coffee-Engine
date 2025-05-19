@@ -30,6 +30,7 @@ namespace Coffee {
     Ref<Mesh> Renderer3D::s_ScreenQuad;
     Ref<Mesh> Renderer3D::s_CubeMesh;
 
+    Ref<Shader> Renderer3D::s_FogShader;
     Ref<Shader> Renderer3D::s_ToneMappingShader;
     Ref<Shader> Renderer3D::s_FinalPassShader;
     Ref<Shader> Renderer3D::s_SkyboxShader;
@@ -66,6 +67,8 @@ namespace Coffee {
 
         s_ScreenQuad = PrimitiveMesh::CreateQuad();
 
+        //s_FogShader = CreateRef<Shader>("FogShader", std::string(fogShaderSource));
+        s_FogShader = CreateRef<Shader>("assets/shaders/FogShader.glsl");
         s_ToneMappingShader = CreateRef<Shader>("ToneMappingShader", std::string(toneMappingShaderSource));
         s_FinalPassShader = CreateRef<Shader>("FinalPassShader", std::string(finalPassShaderSource));
 
@@ -531,6 +534,9 @@ namespace Coffee {
         const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
         const Ref<Framebuffer>& postBuffer = target.GetFramebuffer("PostProcessing");
         postBuffer->Bind();
+
+        // Depth Fog
+
 
         //ToneMapping
 
