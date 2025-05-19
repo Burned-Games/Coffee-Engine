@@ -626,15 +626,6 @@ namespace Coffee {
         ImGui::End();
         ImGui::PopStyleVar();
 
-        //---------TESTING---------
-        ImGui::Begin("Render Settings");
-
-        ImGui::Checkbox("Post Processing", &Renderer::GetRenderSettings().PostProcessing);
-
-        ImGui::DragFloat("Exposure", &Renderer3D::GetRenderSettings().Exposure, 0.001f, 100.0f);
-
-        ImGui::End();
-
         // Debug Window for testing the ResourceRegistry
         ImGui::Begin("Resource Registry");
         

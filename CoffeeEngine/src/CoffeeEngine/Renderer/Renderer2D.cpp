@@ -875,6 +875,91 @@ namespace Coffee {
         }
     }
 
+    void Renderer2D::DrawTruncatedCone(glm::vec3 position, glm::quat rotation, float baseRadius, float topRadius,
+                                       float height, glm::vec4 color)
+    {
+        Batch& batch = GetBatch(RenderMode::World);
+
+        if (batch.LineVertices.size() >= Batch::MaxVertices)
+        {
+            NextBatch(RenderMode::World);
+            batch = GetBatch(RenderMode::World);
+        }
+
+        glm::vec3 entityIDVec3 = glm::vec3(1.0f, 1.0f, 1.0f);
+
+        // Calculate the apex position (top of the cone)
+        glm::vec3 upVector = rotation * glm::vec3(0.0f, 1.0f, 0.0f);
+        glm::vec3 apex = position + upVector * height;
+
+        // Draw base circle
+        const uint32_t segments = 24;
+        const float angleStep = 2.0f * glm::pi<float>() / segments;
+
+        glm::vec3 basePoints[25]; // One extra for connecting back to the start
+        glm::vec3 topPoints[25];  // One extra for connecting back to the start
+
+        // Calculate points around the base circle
+        for (int i = 0; i <= segments; i++)
+        {
+            float angle = i * angleStep;
+
+            // Base circle
+            float baseX = baseRadius * cos(angle);
+            float baseZ = baseRadius * sin(angle);
+            glm::vec3 baseLocalPoint(baseX, 0.0f, baseZ);
+            glm::vec3 baseWorldPoint = position + rotation * baseLocalPoint;
+            basePoints[i] = baseWorldPoint;
+
+            // Top circle
+            float topX = topRadius * cos(angle);
+            float topZ = topRadius * sin(angle);
+            glm::vec3 topLocalPoint(topX, height, topZ);
+            glm::vec3 topWorldPoint = position + rotation * topLocalPoint;
+            topPoints[i] = topWorldPoint;
+        }
+
+        // Draw the base circle
+        for (int i = 0; i < segments; i++)
+        {
+            if (batch.LineVertices.size() >= Batch::MaxVertices)
+            {
+                NextBatch(RenderMode::World);
+                batch = GetBatch(RenderMode::World);
+            }
+
+            batch.LineVertices.push_back({basePoints[i], color, entityIDVec3});
+            batch.LineVertices.push_back({basePoints[i + 1], color, entityIDVec3});
+        }
+
+        // Draw the top circle
+        for (int i = 0; i < segments; i++)
+        {
+            if (batch.LineVertices.size() >= Batch::MaxVertices)
+            {
+                NextBatch(RenderMode::World);
+                batch = GetBatch(RenderMode::World);
+            }
+
+            batch.LineVertices.push_back({topPoints[i], color, entityIDVec3});
+            batch.LineVertices.push_back({topPoints[i + 1], color, entityIDVec3});
+        }
+
+        // Draw lines from the base to the top (side edges of the truncated cone)
+        for (int i = 0; i < segments; i++)
+        {
+            if (batch.LineVertices.size() >= Batch::MaxVertices)
+            {
+                NextBatch(RenderMode::World);
+                batch = GetBatch(RenderMode::World);
+            }
+
+            batch.LineVertices.push_back({basePoints[i], color, entityIDVec3});
+            batch.LineVertices.push_back({topPoints[i], color, entityIDVec3});
+        }
+    }
+
+
     void Renderer2D::DrawTextString(const std::string &text, Ref<Font> font, const glm::mat4 &transform, const TextParams &textParams, RenderMode mode, uint32_t entityID)
     {
 

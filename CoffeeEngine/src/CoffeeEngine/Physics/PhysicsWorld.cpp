@@ -45,6 +45,7 @@ namespace Coffee {
     }
 
     void PhysicsWorld::stepSimulation(const float dt) const {
+        ZoneScoped;
         dynamicsWorld->stepSimulation(dt);
         CollisionSystem::checkCollisions(*this);
     }
@@ -64,6 +65,7 @@ namespace Coffee {
 
     void PhysicsWorld::drawCollisionShapes() const
     {
+        ZoneScoped;
         if (!dynamicsWorld)
             return;
         const int numCollisionObjects = dynamicsWorld->getNumCollisionObjects();
@@ -138,7 +140,7 @@ namespace Coffee {
                 if (!cylinderShape)
                     continue;
             
-                const btVector3 halfExtents = cylinderShape->getHalfExtentsWithoutMargin();
+                const btVector3 halfExtents = cylinderShape->getHalfExtentsWithMargin();
                 float radius = halfExtents.x() + margin; // x and z are equal for Y-axis cylinder
                 float height = (halfExtents.y() + margin) * 2.0f;
             

@@ -26,7 +26,7 @@ struct GradientPoint
  */
 struct CurvePoint
 {
-    float time;  // Range 0.0 - 1.0
+    float time;  // Range -1.0 - 1.0
     float value; // Size scale
 
     /**

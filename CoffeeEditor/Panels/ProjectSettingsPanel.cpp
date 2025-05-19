@@ -19,6 +19,9 @@ namespace Coffee {
     {
         m_SelectedInputKey = actionName;
         m_SelectedInputBinding = binding;
+        // Copy name to modifiable array to enable Input Action name change
+        std::copy_n(m_SelectedInputKey.begin(), std::min<size_t>(m_SelectedInputKey.size(), 255), arr_newBindName.begin());
+
     }
     void ProjectSettingsPanel::RenderInputSettings(const ImGuiWindowFlags flags)
     {
@@ -162,6 +165,7 @@ namespace Coffee {
         ImGui::PushID("BindingConfig");
         ImGui::BeginGroup();
 
+
         if (m_SelectedInputBinding)
         {
 
@@ -178,8 +182,8 @@ namespace Coffee {
                     m_SelectedInputBinding->Name = newBindName;
                     bindings[newBindName] = *m_SelectedInputBinding;
                     bindings.erase(m_SelectedInputKey);
-                    m_SelectedInputBinding = &bindings[newBindName];
-                    m_SelectedInputKey = newBindName;
+                    m_SelectedInputBinding = &bindings[str_newBindName];
+                    m_SelectedInputKey = str_newBindName;
                 }
             }
             ImGui::NewLine();
@@ -189,12 +193,22 @@ namespace Coffee {
             {
                 Input::StartRebindMode(m_SelectedInputKey, RebindState::PosButton);
             }
+            ImGui::SameLine();
+            if (ImGui::Button("Unbind##PosButtonUnBind"))
+            {
+                m_SelectedInputBinding->ButtonPos = Button::Invalid;
+            }
 
             ImGui::TextUnformatted("NegButton:"); ImGui::SameLine();
             ImGui::Text("%s", Input::GetButtonLabel(m_SelectedInputBinding->ButtonNeg)); ImGui::SameLine();
             if (ImGui::Button("Rebind##NegButton"))
             {
                 Input::StartRebindMode(m_SelectedInputKey, RebindState::NegButton);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Unbind##NegButtonUnBind"))
+            {
+                m_SelectedInputBinding->ButtonNeg = Button::Invalid;
             }
 
             ImGui::TextUnformatted("PosKey:"); ImGui::SameLine();
@@ -203,12 +217,22 @@ namespace Coffee {
             {
                 Input::StartRebindMode(m_SelectedInputKey, RebindState::PosKey);
             }
+            ImGui::SameLine();
+            if (ImGui::Button("Unbind##PosKeyUnBind"))
+            {
+                m_SelectedInputBinding->KeyPos = Key::Unknown;
+            }
 
             ImGui::TextUnformatted("NegKey:"); ImGui::SameLine();
             ImGui::Text("%s", Input::GetKeyLabel(m_SelectedInputBinding->KeyNeg)); ImGui::SameLine();
             if (ImGui::Button("Rebind##NegKey"))
             {
                 Input::StartRebindMode(m_SelectedInputKey, RebindState::NegKey);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Unbind##NegKeyUnBind"))
+            {
+                m_SelectedInputBinding->KeyNeg = Key::Unknown;
             }
 
             ImGui::TextUnformatted("Axis:"); ImGui::SameLine();
@@ -217,6 +241,13 @@ namespace Coffee {
             {
                 Input::StartRebindMode(m_SelectedInputKey, RebindState::Axis);
             }
+            ImGui::SameLine();
+            if (ImGui::Button("Unbind##AxisUnBind"))
+            {
+                m_SelectedInputBinding->Axis = Axis::Invalid;
+                m_SelectedInputBinding->invertedAxis = false;
+            }
+            ImGui::Checkbox("Inverted axis", &m_SelectedInputBinding->invertedAxis);
 
             static bool deletionConfirmation = false;
             std::string deletionLabel = deletionConfirmation ? "Are you sure?":"Delete";
@@ -233,6 +264,10 @@ namespace Coffee {
                     m_SelectedInputBinding = nullptr;
                 }
             }
+        }
+        else
+        {
+            arr_newBindName.fill('\0');
         }
 
         if (ImGui::Button("New Action"))

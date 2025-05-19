@@ -154,27 +154,6 @@ namespace Coffee {
         return result;
     }
 
-    void Framebuffer::SetDrawBuffers(std::initializer_list<Ref<Texture2D>> colorAttachments)
-    {
-        ZoneScoped;
-
-        //TODO: Improve this code, double for loop is not efficient at all a map would be better i think
-        std::vector<GLenum> drawBuffers;
-        for (int i = 0; i < colorAttachments.size(); i++)
-        {
-            for (int j = 0; j < m_ColorTextures.size(); j++)
-            {
-                if(colorAttachments.begin()[i]->GetID() == m_ColorTextures[j]->GetID())
-                {
-                    drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + j);
-                    break;
-                }
-            }
-        }
-
-        glNamedFramebufferDrawBuffers(m_fboID, drawBuffers.size(), drawBuffers.data());
-    }
-
     void Framebuffer::SetDrawBuffers(std::initializer_list<uint32_t> colorAttachments)
     {
         ZoneScoped;
@@ -186,6 +165,19 @@ namespace Coffee {
         }
 
         glNamedFramebufferDrawBuffers(m_fboID, drawBuffers.size(), drawBuffers.data());
+    }
+
+    void Framebuffer::AttachColorTexture(const Ref<Texture2D>& texture, const std::string& name)
+    {
+        ZoneScoped;
+
+        // TODO: Check if the texture is already attached and remove it
+
+        m_Attachments.push_back({texture->GetImageFormat(), name});
+        m_Attachments.back().texture = texture;
+
+        m_ColorTextures.push_back(texture);
+        glNamedFramebufferTexture(m_fboID, GL_COLOR_ATTACHMENT0 + m_ColorTextures.size() - 1, texture->GetID(), 0);
     }
 
     void Framebuffer::AttachDepthTexture(const Ref<Texture2D>& texture)
