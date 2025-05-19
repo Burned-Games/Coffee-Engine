@@ -917,7 +917,6 @@ namespace Coffee {
     {
         // Clear collision system state
         CollisionSystem::Shutdown();
-        Audio::StopAllEvents();
     }
 
     Ref<Scene> Scene::Load(const std::filesystem::path& path)
