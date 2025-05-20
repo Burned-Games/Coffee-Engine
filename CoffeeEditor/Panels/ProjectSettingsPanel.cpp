@@ -168,19 +168,14 @@ namespace Coffee {
 
         if (m_SelectedInputBinding)
         {
-
-            static std::string newBindName;
-            newBindName.reserve(256);
-            newBindName = m_SelectedInputKey;
             ImGui::TextUnformatted("Name: "); ImGui::SameLine();
-            if (ImGui::InputText("BindingName", newBindName.data(), 256, ImGuiInputTextFlags_EnterReturnsTrue))
+            if (ImGui::InputText("BindingName", arr_newBindName.data(), 255, ImGuiInputTextFlags_EnterReturnsTrue))
             {
-                // If name is not empty when Enter is pressed, update the action's key in the action map
-                // Also prevent overwriting another action
-                if (!newBindName.empty() && !bindings.contains(newBindName))
+                std::string str_newBindName = {arr_newBindName.begin(), arr_newBindName.end()};
+                if (strlen(arr_newBindName.data()) != 0)
                 {
-                    m_SelectedInputBinding->Name = newBindName;
-                    bindings[newBindName] = *m_SelectedInputBinding;
+                    m_SelectedInputBinding->Name = str_newBindName;
+                    bindings[str_newBindName] = *m_SelectedInputBinding;
                     bindings.erase(m_SelectedInputKey);
                     m_SelectedInputBinding = &bindings[str_newBindName];
                     m_SelectedInputKey = str_newBindName;
