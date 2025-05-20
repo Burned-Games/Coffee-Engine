@@ -682,6 +682,12 @@ namespace Coffee
 
         AudioSourceComponent(const AudioSourceComponent& other) { *this = other; }
 
+        ~AudioSourceComponent()
+        {
+            if (isPlaying || playOnAwake)
+                Stop();
+        }
+
         AudioSourceComponent& operator=(const AudioSourceComponent& other)
         {
             if (this != &other)
