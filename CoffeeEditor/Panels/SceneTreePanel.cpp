@@ -893,6 +893,16 @@ namespace Coffee
 
                     ImGui::TreePop();
                 }
+                if(ImGui::TreeNode("Fog"))
+                {
+                    ImGui::Checkbox("Enable Fog", &worldEnvironmentComponent.Fog);
+                    ImGui::DragFloat("Density", &worldEnvironmentComponent.FogDensity, 0.001f, 0.0f, 1.0f);
+                    ImGui::ColorEdit3("Color", glm::value_ptr(worldEnvironmentComponent.FogColor));
+                    ImGui::DragFloat("Height", &worldEnvironmentComponent.FogHeight, 0.1f, -1024.0f, 1024.0f);
+                    ImGui::DragFloat("Height Density", &worldEnvironmentComponent.FogHeightDensity, 0.001f, -16.0f, 16.0f);
+
+                    ImGui::TreePop();
+                }
             }
         }
 
