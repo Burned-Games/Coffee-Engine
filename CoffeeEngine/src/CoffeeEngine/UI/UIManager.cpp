@@ -396,7 +396,39 @@ namespace Coffee {
             if (registry.any_of<TransformComponent>(item.Parent) && !registry.any_of<UIComponent>(item.Parent))
             {
                 auto& parentTransform = registry.get<TransformComponent>(item.Parent);
-                parentPosition = glm::vec2(parentTransform.GetLocalPosition());
+
+                bool parentIsUIElement = registry.any_of<UIImageComponent>(item.Parent) ||
+                                       registry.any_of<UITextComponent>(item.Parent) ||
+                                       registry.any_of<UIButtonComponent>(item.Parent) ||
+                                       registry.any_of<UIToggleComponent>(item.Parent) ||
+                                       registry.any_of<UISliderComponent>(item.Parent);
+
+                if (parentIsUIElement)
+                {
+                    UIRenderItem* parentItem = nullptr;
+                    for (auto& renderItem : s_SortedUIItems)
+                    {
+                        if (renderItem.Entity == item.Parent)
+                        {
+                            parentItem = &renderItem;
+                            break;
+                        }
+                    }
+
+                    if (parentItem)
+                    {
+                        RectAnchor* parentAnchor = GetComponentAnchor(registry, item.Parent, parentItem->ComponentType);
+                        if (parentAnchor)
+                        {
+                            AnchoredTransform parentAnchored = CalculateAnchoredTransform(registry, *parentAnchor, *parentItem);
+                            parentPosition = parentAnchored.Position;
+                        }
+                    }
+                }
+                else
+                {
+                    parentPosition = glm::vec2(parentTransform.GetLocalPosition());
+                }
             }
             else
             {
@@ -538,8 +570,13 @@ namespace Coffee {
 
             auto& transformComponent = registry.get<TransformComponent>(item.Entity);
 
-            transformComponent.SetLocalPosition(glm::vec3(anchored.Position, 0.0f));
-            transformComponent.SetLocalScale(glm::vec3(anchored.Size.x, anchored.Size.y, 1.0f));
+            RectAnchor* anchor = GetComponentAnchor(registry, item.Entity, item.ComponentType);
+            if (anchor)
+            {
+                glm::vec2 anchoredPos = anchor->GetAnchoredPosition(item.ParentSize);
+                transformComponent.SetLocalPosition(glm::vec3(anchoredPos, 0.0f));
+                transformComponent.SetLocalScale(glm::vec3(anchor->GetSize().x, anchor->GetSize().y, 1.0f));
+            }
 
             float rotation = transformComponent.GetLocalRotation().z;
 
