@@ -574,8 +574,17 @@ namespace Coffee {
             if (anchor)
             {
                 glm::vec2 anchoredPos = anchor->GetAnchoredPosition(item.ParentSize);
+
+                anchoredPos.x = std::round(anchoredPos.x * 1000.0f) / 1000.0f;
+                anchoredPos.y = std::round(anchoredPos.y * 1000.0f) / 1000.0f;
+
                 transformComponent.SetLocalPosition(glm::vec3(anchoredPos, 0.0f));
-                transformComponent.SetLocalScale(glm::vec3(anchor->GetSize().x, anchor->GetSize().y, 1.0f));
+
+                glm::vec2 anchoredSize = anchor->GetSize();
+                anchoredSize.x = std::round(anchoredSize.x * 1000.0f) / 1000.0f;
+                anchoredSize.y = std::round(anchoredSize.y * 1000.0f) / 1000.0f;
+
+                transformComponent.SetLocalScale(glm::vec3(anchoredSize, 1.0f));
             }
 
             float rotation = transformComponent.GetLocalRotation().z;
