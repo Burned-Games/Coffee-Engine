@@ -658,7 +658,7 @@ namespace Coffee {
                     ImGui::TableSetColumnIndex(0);
                     ImGui::Text("%s", resource.second->GetName().c_str());
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%lu", resource.first);
+                    ImGui::Text("%lu", resource.second->GetUUID());
                     ImGui::TableSetColumnIndex(2);
                     ImGui::Text("%s", ResourceTypeToString(resource.second->GetType()).c_str());
                     ImGui::TableSetColumnIndex(3);
