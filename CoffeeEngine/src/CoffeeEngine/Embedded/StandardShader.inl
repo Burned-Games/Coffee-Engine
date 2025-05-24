@@ -154,6 +154,12 @@ struct Material
 
 uniform Material material;
 
+uniform bool ditheringEnabled;
+uniform float ditheringMinDistance;
+uniform float ditheringMaxDistance;
+uniform float ditheringCircleSize;
+uniform vec3 camViewDir;
+
 uniform samplerCube irradianceMap;
 uniform samplerCube prefilterMap;
 uniform sampler2D brdfLUT;
@@ -191,6 +197,13 @@ uniform sampler2D shadowMaps[4];
 uniform bool showNormals;
 
 const float PI = 3.14159265359;
+
+#define DITHER_PATTERN ditherGradientNoise
+
+float ditherGradientNoise(vec2 uv) {
+    const vec3 magic = vec3(0.06711056, 0.00583715, 52.9829189);
+    return fract(magic.z * fract(dot(uv, magic.xy)));
+}
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
@@ -290,6 +303,34 @@ void main()
         alpha = material.hasAlbedo * (texture(material.albedoMap, VertexInput.TexCoords).a) + (1 - material.hasAlbedo) * material.color.a;
         if (alpha < material.alphaCutoff) {
             discard;
+        }
+    }
+
+    if (ditheringEnabled) {
+        float distance = length(VertexInput.camPos - VertexInput.WorldPos);
+
+        vec3 camToFrag = normalize(VertexInput.WorldPos - VertexInput.camPos);
+        float alignment = dot(camToFrag, camViewDir);
+
+        float threshold = 1.0 - (ditheringCircleSize / 10);
+
+        if (alignment >= threshold) {
+            if (distance <= ditheringMaxDistance) {
+                float fadeAlpha = 1.0;
+
+                if (distance <= ditheringMinDistance) {
+                    discard;
+                } else {
+                    fadeAlpha = (distance - ditheringMinDistance) / (ditheringMaxDistance - ditheringMinDistance);
+                    fadeAlpha = smoothstep(0.0, 1.0, fadeAlpha);
+
+                    float ditherThreshold = DITHER_PATTERN(gl_FragCoord.xy);
+
+                    if (fadeAlpha < ditherThreshold) {
+                        discard;
+                    }
+                }
+            }
         }
     }
 
