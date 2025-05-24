@@ -532,18 +532,44 @@ namespace Coffee {
 
         //Render All the fancy effects :D
         const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
-        const Ref<Framebuffer>& postBuffer = target.GetFramebuffer("PostProcessing");
-        postBuffer->Bind();
+        
+        Ref<Framebuffer> lastBuffer = target.GetFramebuffer("PostProcessingA");
+        Ref<Framebuffer> postBuffer = target.GetFramebuffer("PostProcessingB");
+
+        // Copy the forward buffer to the last buffer (think if is necessary)
+        lastBuffer->Bind();
+        s_FinalPassShader->Bind();
+        s_FinalPassShader->setInt("screenTexture", 0);
+        forwardBuffer->GetColorTexture("Color")->Bind(0);
+
+        RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+        s_FinalPassShader->Unbind();
+        lastBuffer->UnBind();
+
+        std::swap(lastBuffer, postBuffer);
 
         // Depth Fog
+        lastBuffer->Bind();
+        s_FogShader->Bind();
+        s_FogShader->setFloat("near", target.GetCamera().GetNearClip());
+        s_FogShader->setFloat("far", 50);
+        s_FogShader->setInt("colorTexture", 0);
+        s_FogShader->setInt("depthTexture", 1);
+        postBuffer->GetColorTexture("Color")->Bind(0);
+        forwardBuffer->GetColorTexture("Depth")->Bind(1);
 
+        RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+        s_FogShader->Unbind();
+        lastBuffer->UnBind();
+
+        std::swap(lastBuffer, postBuffer);
 
         //ToneMapping
-
+        lastBuffer->Bind();
         s_ToneMappingShader->Bind();
         s_ToneMappingShader->setInt("screenTexture", 0);
         s_ToneMappingShader->setFloat("exposure", s_RenderSettings.Exposure);
-        forwardBuffer->GetColorTexture("Color")->Bind(0);
+        postBuffer->GetColorTexture("Color")->Bind(0);
 
         RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
@@ -558,7 +584,7 @@ namespace Coffee {
 
         s_FinalPassShader->Bind();
         s_FinalPassShader->setInt("screenTexture", 0);
-        postBuffer->GetColorTexture("Color")->Bind(0);
+        lastBuffer->GetColorTexture("Color")->Bind(0);
 
         RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 

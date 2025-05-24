@@ -64,13 +64,18 @@ namespace Coffee {
             {ImageFormat::DEPTH24STENCIL8, "Depth"}
         };
 
-        std::initializer_list<Attachment> PostProcessingFramebufferAttachments = {
+        std::initializer_list<Attachment> PostProcessingFramebufferAttachmentsA = {
             {ImageFormat::RGBA8, "Color"}
+        };
+
+        std::initializer_list<Attachment> PostProcessingFramebufferAttachmentsB = {
+            {ImageFormat::RGBA8, "Color"},
         };
 
         std::vector<std::pair<std::string, std::initializer_list<Attachment>>> EditorViewportRenderTargetFramebufferAttachments = {
             {"Forward", ForwardFramebufferAttachments},
-            {"PostProcessing", PostProcessingFramebufferAttachments}
+            {"PostProcessingA", PostProcessingFramebufferAttachmentsA},
+            {"PostProcessingB", PostProcessingFramebufferAttachmentsB}
         };
 
         m_ViewportRenderTarget = &Renderer::AddRenderTarget("EditorViewport",
