@@ -551,8 +551,13 @@ namespace Coffee {
         // Depth Fog
         lastBuffer->Bind();
         s_FogShader->Bind();
-        s_FogShader->setFloat("near", target.GetCamera().GetNearClip());
-        s_FogShader->setFloat("far", 50);
+        s_FogShader->setBool("DepthFog", s_RenderSettings.DepthFog);
+        s_FogShader->setVec3("FogColor", s_RenderSettings.FogColor);
+        s_FogShader->setFloat("FogDensity", s_RenderSettings.FogDensity);
+        s_FogShader->setFloat("FogHeight", s_RenderSettings.FogHeight);
+        s_FogShader->setFloat("FogHeightDensity", s_RenderSettings.FogHeightDensity);
+        s_FogShader->setMat4("invProjection", glm::inverse(target.GetCamera().GetProjection()));
+        s_FogShader->setMat4("invView", target.GetCameraTransform());
         s_FogShader->setInt("colorTexture", 0);
         s_FogShader->setInt("depthTexture", 1);
         postBuffer->GetColorTexture("Color")->Bind(0);

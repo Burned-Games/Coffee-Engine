@@ -87,12 +87,21 @@ namespace Coffee {
     struct Renderer3DSettings
     {
         bool SSAO = false; ///< Enable or disable SSAO.
+
+        bool DepthFog = false; ///< Enable or disable depth fog.
+        glm::vec3 FogColor = {0.5f, 0.5f, 0.5f}; ///< Fog color.
+        float FogDensity = 0.1f; ///< Fog density.
+        float FogHeight = 0.0f; ///< Fog height.
+        float FogHeightDensity = 0.0f; ///< Fog height density.
+
         bool Bloom = false; ///< Enable or disable bloom.
         float BloomThreshold = 1.0f; ///< Bloom threshold.
         float BloomIntensity = 1.0f; ///< Bloom intensity.
         float BloomRadius = 1.0f; ///< Bloom radius.
         float BloomScale = 1.0f; ///< Bloom scale.
+
         bool FXAA = false; ///< Enable or disable FXAA.
+
         float Exposure = 1.0f; ///< Exposure value.
         float EnvironmentExposure = 1.0f; ///< Environment exposure value.
 
