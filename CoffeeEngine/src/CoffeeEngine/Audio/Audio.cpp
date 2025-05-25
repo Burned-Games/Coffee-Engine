@@ -8,7 +8,7 @@
 
 namespace Coffee
 {
-    const std::filesystem::path Audio::DefaultAudioPath = "assets/audio/Wwise Project/GeneratedSoundBanks/Windows";
+    const std::filesystem::path Audio::DefaultAudioPath = std::filesystem::absolute(std::filesystem::current_path() / "assets/audio/Wwise Project/GeneratedSoundBanks/Windows");
     std::filesystem::path Audio::m_ActiveAudioPath = Audio::DefaultAudioPath;
 
     // Global pointer for the low-level IO
@@ -43,7 +43,10 @@ namespace Coffee
 
         g_lowLevelIO->SetBasePath(m_ActiveAudioPath.c_str());
 
-        LoadAudioBanks();
+        if (LoadAudioBanks())
+            COFFEE_CORE_INFO("Loaded audio banks");
+        else
+            COFFEE_CORE_ERROR("Failed to load audio banks");
 
         AudioZone::SearchAvailableBusChannels();
     }
@@ -214,19 +217,18 @@ namespace Coffee
             COFFEE_CORE_WARN("Audio folder path not defined in project");
             return;
         }
-        COFFEE_CORE_INFO("Project audio directory found, loading audio banks...");
+        COFFEE_CORE_INFO("Project audio directory found, loading audio banks from " + std::filesystem::absolute(audioPath).string());
 
 
-        Shutdown();
         m_ActiveAudioPath = audioPath;
-        Init();
+        ReloadAudioBanks();
     }
     void Audio::OnProjectUnload()
     {
-        COFFEE_CORE_INFO("Loading default audio banks");
+        COFFEE_CORE_INFO("Loading default audio banks...");
 
-        Shutdown();
-        Init();
+        m_ActiveAudioPath = DefaultAudioPath;
+        ReloadAudioBanks();
     }
 
     void Audio::ProcessAudio()
@@ -334,7 +336,8 @@ namespace Coffee
 
     bool Audio::LoadAudioBanks()
     {
-        std::ifstream file("assets/audio/Wwise Project/GeneratedSoundBanks/Windows/SoundbanksInfo.json");
+        std::string audioPath = std::filesystem::absolute(m_ActiveAudioPath / "SoundbanksInfo.json").string();
+        std::ifstream file(audioPath);
         if (!file.is_open())
             return false;
 
@@ -343,9 +346,8 @@ namespace Coffee
         file.close();
 
         rapidjson::Document banksInfo;
-        if (banksInfo.Parse(buffer.str().c_str()).HasParseError()
-            || !banksInfo.HasMember("SoundBanksInfo")
-            || !banksInfo["SoundBanksInfo"].HasMember("SoundBanks"))
+        if (banksInfo.Parse(buffer.str().c_str()).HasParseError() || !banksInfo.HasMember("SoundBanksInfo") ||
+            !banksInfo["SoundBanksInfo"].HasMember("SoundBanks"))
         {
             return false;
         }
@@ -383,6 +385,24 @@ namespace Coffee
         }
 
         return true;
+    }
+    bool Audio::ReloadAudioBanks()
+    {
+        // Stop currently playing audio
+        StopAllEvents();
+
+        // Unload the soundbanks
+        AK::SoundEngine::ClearBanks();
+        audioBanks.clear();
+
+        g_lowLevelIO->SetBasePath(m_ActiveAudioPath.c_str());
+
+        bool ret = LoadAudioBanks();
+        if (ret)
+            COFFEE_CORE_INFO("Loaded audio banks");
+        else
+            COFFEE_CORE_ERROR("Failed to load audio banks");
+        return ret;
     }
 
     void Audio::Shutdown()

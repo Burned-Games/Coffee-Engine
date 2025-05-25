@@ -694,6 +694,12 @@ namespace Coffee
 
         AudioSourceComponent(const AudioSourceComponent& other) { *this = other; }
 
+        ~AudioSourceComponent()
+        {
+            if (isPlaying || playOnAwake)
+                Stop();
+        }
+
         AudioSourceComponent& operator=(const AudioSourceComponent& other)
         {
             if (this != &other)
@@ -966,6 +972,7 @@ namespace Coffee
         ParticlesSystemComponent() { m_Particles = CreateRef<ParticleEmitter>(); }
 
         Ref<ParticleEmitter> GetParticleEmitter() { return m_Particles; }
+        void SetParticleEmitter(Ref<ParticleEmitter> newParticleEmitter) { m_Particles = newParticleEmitter; }
 
         void Emit(int quantity) { m_Particles->Emit(quantity); }
         void SetLooping(bool active) { m_Particles->looping = active; }

@@ -35,6 +35,8 @@ namespace Coffee {
         InputBinding* m_SelectedInputBinding = nullptr;
         std::string m_SelectedInputKey = "";
 
+        std::array<char, 256> arr_newBindName;
+
     };
 
 } // Coffee

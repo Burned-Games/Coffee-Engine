@@ -340,7 +340,7 @@ namespace Coffee {
 
         entt::registry m_Registry;
         Scope<SceneTree> m_SceneTree;
-        Octree<Ref<Mesh>> m_Octree;
+        Scope<Octree<entt::entity>> m_Octree;
         PhysicsWorld m_PhysicsWorld;
         SceneDebugFlags m_SceneDebugFlags;
 

@@ -202,6 +202,8 @@ namespace Coffee {
          */
         static void SetBusVolume(const char* busName, float volume);
 
+        static const std::filesystem::path& GetAudioPath() { return m_ActiveAudioPath; }
+
         static void OnProjectLoad();
 
         static void OnProjectUnload();
@@ -257,6 +259,8 @@ namespace Coffee {
          * @return True if successful, false otherwise.
          */
         static bool LoadAudioBanks();
+
+        static bool ReloadAudioBanks();
     };
 } // namespace Coffee
 CEREAL_CLASS_VERSION(Coffee::Audio::AudioBank, 0);

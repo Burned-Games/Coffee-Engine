@@ -605,16 +605,96 @@ namespace Coffee
             bool isStatic = entity.HasComponent<StaticComponent>();
             if (ImGui::Checkbox("Static", &isStatic))
             {
+                auto children = entity.GetChildren();
                 if (isStatic)
                 {
                     if (!entity.HasComponent<StaticComponent>())
                         entity.AddComponent<StaticComponent>();
+
+                    if (children.size() > 0)
+                    {
+                        // Open a modal to ask if the use wants to apply the static component to all children
+                        ImGui::OpenPopup("Apply Static to Children");
+                    }
                 }
                 else
                 {
                     if (entity.HasComponent<StaticComponent>())
                         entity.RemoveComponent<StaticComponent>();
+
+                    if (children.size() > 0)
+                    {
+                        // Open a modal to ask if the use wants to remove the static component to all children
+                        ImGui::OpenPopup("Remove Static Children");
+                    }
                 }
+            }
+
+            // Modal for applying static to children
+            if (ImGui::BeginPopupModal("Apply Static to Children", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text("Do you want to apply the static component to all children?");
+                ImGui::Separator();
+                ImGui::Text("This will make all children static as well.");
+                ImGui::Separator();
+
+                if (ImGui::Button("Yes"))
+                {
+                    std::function<void(Entity)> SetStaticRecursively = [&](Entity currentEntity) {
+                        if (!currentEntity.HasComponent<StaticComponent>())
+                            currentEntity.AddComponent<StaticComponent>();
+                
+                        // Recursively handle children
+                        auto children = currentEntity.GetChildren();
+                        for (auto& child : children)
+                        {
+                            SetStaticRecursively(child);
+                        }
+                    };
+                
+                    SetStaticRecursively(entity);
+
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("No"))
+                {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
+
+            if (ImGui::BeginPopupModal("Remove Static Children", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text("Do you want to remove the static component from all children?");
+                ImGui::Separator();
+                ImGui::Text("This will remove static component from all children.");
+                ImGui::Separator();
+
+                if (ImGui::Button("Yes"))
+                {
+                    std::function<void(Entity)> RemoveStaticRecursively = [&](Entity currentEntity) {
+                        if (currentEntity.HasComponent<StaticComponent>())
+                            currentEntity.RemoveComponent<StaticComponent>();
+
+                        // Recursively handle children
+                        auto children = currentEntity.GetChildren();
+                        for (auto& child : children)
+                        {
+                            RemoveStaticRecursively(child);
+                        }
+                    };
+
+                    RemoveStaticRecursively(entity);
+
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("No"))
+                {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
             }
         
             ImGui::Separator();
@@ -2681,6 +2761,14 @@ namespace Coffee
                         emitter->shape == ParticleEmitter::ShapeType::Circle)
                     {
                         // Direction
+                        ImGui::Checkbox("Go Center Direction", &emitter->goCenter);
+
+                        if (emitter->goCenter)
+                        {
+                            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f)); // Gray
+                            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);                   // Disable controls
+                        }
+
                         ImGui::Checkbox("##ParticleDirectionUseRandom", &emitter->useDirectionRandom);
                         if (ImGui::IsItemHovered())
                         {
@@ -2696,6 +2784,11 @@ namespace Coffee
                         {
                             ImGui::DragFloat3("##ParticleDirectionRandom", glm::value_ptr(emitter->directionRandom),
                                               0.1f, -1.0f, 1.0f);
+                        }
+                        if (emitter->goCenter)
+                        {
+                            ImGui::PopItemFlag();
+                            ImGui::PopStyleColor();
                         }
                     }
                     

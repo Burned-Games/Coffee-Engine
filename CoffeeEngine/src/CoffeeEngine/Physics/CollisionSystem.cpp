@@ -13,6 +13,8 @@ namespace Coffee {
 
     void CollisionSystem::checkCollisions(const PhysicsWorld& world) {
 
+        ZoneScoped;
+
         std::unordered_set<std::pair<btCollisionObject*, btCollisionObject*>, PairHash> currentCollisions;
 
         int numManifolds = world.getDynamicsWorld()->getDispatcher()->getNumManifolds();
