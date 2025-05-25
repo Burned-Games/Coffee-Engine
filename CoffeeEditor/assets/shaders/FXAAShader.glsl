@@ -156,21 +156,20 @@ void main()
 {
     // First option
 
-    vec2 rcpFrame = 1.0 / screenSize;
+/*     vec2 rcpFrame = 1.0 / screenSize;
   	vec2 uv2 = fragCoord;
     
 	vec4 uv = vec4( uv2, uv2 - (rcpFrame * (0.5 + FXAA_SUBPIX_SHIFT)));
 	vec3 col = FxaaPixelShader( uv, screenTexture, rcpFrame.xy );
     
-    fragColor = vec4( col, 1. );
+    fragColor = vec4( col, 1. ); */
 
 
     // --------------------------------- //
 
     // Second option
 
-    /*   
+      
     vec2 q = fragCoord / screenSize;
     fragColor = fxaa(screenTexture, fragCoord, sqrt(2.0) / screenSize);
-    */
 }
