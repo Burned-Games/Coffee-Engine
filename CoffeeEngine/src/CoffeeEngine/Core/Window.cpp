@@ -22,6 +22,7 @@ namespace Coffee {
         ZoneScoped;
 
 		Init(props);
+        m_Mode = WindowMode::Windowed;
 	}
 
 	Window::~Window()
@@ -148,6 +149,29 @@ namespace Coffee {
         SDL_SetWindowIcon(m_Window, icon);
 
         stbi_image_free(pixels);
+    }
+
+    void Window::SetWindowMode(WindowMode mode)
+    {
+        if (m_Mode == mode)
+            return;
+
+        switch (mode)
+        {
+        case WindowMode::Fullscreen:
+            SDL_SetWindowFullscreen(m_Window, SDL_WINDOW_FULLSCREEN);
+            break;
+        case WindowMode::Windowed:
+        default:
+            SDL_SetWindowFullscreen(m_Window, false);
+            break;
+        }
+        m_Mode = mode;
+    }
+
+    WindowMode Window::GetWindowMode() const
+    {
+        return m_Mode;
     }
 
 }
