@@ -23,7 +23,6 @@ uniform sampler2D colorTexture;
 uniform sampler2D depthTexture;
 
 // Fog controls
-uniform bool DepthFog;
 uniform vec3 FogColor;           // Base fog color (e.g. blue/gray)
 uniform float FogDensity;        // Exponential fog density
 uniform float FogHeight;         // Height at which fog starts
@@ -77,7 +76,6 @@ void main()
     vec3 color = texture(colorTexture, TexCoord).rgb;
     float depth = texture(depthTexture, TexCoord).r;
 
-    if (DepthFog) {
     vec3 viewPos = ReconstructViewPos(TexCoord, depth);
     float dist = length(viewPos);
 
@@ -111,17 +109,7 @@ void main()
         }
     }
 
-   /*  for (int i = 0; i < lightCount; ++i) {
-        if (lights[i].type == 0) { // 0 = directional
-            vec3 rd = normalize(viewPos); // camera to point
-            float sunAmount = max(dot(rd, -normalize(lights[i].direction)), 0.0);
-            fogCol = mix(FogColor, lights[i].color, pow(sunAmount, 8.0));
-            break;
-        }
-    } */
-
     color = mix(color, fogCol, clamp(fogAmount, 0.0, 1.0));
-    }
 
     FragColor = vec4(color, 1.0);
 }
