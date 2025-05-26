@@ -51,10 +51,19 @@ namespace Coffee {
         brdfShader = CreateRef<Shader>("BRDFLUTShader", std::string(BRDFLUTSource));
 
         // Shadow map
+        TextureProperties shadowMapProperties;
+        shadowMapProperties.srgb = false;
+        shadowMapProperties.GenerateMipmaps = false;
+        shadowMapProperties.Format = ImageFormat::DEPTH24STENCIL8;
+        shadowMapProperties.Width = 4096;
+        shadowMapProperties.Height = 4096;
+        shadowMapProperties.Wrapping = TextureWrap::ClampToEdge;
+        shadowMapProperties.BorderColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
         s_RendererData.ShadowMapFramebuffer = Framebuffer::Create(4096, 4096, {});
         for (int i = 0; i < 4; i++)
         {
-            s_RendererData.DirectionalShadowMapTextures[i] = Texture2D::Create(4096, 4096, ImageFormat::DEPTH24STENCIL8);
+            s_RendererData.DirectionalShadowMapTextures[i] = Texture2D::Create(shadowMapProperties);
         }
 
         s_RendererData.SceneRenderDataUniformBuffer = UniformBuffer::Create(sizeof(Renderer3DData::RenderData), 1);
@@ -161,10 +170,17 @@ namespace Coffee {
                 RendererAPI::SetViewport(0, 0, 4096, 4096);
                 RendererAPI::Clear();
 
+                // Calculate light position based on camera and scene bounds
+                glm::vec3 cameraPos = target.GetCameraTransform()[3];
+                float shadowDistance = light.ShadowMaxDistance;
+                
+                // Position the light to cover the camera's view frustum
+                glm::vec3 lightPos = cameraPos - light.Direction * (shadowDistance * 0.5f);
+
                 // Adjust the orthographic projection bounds based on ShadowMaxDistance
-                float orthoBounds = light.ShadowMaxDistance * 0.5f;
+                float orthoBounds = shadowDistance * 0.5f; // Slightly larger to avoid edge artifacts
                 float nearPlane = 0.1f;
-                float farPlane = light.ShadowMaxDistance;
+                float farPlane = shadowDistance;
 
                 glm::mat4 lightProjection = glm::ortho(
                     -orthoBounds, orthoBounds, // left, right
@@ -173,12 +189,15 @@ namespace Coffee {
                 );
 
                 glm::mat4 lightView = glm::lookAt(
-                    light.Position,
-                    light.Position + light.Direction,
+                    lightPos,
+                    lightPos + light.Direction,
                     glm::vec3(0.0f, 1.0f, 0.0f)
                 );
 
                 glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+
+                // Store the light space matrix for use in forward pass
+                s_RendererData.RenderData.LightSpaceMatrices[directionalLightCount] = lightSpaceMatrix;
 
                 depthShader->Bind();
                 depthShader->setMat4("projView", lightSpaceMatrix);
@@ -216,14 +235,14 @@ namespace Coffee {
                     break;
             }
         }
+
+        // Update the uniform buffer with the light data
+        s_RendererData.SceneRenderDataUniformBuffer->SetData(&s_RendererData.RenderData, sizeof(Renderer3DData::RenderData));
     }
 
     void Renderer3D::ForwardPass(const RenderTarget& target)
     {
         ZoneScoped;
-
-        // TODO: Think if this should be done here
-        s_RendererData.SceneRenderDataUniformBuffer->SetData(&s_RendererData.RenderData, sizeof(Renderer3DData::RenderData));
 
         const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
 
@@ -247,40 +266,10 @@ namespace Coffee {
         // Bind the BRDF LUT
         s_RendererData.BRDFLUT->Bind(8);
 
-        // TEMPORAL: lightSpaceMatrix array for shadow mapping
-        glm::mat4 lightSpaceMatrices[Renderer3DData::MAX_DIRECTIONAL_SHADOWS];
-        int directionalLightCount = 0;
-        for (int i = 0; i < s_RendererData.RenderData.lightCount; ++i)
+        // Set shadow map textures
+        for (int i = 0; i < Renderer3DData::MAX_DIRECTIONAL_SHADOWS; ++i)
         {
-            const auto& light = s_RendererData.RenderData.lights[i];
-
-            // Check if the light is directional
-            if (light.type == LightComponent::Type::DirectionalLight)
-            {
-                // Adjust the orthographic projection bounds based on ShadowMaxDistance
-                float orthoBounds = light.ShadowMaxDistance * 0.5f;
-                float nearPlane = 0.1f;
-                float farPlane = light.ShadowMaxDistance;
-
-                glm::mat4 lightProjection = glm::ortho(
-                    -orthoBounds, orthoBounds, // left, right
-                    -orthoBounds, orthoBounds, // bottom, top
-                    nearPlane, farPlane        // near, far
-                );
-
-                glm::mat4 lightView = glm::lookAt(
-                    light.Position,
-                    light.Position + light.Direction,
-                    glm::vec3(0.0f, 1.0f, 0.0f)
-                );
-
-                lightSpaceMatrices[directionalLightCount] = lightProjection * lightView;
-                
-                directionalLightCount++;
-            }
-            // Stop after processing the first 4 directional lights
-            if (directionalLightCount >= Renderer3DData::MAX_DIRECTIONAL_SHADOWS)
-                break;
+            s_RendererData.DirectionalShadowMapTextures[i]->Bind(9 + i);
         }
 
         // Sort the render queue based on material and mesh
@@ -308,16 +297,9 @@ namespace Coffee {
             shader->setInt("prefilterMap", 7);
             shader->setInt("brdfLUT", 8);
 
-            // Set the light space matrices for shadow mapping
-            for (int i = 0; i < Renderer3DData::MAX_DIRECTIONAL_SHADOWS; ++i)
-            {
-                shader->setMat4("lightSpaceMatrices[" + std::to_string(i) + "]", lightSpaceMatrices[i]);
-            }
-
             // Set shadow map textures
             for (int i = 0; i < Renderer3DData::MAX_DIRECTIONAL_SHADOWS; ++i)
             {
-                s_RendererData.DirectionalShadowMapTextures[i]->Bind(9 + i);
                 shader->setInt("shadowMaps[" + std::to_string(i) + "]", 9 + i);
             }
 

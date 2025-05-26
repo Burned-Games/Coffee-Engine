@@ -56,6 +56,7 @@ layout (std140, binding = 1) uniform RenderData
 {
     Light lights[MAX_LIGHTS];
     int lightCount;
+    mat4 lightSpaceMatrices[4];
 };
 
 uniform mat4 invProjection; // Inverse of projection matrix
