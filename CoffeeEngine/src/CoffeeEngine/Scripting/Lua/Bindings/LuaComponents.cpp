@@ -131,7 +131,8 @@ void Coffee::RegisterComponentsBindings(sol::state& luaState)
         "AnimatorComponent", sol::constructors<AnimatorComponent(), AnimatorComponent()>(),
         "set_current_animation", &AnimatorComponent::SetCurrentAnimation,
         "set_upper_animation", &AnimatorComponent::SetUpperAnimation,
-        "set_lower_animation", &AnimatorComponent::SetLowerAnimation
+        "set_lower_animation", &AnimatorComponent::SetLowerAnimation, 
+        "set_looping", [](AnimatorComponent& self, const bool active) { self.Loop = active; }
     );
 
     luaState.new_usertype<AudioSourceComponent>("AudioSourceComponent",
