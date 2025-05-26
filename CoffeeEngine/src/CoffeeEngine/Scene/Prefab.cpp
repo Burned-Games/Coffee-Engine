@@ -231,7 +231,7 @@ namespace Coffee {
         
                 auto& newComponent = entity.AddComponent<RigidbodyComponent>(props, collider);
         
-                newComponent.callback = rbComponent.callback;
+                newComponent = rbComponent;
         
                 // Set initial transform
                 auto& transform = entity.GetComponent<TransformComponent>();
