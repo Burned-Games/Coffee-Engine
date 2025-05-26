@@ -128,6 +128,15 @@ namespace Coffee
         particle->startRotation =
             useRandomRotation ? glm::linearRand(startRotationMin, startRotationMax) : startRotation;
         particle->SetRotation(particle->startRotation);
+
+        particle->startRotationRadians = glm::radians(particle->startRotation);
+
+        if (!useRotationOverLifetime) {
+            particle->startRotationMatrix =
+                glm::rotate(glm::mat4(1.0f), particle->startRotationRadians.x, glm::vec3(1, 0, 0)) *
+                glm::rotate(glm::mat4(1.0f), particle->startRotationRadians.y, glm::vec3(0, 1, 0)) *
+                glm::rotate(glm::mat4(1.0f), particle->startRotationRadians.z, glm::vec3(0, 0, 1));
+        }
     }
 
     void ParticleEmitter::GenerateParticle()
@@ -186,24 +195,11 @@ namespace Coffee
 
         if (renderAlignment == RenderAligment::Billboard) // Assume 0 is billboarding
         {
-            glm::mat4 viewMatrix = cameraViewMatrix; // Get the camera's view matrix
-            glm::mat4 billboardTransform = CalculateBillboardTransform(particle->transformMatrix, viewMatrix);
+            glm::mat4 billboardTransform = CalculateBillboardTransform(particle->transformMatrix);
 
-
-            if (!useRotationOverLifetime)
-            {
-                glm::mat4 localRotationX =
-                    glm::rotate(glm::mat4(1.0f), glm::radians(particle->startRotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-                billboardTransform = billboardTransform * localRotationX;
-
-                glm::mat4 localRotationY =
-                    glm::rotate(glm::mat4(1.0f), glm::radians(particle->startRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-                billboardTransform = billboardTransform * localRotationY;
-
-                glm::mat4 localRotationZ =
-                    glm::rotate(glm::mat4(1.0f), glm::radians(particle->startRotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-                billboardTransform = billboardTransform * localRotationZ;
-            
+            if (!useRotationOverLifetime) {
+                ZoneScopedN("No Rotation Over Lifetime");
+                billboardTransform *= particle->startRotationMatrix;
             }
             else
             {

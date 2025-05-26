@@ -48,6 +48,9 @@ namespace Coffee
         Ref<Texture2D> current_texture; //Current texture of the particle
         glm::vec3 localPosition;
 
+        glm::vec3 startRotationRadians;
+        glm::mat4 startRotationMatrix;
+
         /**
          * @brief Default constructor for Particle.
          */
