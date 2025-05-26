@@ -284,12 +284,41 @@ namespace Coffee
 
         GeneratedCurves generatedCurves;
 
-        void GenerateCurves();
-        void GenerateCurve(const std::vector<CurvePoint>& points, std::vector<float>& output, float multiplier = 1.0f);
-        void GenerateGradient(const std::vector<GradientPoint>& points, std::vector<glm::vec4>& output);
+       /**
+        * @brief Generates all required curves for the particle emitter (velocity, size, rotation, color).
+        */
+       void GenerateCurves();
 
-        float GetGeneratedCurveValue(const std::vector<float>& curve, float normalizedTime) const;
-        glm::vec4 GetGeneratedGradientValue(const std::vector<glm::vec4>& gradient, float normalizedTime) const;
+       /**
+        * @brief Generates a curve from a set of points and stores the result in the output vector.
+        * @param points The control points for the curve.
+        * @param output The vector to store the generated curve values.
+        * @param multiplier Optional multiplier applied to the curve values.
+        */
+       void GenerateCurve(const std::vector<CurvePoint>& points, std::vector<float>& output, float multiplier = 1.0f);
+
+       /**
+        * @brief Generates a color gradient from a set of gradient points.
+        * @param points The gradient control points.
+        * @param output The vector to store the generated gradient colors.
+        */
+       void GenerateGradient(const std::vector<GradientPoint>& points, std::vector<glm::vec4>& output);
+
+       /**
+        * @brief Retrieves a value from a generated curve at a normalized time.
+        * @param curve The generated curve values.
+        * @param normalizedTime The normalized time (0.0 to 1.0).
+        * @return The interpolated curve value.
+        */
+       float GetGeneratedCurveValue(const std::vector<float>& curve, float normalizedTime) const;
+
+       /**
+        * @brief Retrieves a color from a generated gradient at a normalized time.
+        * @param gradient The generated gradient colors.
+        * @param normalizedTime The normalized time (0.0 to 1.0).
+        * @return The interpolated color value.
+        */
+       glm::vec4 GetGeneratedGradientValue(const std::vector<glm::vec4>& gradient, float normalizedTime) const;
 
 
       public:
@@ -347,6 +376,9 @@ namespace Coffee
          */
         glm::mat4 CalculateBillboardTransform(const glm::mat4& particleTransform) const;
 
+        /**
+         * @brief Invalidates the generated curves, forcing them to be regenerated.
+         */
         void InvalidateCurves() { generatedCurves.isValid = false; }
 
         /**
