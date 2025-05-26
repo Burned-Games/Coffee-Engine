@@ -524,6 +524,7 @@ namespace Coffee
             if (isEmbedded)
             {
                 archive(cereal::make_nvp("Material", material));
+                this->material->SetEmbedded(isEmbedded);
             }
             else
             {

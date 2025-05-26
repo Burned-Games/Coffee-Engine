@@ -1396,11 +1396,11 @@ namespace Coffee
                 if(materialComponent.material and ImGui::TreeNode("Resource"))
                 {
                     bool embedded = materialComponent.material->IsEmbedded();
-                    ImGui::Checkbox("Embedded", &embedded);
-                    if (embedded != materialComponent.material->IsEmbedded())
+                    if (ImGui::Checkbox("Embedded", &embedded))
                     {
                         materialComponent.material->SetEmbedded(embedded);
                     }
+
                     ImGui::Text("Path: %s", materialComponent.material->GetPath().string().c_str());
                     ImGui::Text("UUID: %s", std::to_string(materialComponent.material->GetUUID()).c_str());
 
