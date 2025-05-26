@@ -182,7 +182,7 @@ namespace Coffee
 
     void ParticleEmitter::UpdateParticle(const Ref<Particle>& particle, float deltaTime)
     {
-        float normalizedLife = 1.0f - (particle->lifetime / particle->startLifetime);
+        const float normalizedLife = 1.0f - (particle->lifetime / particle->startLifetime);
 
         if (renderAlignment == RenderAligment::Billboard) // Assume 0 is billboarding
         {
@@ -228,22 +228,18 @@ namespace Coffee
                 billboardTransform = billboardTransform * localRotationZ;
             }
 
-            
-           
-
             //Fix for the rotation primitive plane
             //glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
             //billboardTransform = billboardTransform * rotationMatrix;
             //End fix
 
             particle->transformMatrix = billboardTransform;
-           
         }
         else
         {
             // Handle other alignment modes if needed
         }
-        particle->SetSize(particle->startSize);
+        glm::vec3 finalSize = particle->startSize;
 
         glm::vec3 newVelocity = glm::vec3(1, 1, 1);
 
@@ -293,10 +289,8 @@ namespace Coffee
                                                  -sizeMultiplier, sizeMultiplier);
                 newSize = glm::vec3(uniformSize);
             }
-            particle->SetSize(newSize * particle->startSize);
+            particle->SetSize(finalSize * newSize);
         }
-
-        
 
         if (useColorOverLifetime)
         {
@@ -305,27 +299,25 @@ namespace Coffee
         }
 
         newVelocity += gravity * (particle->lifetime - particle->startLifetime);
+        glm::vec3 velocityDelta = particle->direction * deltaTime * newVelocity * particle->startSpeed;
+        particle->localPosition += velocityDelta;
 
-
-        
-        particle->localPosition += particle->direction * deltaTime * newVelocity * particle->startSpeed;
+        glm::vec3 finalPosition;
         if (simulationSpace == SimulationSpace::Local)
         {
             glm::vec3 emissorPosition = transformComponentMatrix[3];
-            particle->SetPosition(emissorPosition + particle->localPosition);
+            finalPosition = emissorPosition + particle->localPosition;
         }
         else
         {
-            particle->SetPosition(particle->GetPosition() +
-                                  particle->direction * deltaTime * newVelocity * particle->startSpeed);
+            ZoneScopedN("Simulation Space World");
+            finalPosition = particle->GetPosition() + velocityDelta;
         }
+        particle->SetPosition(finalPosition);
 
         particle->lifetime -= deltaTime;
 
-
-
         DrawParticles(particle);
-
     }
 
     glm::mat4 ParticleEmitter::CalculateBillboardTransform(const glm::mat4& particleTransform) const
