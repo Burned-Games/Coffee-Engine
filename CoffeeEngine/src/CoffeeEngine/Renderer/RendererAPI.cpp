@@ -1,6 +1,8 @@
 #include "CoffeeEngine/Renderer/RendererAPI.h"
 
+#include <cstdint>
 #include <glad/glad.h>
+#include <sys/types.h>
 #include <tracy/Tracy.hpp>
 
 namespace Coffee {
@@ -67,11 +69,36 @@ namespace Coffee {
 		glClearColor(color.r, color.g, color.b, color.a);
 	}
 
-	void RendererAPI::Clear()
+	void RendererAPI::Clear(uint32_t clearFlags)
 	{
-	    ZoneScoped;
+		ZoneScoped;
 
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		uint32_t mask = 0;
+
+		if (clearFlags & (uint32_t)ClearFlags::Color)
+		{
+			mask |= GL_COLOR_BUFFER_BIT;
+		}
+		if (clearFlags & (uint32_t)ClearFlags::Depth)
+		{
+			mask |= GL_DEPTH_BUFFER_BIT;
+		}
+		if (clearFlags & (uint32_t)ClearFlags::Stencil)
+		{
+			mask |= GL_STENCIL_BUFFER_BIT;
+		}
+		if (mask == 0)
+		{
+			return;
+		}
+		glClear(mask);
+	}
+
+	void RendererAPI::SetColorMask(bool red, bool green, bool blue, bool alpha)
+	{
+		ZoneScoped;
+
+		glColorMask(red, green, blue, alpha);
 	}
 
 	void RendererAPI::SetDepthMask(bool enabled)
@@ -79,6 +106,24 @@ namespace Coffee {
 		ZoneScoped;
 
 		glDepthMask(enabled);
+	}
+
+	void RendererAPI::SetDepthFunc(DepthFunc func)
+	{
+		ZoneScoped;
+
+		switch (func)
+		{
+			case DepthFunc::Never:        glDepthFunc(GL_NEVER); break;
+			case DepthFunc::Less:         glDepthFunc(GL_LESS); break;
+			case DepthFunc::Equal:        glDepthFunc(GL_EQUAL); break;
+			case DepthFunc::LessEqual:    glDepthFunc(GL_LEQUAL); break;
+			case DepthFunc::Greater:      glDepthFunc(GL_GREATER); break;
+			case DepthFunc::NotEqual:     glDepthFunc(GL_NOTEQUAL); break;
+			case DepthFunc::GreaterEqual: glDepthFunc(GL_GEQUAL); break;
+			case DepthFunc::Always:       glDepthFunc(GL_ALWAYS); break;
+			default: COFFEE_CORE_ASSERT(false, "Unknown depth function!"); break;
+		}
 	}
 
 	void RendererAPI::SetFaceCulling(bool enabled)

@@ -3,6 +3,7 @@
 #include "CoffeeEngine/Scene/Components.h"
 #include "CoffeeEngine/Scripting/GameSaver.h"
 #include "CoffeeEngine/Scripting/Lua/LuaScript.h"
+#include "CoffeeEngine/UI/UIManager.h"
 #include <memory>
 
 void Coffee::RegisterComponentsBindings(sol::state& luaState)
@@ -141,12 +142,15 @@ void Coffee::RegisterComponentsBindings(sol::state& luaState)
 
     luaState.new_usertype<UIImageComponent>("UIImageComponent", sol::constructors<UIImageComponent()>(),
         "set_color", [](UIImageComponent& self, const glm::vec4& color) { self.Color = color; },
+        "get_color", [](const UIImageComponent& self) { return self.Color; },
         "set_rect", [](UIImageComponent& self, const glm::vec4& uvRect) { self.UVRect = uvRect; }
     );
 
     luaState.new_usertype<UITextComponent>("UITextComponent",
         "set_text", [](UITextComponent& self, const std::string& text) { self.Text = text; },
+        "get_text", [](const UITextComponent& self) { return self.Text; },
         "set_color", [](UITextComponent& self, const glm::vec4& color) { self.Color = color; },
+        "get_color", [](const UITextComponent& self) { return self.Color; },
         "kerning", &UITextComponent::Kerning,
         "line_spacing", &UITextComponent::LineSpacing,
         "font_size", &UITextComponent::FontSize
@@ -215,5 +219,18 @@ void Coffee::RegisterComponentsBindings(sol::state& luaState)
         }
 
         return defaultValue;
+    });
+
+    luaState.set_function("scale_ui_element", [](const Entity entity, float scaleX, sol::optional<float> optScaleY) {
+        float scaleY = optScaleY.value_or(scaleX);
+        UIManager::MarkToTransform(entity, glm::vec2(scaleX, scaleY));
+    });
+
+    luaState.set_function("move_ui_element", [](const Entity entity, float offsetX, float offsetY) {
+        UIManager::MarkToTransform(entity, glm::vec2(offsetX, offsetY), true);
+    });
+
+    luaState.set_function("rotate_ui_element", [](const Entity entity, float angle) {
+        UIManager::MarkToTransform(entity, angle);
     });
 }

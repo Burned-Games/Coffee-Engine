@@ -64,13 +64,18 @@ namespace Coffee {
             {ImageFormat::DEPTH24STENCIL8, "Depth"}
         };
 
-        std::initializer_list<Attachment> PostProcessingFramebufferAttachments = {
+        std::initializer_list<Attachment> PostProcessingFramebufferAttachmentsA = {
             {ImageFormat::RGBA8, "Color"}
+        };
+
+        std::initializer_list<Attachment> PostProcessingFramebufferAttachmentsB = {
+            {ImageFormat::RGBA8, "Color"},
         };
 
         std::vector<std::pair<std::string, std::initializer_list<Attachment>>> EditorViewportRenderTargetFramebufferAttachments = {
             {"Forward", ForwardFramebufferAttachments},
-            {"PostProcessing", PostProcessingFramebufferAttachments}
+            {"PostProcessingA", PostProcessingFramebufferAttachmentsA},
+            {"PostProcessingB", PostProcessingFramebufferAttachmentsB}
         };
 
         m_ViewportRenderTarget = &Renderer::AddRenderTarget("EditorViewport",
@@ -626,15 +631,6 @@ namespace Coffee {
         ImGui::End();
         ImGui::PopStyleVar();
 
-        //---------TESTING---------
-        ImGui::Begin("Render Settings");
-
-        ImGui::Checkbox("Post Processing", &Renderer::GetRenderSettings().PostProcessing);
-
-        ImGui::DragFloat("Exposure", &Renderer3D::GetRenderSettings().Exposure, 0.001f, 100.0f);
-
-        ImGui::End();
-
         // Debug Window for testing the ResourceRegistry
         ImGui::Begin("Resource Registry");
         
@@ -667,7 +663,7 @@ namespace Coffee {
                     ImGui::TableSetColumnIndex(0);
                     ImGui::Text("%s", resource.second->GetName().c_str());
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%lu", resource.first);
+                    ImGui::Text("%lu", resource.second->GetUUID());
                     ImGui::TableSetColumnIndex(2);
                     ImGui::Text("%s", ResourceTypeToString(resource.second->GetType()).c_str());
                     ImGui::TableSetColumnIndex(3);

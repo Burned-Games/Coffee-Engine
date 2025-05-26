@@ -3,6 +3,7 @@
 #include "CoffeeEngine/Core/Base.h"
 #include "CoffeeEngine/Renderer/VertexArray.h"
 
+#include <cstdint>
 #include <glm/glm.hpp>
 
 namespace Coffee {
@@ -13,6 +14,27 @@ namespace Coffee {
      * @{
      */
 
+    enum ClearFlags : uint32_t
+    {
+        Color = 1 << 0,
+        Depth = 1 << 1,
+        Stencil = 1 << 2,
+        ColorDepth = Color | Depth
+    };
+
+    enum class DepthFunc
+    {
+        Never,
+        Less,
+        Equal,
+        LessEqual,
+        Greater,
+        NotEqual,
+        GreaterEqual,
+        Always
+
+    };
+
      enum class CullFace 
      {
         Front = 0,
@@ -20,12 +42,12 @@ namespace Coffee {
         FrontAndBack = 2
      };
 
-        enum class PolygonMode
-        {
-            Fill = 0,
-            Line = 1,
-            Point = 2
-        };
+    enum class PolygonMode
+    {
+        Fill = 0,
+        Line = 1,
+        Point = 2
+    };
 
     /**
      * @brief Class representing the Renderer API.
@@ -48,13 +70,17 @@ namespace Coffee {
         /**
          * @brief Clears the current buffer.
          */
-        static void Clear();
+        static void Clear(uint32_t clearFlags = (uint32_t)ClearFlags::Color | (uint32_t)ClearFlags::Depth);
+
+        static void SetColorMask(bool red, bool green, bool blue, bool alpha);
 
         /**
          * @brief Enables or disables the depth mask.
          * @param enabled True to enable the depth mask, false to disable it.
          */
         static void SetDepthMask(bool enabled);
+
+        static void SetDepthFunc(DepthFunc func);
 
         static void SetFaceCulling(bool enabled);
 

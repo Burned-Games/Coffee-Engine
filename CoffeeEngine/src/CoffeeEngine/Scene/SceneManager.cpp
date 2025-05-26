@@ -50,8 +50,6 @@ namespace Coffee {
         ZoneScoped;
     
         ExitCurrentScene();
-
-        Audio::StopAllEvents();
     
         s_ActiveScene = scene;
     

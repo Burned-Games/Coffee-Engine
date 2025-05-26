@@ -13,7 +13,8 @@
 #include "CoffeeEngine/Embedded/ToneMappingShader.inl"
 #include "CoffeeEngine/Embedded/FinalPassShader.inl"
 #include "CoffeeEngine/Embedded/MissingShader.inl"
-#include "CoffeeEngine/Embedded/ShadowShader.inl"
+#include "CoffeeEngine/Embedded/SimpleDepthShader.inl"
+#include "CoffeeEngine/Embedded/BRDFLUTShader.inl"
 
 #include <cstdint>
 #include <glm/fwd.hpp>
@@ -27,26 +28,27 @@ namespace Coffee {
     Renderer3DSettings Renderer3D::s_RenderSettings;
 
     Ref<Mesh> Renderer3D::s_ScreenQuad;
+    Ref<Mesh> Renderer3D::s_CubeMesh;
 
+    Ref<Shader> Renderer3D::s_FogShader;
     Ref<Shader> Renderer3D::s_ToneMappingShader;
     Ref<Shader> Renderer3D::s_FXAAShader;
     Ref<Shader> Renderer3D::s_FinalPassShader;
-
-    static Ref<Cubemap> s_EnvironmentMap;
-    static Ref<Mesh> s_SkyboxMesh;
-    static Ref<Shader> s_SkyboxShader;
+    Ref<Shader> Renderer3D::s_SkyboxShader;
+    Ref<Shader> Renderer3D::depthShader;
+    Ref<Shader> Renderer3D::brdfShader;
 
     void Renderer3D::Init()
     {
         ZoneScoped;
-
-        s_EnvironmentMap = Cubemap::Load("assets/textures/StandardCubeMap.hdr");
-
-        s_SkyboxMesh = PrimitiveMesh::CreateCube({-1.0f, -1.0f, -1.0f});
-
+        
+        s_RendererData.DefaultSkybox = Cubemap::Load("assets/textures/StandardCubeMap.hdr");
+        s_CubeMesh = PrimitiveMesh::CreateCube({-1.0f, -1.0f, -1.0f});
         s_SkyboxShader = CreateRef<Shader>("assets/shaders/SkyboxShader.glsl");
-        s_SkyboxShader->Bind();
-        s_SkyboxShader->setInt("skybox", 0);
+
+        depthShader = CreateRef<Shader>("DepthShader", std::string(simpleDepthShaderSource));
+
+        brdfShader = CreateRef<Shader>("BRDFLUTShader", std::string(BRDFLUTSource));
 
         // Shadow map
         s_RendererData.ShadowMapFramebuffer = Framebuffer::Create(4096, 4096, {});
@@ -59,7 +61,6 @@ namespace Coffee {
 
         Ref<Shader> missingShader = CreateRef<Shader>("MissingShader", std::string(missingShaderSource));
         s_RendererData.DefaultMaterial = ShaderMaterial::Create("Missing Material", missingShader);
-        //s_RendererData.DefaultMaterial = nullptr;/* CreateRef<Material>("Missing Material", missingShader); //TODO: Port it to use the Material::Create and use ShaderMaterial */
 
         // TODO: This is a hack to get the missing mesh add it to the PrimitiveMesh class
         Ref<Model> m = Model::Load("assets/models/MissingMesh.glb");
@@ -67,9 +68,13 @@ namespace Coffee {
 
         s_ScreenQuad = PrimitiveMesh::CreateQuad();
 
+        //s_FogShader = CreateRef<Shader>("FogShader", std::string(fogShaderSource));
+        s_FogShader = CreateRef<Shader>("assets/shaders/FogShader.glsl");
         s_ToneMappingShader = CreateRef<Shader>("ToneMappingShader", std::string(toneMappingShaderSource));
         s_FXAAShader = CreateRef<Shader>("assets/shaders/FXAAShader.glsl"); // Shader source is too large
         s_FinalPassShader = CreateRef<Shader>("FinalPassShader", std::string(finalPassShaderSource));
+
+        GenerateBRDFLUT();
     }
 
     void Renderer3D::Shutdown()
@@ -125,8 +130,20 @@ namespace Coffee {
         s_Stats.DrawCalls++;
     }
 
+    void Renderer3D::DepthPrePass(const RenderTarget &target)
+    {
+        ZoneScoped;
+
+        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        forwardBuffer->Bind();
+
+
+    }
+
     void Renderer3D::ShadowPass(const RenderTarget& target)
     {
+        ZoneScoped;
+
         int directionalLightCount = 0;
     
         for (int i = 0; i < s_RendererData.RenderData.lightCount; ++i)
@@ -163,16 +180,20 @@ namespace Coffee {
 
                 glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
-                static Ref<Shader> shadowShader = CreateRef<Shader>("ShadowShader", std::string(shadowShaderSource));
-                shadowShader->Bind();
-                shadowShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+                depthShader->Bind();
+                depthShader->setMat4("projView", lightSpaceMatrix);
 
                 RendererAPI::SetCullFace(CullFace::Front);
     
                 for (const auto& command : s_RendererData.opaqueRenderQueue)
                 {
+                    if (command.animator)
+                        AnimationSystem::SetBoneTransformations(depthShader, command.animator);
+                    else
+                        depthShader->setBool("animated", false);
+
                     // Set the model matrix
-                    shadowShader->setMat4("model", command.transform);
+                    depthShader->setMat4("model", command.transform);
 
                     Mesh* mesh = command.mesh.get();
                     
@@ -214,10 +235,17 @@ namespace Coffee {
         
         forwardBuffer->GetColorTexture("EntityID")->Clear({-1.0f,0.0f,0.0f,0.0f}); //TODO: This should only be done in the editor
 
+        if (!s_RendererData.EnvironmentMap)
+        {
+            s_RendererData.EnvironmentMap = s_RendererData.DefaultSkybox;
+        }
+
         // Bind the irradiance map
-        s_EnvironmentMap->BindIrradianceMap(6);
-        s_EnvironmentMap->BindPrefilteredMap(7);
-        s_EnvironmentMap->BindBRDFLUT(8);
+        s_RendererData.EnvironmentMap->BindIrradianceMap(6);
+        s_RendererData.EnvironmentMap->BindPrefilteredMap(7);
+        
+        // Bind the BRDF LUT
+        s_RendererData.BRDFLUT->Bind(8);
 
         // TEMPORAL: lightSpaceMatrix array for shadow mapping
         glm::mat4 lightSpaceMatrices[Renderer3DData::MAX_DIRECTIONAL_SHADOWS];
@@ -381,9 +409,11 @@ namespace Coffee {
         forwardBuffer->SetDrawBuffers({0, 1});
 
         RendererAPI::SetDepthMask(false);
-        s_EnvironmentMap->Bind(0);
+        s_RendererData.EnvironmentMap->Bind(0);
         s_SkyboxShader->Bind();
-        RendererAPI::DrawIndexed(s_SkyboxMesh->GetVertexArray());
+        s_SkyboxShader->setInt("skybox", 0);
+        s_SkyboxShader->setFloat("exposure", s_RenderSettings.EnvironmentExposure);
+        RendererAPI::DrawIndexed(s_CubeMesh->GetVertexArray());
         RendererAPI::SetDepthMask(true);
 
         forwardBuffer->UnBind();
@@ -398,9 +428,11 @@ namespace Coffee {
         forwardBuffer->SetDrawBuffers({0, 1}); //TODO: This should only be done in the editor
 
         // Bind the irradiance map
-        s_EnvironmentMap->BindIrradianceMap(6);
-        s_EnvironmentMap->BindPrefilteredMap(7);
-        s_EnvironmentMap->BindBRDFLUT(8);
+        s_RendererData.EnvironmentMap->BindIrradianceMap(6);
+        s_RendererData.EnvironmentMap->BindPrefilteredMap(7);
+
+        // Bind the BRDF LUT
+        s_RendererData.BRDFLUT->Bind(8);
 
         // Render transparent objects (back to front)
         glm::vec3 cameraPos = target.GetCameraTransform()[3];
@@ -502,31 +534,63 @@ namespace Coffee {
 
         //Render All the fancy effects :D
         const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
-        const Ref<Framebuffer>& postBuffer = target.GetFramebuffer("PostProcessing");
-        postBuffer->Bind();
+        
+        Ref<Framebuffer> lastBuffer = target.GetFramebuffer("PostProcessingA");
+        Ref<Framebuffer> postBuffer = target.GetFramebuffer("PostProcessingB");
+
+        // Copy the forward buffer to the last buffer (think if is necessary)
+        lastBuffer->Bind();
+        s_FinalPassShader->Bind();
+        s_FinalPassShader->setInt("screenTexture", 0);
+        forwardBuffer->GetColorTexture("Color")->Bind(0);
+
+        RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+        s_FinalPassShader->Unbind();
+        lastBuffer->UnBind();
+
+        std::swap(lastBuffer, postBuffer);
+
+        // Depth Fog
+        lastBuffer->Bind();
+        s_FogShader->Bind();
+        s_FogShader->setBool("DepthFog", s_RenderSettings.DepthFog);
+        s_FogShader->setVec3("FogColor", s_RenderSettings.FogColor);
+        s_FogShader->setFloat("FogDensity", s_RenderSettings.FogDensity);
+        s_FogShader->setFloat("FogHeight", s_RenderSettings.FogHeight);
+        s_FogShader->setFloat("FogHeightDensity", s_RenderSettings.FogHeightDensity);
+        s_FogShader->setMat4("invProjection", glm::inverse(target.GetCamera().GetProjection()));
+        s_FogShader->setMat4("invView", target.GetCameraTransform());
+        s_FogShader->setInt("colorTexture", 0);
+        s_FogShader->setInt("depthTexture", 1);
+        postBuffer->GetColorTexture("Color")->Bind(0);
+        forwardBuffer->GetColorTexture("Depth")->Bind(1);
+
+        RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+        s_FogShader->Unbind();
+        lastBuffer->UnBind();
+
+        std::swap(lastBuffer, postBuffer);
 
         //ToneMapping
-
+        lastBuffer->Bind();
         s_ToneMappingShader->Bind();
         s_ToneMappingShader->setInt("screenTexture", 0);
         s_ToneMappingShader->setFloat("exposure", s_RenderSettings.Exposure);
-        forwardBuffer->GetColorTexture("Color")->Bind(0);
+        postBuffer->GetColorTexture("Color")->Bind(0);
 
         RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
         s_ToneMappingShader->Unbind();
+        lastBuffer->UnBind();
+
+        std::swap(lastBuffer, postBuffer);
 
         // TODO better logic for dynamically enabling and disabling individual post-processing effects
         // Fast aproXimate AntiAliasing
         if (s_RenderSettings.FXAA)
         {
 
-            //This has to be set because the s_ScreenQuad overwrites the depth buffer
-            RendererAPI::SetDepthMask(false);
-
-            forwardBuffer->Bind();
-            forwardBuffer->SetDrawBuffers({0});
-
+            lastBuffer->Bind();
             s_FXAAShader->Bind();
             s_FXAAShader->setInt("screenTexture", 0);
             s_FXAAShader->setVec2("screenSize", {forwardBuffer->GetWidth(), forwardBuffer->GetHeight()});
@@ -535,32 +599,31 @@ namespace Coffee {
             RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
             s_FXAAShader->Unbind();
+            lastBuffer->UnBind();
 
-            RendererAPI::SetDepthMask(true);
-
-            forwardBuffer->UnBind();
+            std::swap(lastBuffer, postBuffer);
         }
-        else
-        {
-            //This has to be set because the s_ScreenQuad overwrites the depth buffer
-            RendererAPI::SetDepthMask(false);
 
-            // Copy PostProcessing Texture to the Main Render Texture
-            forwardBuffer->Bind();
-            forwardBuffer->SetDrawBuffers({0});
+        // Final pass to copy the post-processing texture to the main render texture
 
-            s_FinalPassShader->Bind();
-            s_FinalPassShader->setInt("screenTexture", 0);
-            postBuffer->GetColorTexture("Color")->Bind(0);
+        //This has to be set because the s_ScreenQuad overwrites the depth buffer
+        RendererAPI::SetDepthMask(false);
 
-            RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+        // Copy PostProcessing Texture to the Main Render Texture
+        forwardBuffer->Bind();
+        forwardBuffer->SetDrawBuffers({0});
 
-            s_FinalPassShader->Unbind();
+        s_FinalPassShader->Bind();
+        s_FinalPassShader->setInt("screenTexture", 0);
+        postBuffer->GetColorTexture("Color")->Bind(0);
 
-            RendererAPI::SetDepthMask(true);
+        RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
-            forwardBuffer->UnBind();
-        }
+        s_FinalPassShader->Unbind();
+
+        RendererAPI::SetDepthMask(true);
+
+        forwardBuffer->UnBind();
     }
 
     void Renderer3D::ResetCalls()
@@ -568,5 +631,38 @@ namespace Coffee {
         s_RendererData.RenderData.lightCount = 0;
         s_RendererData.opaqueRenderQueue.clear();
         s_RendererData.transparentRenderQueue.clear();
+
+        s_RendererData.EnvironmentMap = nullptr;
+    }
+
+    void Renderer3D::GenerateBRDFLUT()
+    {
+        TextureProperties properties;
+        properties.Format = ImageFormat::RGBA16F;
+        properties.Width = 512;
+        properties.Height = 512;
+        properties.GenerateMipmaps = false;
+        properties.Wrapping = TextureWrap::ClampToEdge;
+        properties.MinFilter = TextureFilter::Linear;
+        properties.MagFilter = TextureFilter::Linear;
+
+        s_RendererData.BRDFLUT = Texture2D::Create(properties);
+        
+        Framebuffer framebuffer = Framebuffer(properties.Width, properties.Height, {{ImageFormat::DEPTH24STENCIL8, "Depth"}});
+        framebuffer.AttachColorTexture(s_RendererData.BRDFLUT, "BRDFLUT");
+        framebuffer.Bind();
+        framebuffer.SetDrawBuffers({0});
+
+        RendererAPI::SetViewport(0, 0, properties.Width, properties.Height);
+
+        brdfShader->Bind();
+
+        RendererAPI::SetClearColor({0.0f, 0.0f, 0.0f, 1.0f});
+        RendererAPI::Clear();
+
+        s_ScreenQuad->GetVertexArray()->Bind();
+        RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+
+        framebuffer.UnBind();
     }
 }

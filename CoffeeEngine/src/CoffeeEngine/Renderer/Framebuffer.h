@@ -34,7 +34,7 @@ namespace Coffee {
          * @param height The height of the framebuffer.
          * @param attachments The list of image formats for the attachments.
          */
-        Framebuffer(uint32_t width, uint32_t height, std::initializer_list<Attachment> attachments);
+        Framebuffer(uint32_t width, uint32_t height, std::initializer_list<Attachment> attachments = {});
 
         /**
          * @brief Destroys the Framebuffer.
@@ -60,13 +60,6 @@ namespace Coffee {
 
         /**
          * @brief Sets the draw buffers for the framebuffer.
-         * @param colorAttachments The list of color attachments.
-         * @warning This function is not finished, does not work, and is slow. Do not use it 🫡.
-         */
-        void SetDrawBuffers(std::initializer_list<Ref<Texture2D>> colorAttachments);
-
-        /**
-         * @brief Sets the draw buffers for the framebuffer.
          * @param colorAttachments The list of color attachment indices.
          */
         void SetDrawBuffers(std::initializer_list<uint32_t> colorAttachments);
@@ -89,6 +82,8 @@ namespace Coffee {
          * @return The height of the framebuffer.
          */
         const uint32_t GetHeight() const { return m_Height; }
+
+        void AttachColorTexture(const Ref<Texture2D>& texture, const std::string& name);
 
         /**
          * @brief Gets the color texture at the specified index.
@@ -121,7 +116,7 @@ namespace Coffee {
          * @param attachments The list of image formats for the attachments.
          * @return A reference to the created framebuffer.
          */
-        static Ref<Framebuffer> Create(uint32_t width, uint32_t height, std::initializer_list<Attachment> attachments);
+        static Ref<Framebuffer> Create(uint32_t width, uint32_t height, std::initializer_list<Attachment> attachments = {});
 
     private:
         uint32_t m_fboID; ///< The ID of the framebuffer object.

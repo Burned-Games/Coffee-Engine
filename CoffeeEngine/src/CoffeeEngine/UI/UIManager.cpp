@@ -16,6 +16,8 @@ namespace Coffee {
     glm::vec2 UIManager::CanvasReferenceSize = { 1920.0f, 1080.0f };
     float UIManager::UIScale = 1.0f;
 
+    std::unordered_map<entt::entity, std::vector<UIManager::TransformOperation>> UIManager::s_PendingTransforms;
+
     void UIManager::UpdateUI(entt::registry& registry)
     {
         WindowSize = Renderer::GetCurrentRenderTarget()->GetSize();
@@ -36,6 +38,8 @@ namespace Coffee {
             SortUIElements(registry);
             s_NeedsSorting = false;
         }
+
+        ProcessPendingTransforms(registry);
 
         for (auto& item : s_SortedUIItems)
         {
@@ -297,18 +301,7 @@ namespace Coffee {
                 {
                     glm::vec2 parentParentSize = GetParentSize(registry, parentItem);
 
-                    RectAnchor* parentAnchor = nullptr;
-
-                    if (registry.any_of<UIImageComponent>(item.Parent))
-                        parentAnchor = &registry.get<UIImageComponent>(item.Parent).Anchor;
-                    else if (registry.any_of<UITextComponent>(item.Parent))
-                        parentAnchor = &registry.get<UITextComponent>(item.Parent).Anchor;
-                    else if (registry.any_of<UIButtonComponent>(item.Parent))
-                        parentAnchor = &registry.get<UIButtonComponent>(item.Parent).Anchor;
-                    else if (registry.any_of<UIToggleComponent>(item.Parent))
-                        parentAnchor = &registry.get<UIToggleComponent>(item.Parent).Anchor;
-                    else if (registry.any_of<UISliderComponent>(item.Parent))
-                        parentAnchor = &registry.get<UISliderComponent>(item.Parent).Anchor;
+                    RectAnchor* parentAnchor = GetComponentAnchor(registry, item.Parent, parentItem.ComponentType);
 
                     if (parentAnchor)
                     {
@@ -331,18 +324,7 @@ namespace Coffee {
                 }
                 else
                 {
-                    RectAnchor* parentAnchor = nullptr;
-
-                    if (registry.any_of<UIImageComponent>(item.Parent))
-                        parentAnchor = &registry.get<UIImageComponent>(item.Parent).Anchor;
-                    else if (registry.any_of<UITextComponent>(item.Parent))
-                        parentAnchor = &registry.get<UITextComponent>(item.Parent).Anchor;
-                    else if (registry.any_of<UIButtonComponent>(item.Parent))
-                        parentAnchor = &registry.get<UIButtonComponent>(item.Parent).Anchor;
-                    else if (registry.any_of<UIToggleComponent>(item.Parent))
-                        parentAnchor = &registry.get<UIToggleComponent>(item.Parent).Anchor;
-                    else if (registry.any_of<UISliderComponent>(item.Parent))
-                        parentAnchor = &registry.get<UISliderComponent>(item.Parent).Anchor;
+                    RectAnchor* parentAnchor = GetComponentAnchor(registry, item.Parent, parentItem.ComponentType);
 
                     if (parentAnchor)
                     {
@@ -414,7 +396,39 @@ namespace Coffee {
             if (registry.any_of<TransformComponent>(item.Parent) && !registry.any_of<UIComponent>(item.Parent))
             {
                 auto& parentTransform = registry.get<TransformComponent>(item.Parent);
-                parentPosition = glm::vec2(parentTransform.GetLocalPosition());
+
+                bool parentIsUIElement = registry.any_of<UIImageComponent>(item.Parent) ||
+                                       registry.any_of<UITextComponent>(item.Parent) ||
+                                       registry.any_of<UIButtonComponent>(item.Parent) ||
+                                       registry.any_of<UIToggleComponent>(item.Parent) ||
+                                       registry.any_of<UISliderComponent>(item.Parent);
+
+                if (parentIsUIElement)
+                {
+                    UIRenderItem* parentItem = nullptr;
+                    for (auto& renderItem : s_SortedUIItems)
+                    {
+                        if (renderItem.Entity == item.Parent)
+                        {
+                            parentItem = &renderItem;
+                            break;
+                        }
+                    }
+
+                    if (parentItem)
+                    {
+                        RectAnchor* parentAnchor = GetComponentAnchor(registry, item.Parent, parentItem->ComponentType);
+                        if (parentAnchor)
+                        {
+                            AnchoredTransform parentAnchored = CalculateAnchoredTransform(registry, *parentAnchor, *parentItem);
+                            parentPosition = parentAnchored.Position;
+                        }
+                    }
+                }
+                else
+                {
+                    parentPosition = glm::vec2(parentTransform.GetLocalPosition());
+                }
             }
             else
             {
@@ -556,8 +570,22 @@ namespace Coffee {
 
             auto& transformComponent = registry.get<TransformComponent>(item.Entity);
 
-            transformComponent.SetLocalPosition(glm::vec3(anchored.Position, 0.0f));
-            transformComponent.SetLocalScale(glm::vec3(anchored.Size.x, anchored.Size.y, 1.0f));
+            RectAnchor* anchor = GetComponentAnchor(registry, item.Entity, item.ComponentType);
+            if (anchor)
+            {
+                glm::vec2 anchoredPos = anchor->GetAnchoredPosition(item.ParentSize);
+
+                anchoredPos.x = std::round(anchoredPos.x * 1000.0f) / 1000.0f;
+                anchoredPos.y = std::round(anchoredPos.y * 1000.0f) / 1000.0f;
+
+                transformComponent.SetLocalPosition(glm::vec3(anchoredPos, 0.0f));
+
+                glm::vec2 anchoredSize = anchor->GetSize();
+                anchoredSize.x = std::round(anchoredSize.x * 1000.0f) / 1000.0f;
+                anchoredSize.y = std::round(anchoredSize.y * 1000.0f) / 1000.0f;
+
+                transformComponent.SetLocalScale(glm::vec3(anchoredSize, 1.0f));
+            }
 
             float rotation = transformComponent.GetLocalRotation().z;
 
@@ -582,6 +610,129 @@ namespace Coffee {
             if (childItem.Parent == item.Entity)
                 UpdateUITranformRecursive(registry, childItem);
         }
+    }
+
+    RectAnchor* UIManager::GetComponentAnchor(entt::registry& registry, entt::entity entity, UIComponentType componentType)
+    {
+        switch (componentType) {
+            case UIComponentType::Image:
+                if (registry.any_of<UIImageComponent>(entity))
+                    return &registry.get<UIImageComponent>(entity).Anchor;
+                break;
+            case UIComponentType::Text:
+                if (registry.any_of<UITextComponent>(entity))
+                    return &registry.get<UITextComponent>(entity).Anchor;
+                break;
+            case UIComponentType::Button:
+                if (registry.any_of<UIButtonComponent>(entity))
+                    return &registry.get<UIButtonComponent>(entity).Anchor;
+                break;
+            case UIComponentType::Toggle:
+                if (registry.any_of<UIToggleComponent>(entity))
+                    return &registry.get<UIToggleComponent>(entity).Anchor;
+                break;
+            case UIComponentType::Slider:
+                if (registry.any_of<UISliderComponent>(entity))
+                    return &registry.get<UISliderComponent>(entity).Anchor;
+                break;
+        }
+        return nullptr;
+    }
+
+    void UIManager::ScaleUIElement(entt::registry& registry, entt::entity entity, const glm::vec2& scale)
+    {
+        UIRenderItem& item = GetUIRenderItem(entity);
+        if (item.Entity == entt::null) return;
+
+        RectAnchor* anchor = GetComponentAnchor(registry, entity, item.ComponentType);
+
+        if (anchor)
+        {
+            glm::vec2 currentSize = anchor->GetSize();
+            glm::vec2 newSize = currentSize * scale;
+            anchor->SetSize(newSize, item.ParentSize);
+
+            if (item.ComponentType == UIComponentType::Text && registry.any_of<UITextComponent>(entity))
+            {
+                auto& textComponent = registry.get<UITextComponent>(entity);
+                textComponent.FontSize *= (scale.x + scale.y) / 2.0f;
+            }
+
+            item.TransformDirty = true;
+
+            for (auto& childItem : s_SortedUIItems)
+            {
+                if (childItem.Parent == entity)
+                {
+                    ScaleUIElement(registry, childItem.Entity, scale);
+                }
+            }
+        }
+    }
+
+    void UIManager::MoveUIElement(entt::registry& registry, entt::entity entity, const glm::vec2& offset)
+    {
+        UIRenderItem& item = GetUIRenderItem(entity);
+        if (item.Entity == entt::null) return;
+
+        RectAnchor* anchor = GetComponentAnchor(registry, entity, item.ComponentType);
+
+        if (anchor)
+        {
+            glm::vec2 currentPos = anchor->GetAnchoredPosition(item.ParentSize);
+            glm::vec2 newPos = currentPos + offset;
+            anchor->SetAnchoredPosition(newPos, item.ParentSize);
+            
+            MarkDirty(entity);
+        }
+    }
+
+    void UIManager::RotateUIElement(entt::registry& registry, entt::entity entity, float angle)
+    {
+        UIRenderItem& item = GetUIRenderItem(entity);
+        if (item.Entity == entt::null) return;
+
+        if (registry.any_of<TransformComponent>(entity))
+        {
+            auto& transform = registry.get<TransformComponent>(entity);
+
+            glm::vec3 rotation = transform.GetLocalRotation();
+            rotation.z += angle;
+            transform.SetLocalRotation(rotation);
+
+            item.TransformDirty = true;
+
+            for (auto& childItem : s_SortedUIItems)
+            {
+                if (childItem.Parent == entity)
+                {
+                    RotateUIElement(registry, childItem.Entity, angle);
+                }
+            }
+        }
+    }
+
+    void UIManager::ProcessPendingTransforms(entt::registry& registry)
+    {
+        for (auto& [entity, operations] : s_PendingTransforms)
+        {
+            for (auto& operation : operations)
+            {
+                switch (operation.type)
+                {
+                case TransformOperation::Type::Scale:
+                    ScaleUIElement(registry, entity, operation.scale);
+                    break;
+                case TransformOperation::Type::Move:
+                    MoveUIElement(registry, entity, operation.offset);
+                    break;
+                case TransformOperation::Type::Rotate:
+                    RotateUIElement(registry, entity, operation.angle);
+                    break;
+                }
+            }
+        }
+        s_PendingTransforms.clear();
     }
 
 } // Coffee
