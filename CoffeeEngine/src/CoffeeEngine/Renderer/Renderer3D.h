@@ -100,7 +100,7 @@ namespace Coffee {
         float BloomRadius = 1.0f; ///< Bloom radius.
         float BloomScale = 1.0f; ///< Bloom scale.
 
-        bool FXAA = false; ///< Enable or disable FXAA.
+        bool FXAA = true; ///< Enable or disable FXAA.
 
         float Exposure = 1.0f; ///< Exposure value.
         float EnvironmentExposure = 1.0f; ///< Environment exposure value.
