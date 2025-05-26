@@ -259,6 +259,38 @@ namespace Coffee
         glm::vec3 GetRandomPointInCone() const;
         glm::vec3 GetRandomPointInBox() const;
 
+        static constexpr int CURVE_RESOLUTION = 256;
+
+        struct GeneratedCurves
+        {
+            std::vector<float> velocityX;
+            std::vector<float> velocityY;
+            std::vector<float> velocityZ;
+            std::vector<float> velocityGeneral;
+
+            std::vector<float> sizeX;
+            std::vector<float> sizeY;
+            std::vector<float> sizeZ;
+            std::vector<float> sizeGeneral;
+
+            std::vector<float> rotationX;
+            std::vector<float> rotationY;
+            std::vector<float> rotationZ;
+
+            std::vector<glm::vec4> colorGradient;
+
+            bool isValid = false;
+        };
+
+        GeneratedCurves generatedCurves;
+
+        void GenerateCurves();
+        void GenerateCurve(const std::vector<CurvePoint>& points, std::vector<float>& output, float multiplier = 1.0f);
+        void GenerateGradient(const std::vector<GradientPoint>& points, std::vector<glm::vec4>& output);
+
+        float GetGeneratedCurveValue(const std::vector<float>& curve, float normalizedTime) const;
+        glm::vec4 GetGeneratedGradientValue(const std::vector<glm::vec4>& gradient, float normalizedTime) const;
+
 
       public:
         /**
@@ -314,6 +346,8 @@ namespace Coffee
          * @return The billboard transform matrix.
          */
         glm::mat4 CalculateBillboardTransform(const glm::mat4& particleTransform) const;
+
+        void InvalidateCurves() { generatedCurves.isValid = false; }
 
         /**
          * @brief Serializes the ParticleEmitter object.

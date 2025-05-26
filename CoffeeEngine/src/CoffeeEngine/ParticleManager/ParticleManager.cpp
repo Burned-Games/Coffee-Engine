@@ -148,6 +148,8 @@ namespace Coffee
 
     void ParticleEmitter::Update(float deltaTime)
     {
+        GenerateCurves();
+
         elapsedTime += deltaTime;
 
         if (looping)
@@ -203,25 +205,24 @@ namespace Coffee
             }
             else
             {
-                glm::vec3 newRotation;
-                newRotation.x = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeX),
-                                                 -rotationMultiplier, rotationMultiplier);
+                glm::vec3 curveRotation = {
+                    GetGeneratedCurveValue(generatedCurves.rotationX, normalizedLife),
+                    GetGeneratedCurveValue(generatedCurves.rotationZ, normalizedLife),
+                    GetGeneratedCurveValue(generatedCurves.rotationY, normalizedLife)
+                };
 
-                newRotation.y = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeY),
-                                                 -rotationMultiplier, rotationMultiplier);
+                glm::vec3 finalRotation = glm::vec3(
+                    curveRotation.x * particle->startRotationRadians.x,
+                    curveRotation.z * particle->startRotationRadians.y,
+                    curveRotation.y * particle->startRotationRadians.z
+                );
 
-                newRotation.z = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeZ),
-                                                 -rotationMultiplier, rotationMultiplier);
+                glm::mat4 rotationMatrix =
+                    glm::rotate(glm::mat4(1.0f), finalRotation.x, glm::vec3(1, 0, 0)) *
+                    glm::rotate(glm::mat4(1.0f), finalRotation.y, glm::vec3(0, 1, 0)) *
+                    glm::rotate(glm::mat4(1.0f), finalRotation.z, glm::vec3(0, 0, 1));
 
-
-                glm::mat4 localRotationX = glm::rotate(glm::mat4(1.0f), glm::radians(newRotation.x * particle->startRotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-                billboardTransform = billboardTransform * localRotationX;
-
-                glm::mat4 localRotationY = glm::rotate(glm::mat4(1.0f), glm::radians(newRotation.z * particle->startRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-                billboardTransform = billboardTransform * localRotationY;
-
-                glm::mat4 localRotationZ = glm::rotate(glm::mat4(1.0f), glm::radians(newRotation.y * particle->startRotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-                billboardTransform = billboardTransform * localRotationZ;
+                billboardTransform *= rotationMatrix;
             }
 
             //Fix for the rotation primitive plane
@@ -243,21 +244,16 @@ namespace Coffee
         {
             if (velocityOverLifeTimeSeparateAxes)
             {
-                newVelocity.x = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeX),
-                                                 -velocityMultiplier, velocityMultiplier);
-                
-                newVelocity.z = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeY),
-                                                 -velocityMultiplier, velocityMultiplier);
-                
-                newVelocity.y = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeZ),
-                                                 -velocityMultiplier, velocityMultiplier);
-                
+                newVelocity = {
+                    GetGeneratedCurveValue(generatedCurves.velocityX, normalizedLife),
+                    GetGeneratedCurveValue(generatedCurves.velocityZ, normalizedLife),
+                    GetGeneratedCurveValue(generatedCurves.velocityY, normalizedLife)
+                };
             }
             else
             {
-                
-                float uniformSpeed = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife,speedOverLifeTimeGeneral),
-                                                    -velocityMultiplier, velocityMultiplier);
+                float uniformSpeed = GetGeneratedCurveValue(generatedCurves.velocityGeneral, normalizedLife);
+
                 newVelocity = glm::vec3(uniformSpeed);
             }
         }
@@ -267,22 +263,16 @@ namespace Coffee
             glm::vec3 newSize;
             if (sizeOverLifeTimeSeparateAxes)
             {
-
-                newSize.x = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeX),
-                                                         -sizeMultiplier, sizeMultiplier);
-
-                newSize.z = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeY),
-                                                         -sizeMultiplier, sizeMultiplier);
-
-                newSize.y = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeZ),
-                                                         -sizeMultiplier, sizeMultiplier);
-
-
+                newSize = {
+                    GetGeneratedCurveValue(generatedCurves.sizeX, normalizedLife),
+                    GetGeneratedCurveValue(generatedCurves.sizeZ, normalizedLife),
+                    GetGeneratedCurveValue(generatedCurves.sizeY, normalizedLife)
+                };
             }
             else
             {
-                float uniformSize = CurveEditor::ScaleCurveValue(CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeGeneral),
-                                                 -sizeMultiplier, sizeMultiplier);
+                float uniformSize = GetGeneratedCurveValue(generatedCurves.sizeGeneral, normalizedLife);
+
                 newSize = glm::vec3(uniformSize);
             }
             particle->SetSize(finalSize * newSize);
@@ -290,8 +280,8 @@ namespace Coffee
 
         if (useColorOverLifetime)
         {
-            ImVec4 newColor = GradientEditor::GetGradientValue(normalizedLife, colorOverLifetime_gradientPoints);
-            particle->color = glm::vec4(newColor.x, newColor.y, newColor.z, newColor.w);
+            particle->color = GetGeneratedGradientValue(generatedCurves.colorGradient, normalizedLife);
+
         }
 
         newVelocity += gravity * (particle->lifetime - particle->startLifetime);
@@ -454,7 +444,96 @@ namespace Coffee
         default:
             return glm::vec3(0, 0, 0);
         }
+    }
 
+    void ParticleEmitter::GenerateCurves()
+    {
+        if (generatedCurves.isValid) return;
+
+
+        generatedCurves.velocityX.resize(CURVE_RESOLUTION);
+        generatedCurves.velocityY.resize(CURVE_RESOLUTION);
+        generatedCurves.velocityZ.resize(CURVE_RESOLUTION);
+        generatedCurves.velocityGeneral.resize(CURVE_RESOLUTION);
+
+        generatedCurves.sizeX.resize(CURVE_RESOLUTION);
+        generatedCurves.sizeY.resize(CURVE_RESOLUTION);
+        generatedCurves.sizeZ.resize(CURVE_RESOLUTION);
+        generatedCurves.sizeGeneral.resize(CURVE_RESOLUTION);
+
+        generatedCurves.rotationX.resize(CURVE_RESOLUTION);
+        generatedCurves.rotationY.resize(CURVE_RESOLUTION);
+        generatedCurves.rotationZ.resize(CURVE_RESOLUTION);
+
+        generatedCurves.colorGradient.resize(CURVE_RESOLUTION);
+
+        GenerateCurve(speedOverLifeTimeX, generatedCurves.velocityX, velocityMultiplier);
+        GenerateCurve(speedOverLifeTimeY, generatedCurves.velocityY, velocityMultiplier);
+        GenerateCurve(speedOverLifeTimeZ, generatedCurves.velocityZ, velocityMultiplier);
+        GenerateCurve(speedOverLifeTimeGeneral, generatedCurves.velocityGeneral, velocityMultiplier);
+
+        GenerateCurve(sizeOverLifetimeX, generatedCurves.sizeX, sizeMultiplier);
+        GenerateCurve(sizeOverLifetimeY, generatedCurves.sizeY, sizeMultiplier);
+        GenerateCurve(sizeOverLifetimeZ, generatedCurves.sizeZ, sizeMultiplier);
+        GenerateCurve(sizeOverLifetimeGeneral, generatedCurves.sizeGeneral, sizeMultiplier);
+
+        GenerateCurve(rotationOverLifetimeX, generatedCurves.rotationX, rotationMultiplier);
+        GenerateCurve(rotationOverLifetimeY, generatedCurves.rotationY, rotationMultiplier);
+        GenerateCurve(rotationOverLifetimeZ, generatedCurves.rotationZ, rotationMultiplier);
+
+        GenerateGradient(colorOverLifetime_gradientPoints, generatedCurves.colorGradient);
+
+        generatedCurves.isValid = true;
+    }
+
+    void ParticleEmitter::GenerateCurve(const std::vector<CurvePoint>& points, std::vector<float>& output, float multiplier)
+    {
+
+        for (int i = 0; i < CURVE_RESOLUTION; ++i)
+        {
+            float t = static_cast<float>(i) / (CURVE_RESOLUTION - 1);
+            float curveValue = CurveEditor::GetCurveValue(t, points);
+            output[i] = CurveEditor::ScaleCurveValue(curveValue, -multiplier, multiplier);
+        }
+    }
+
+    void ParticleEmitter::GenerateGradient(const std::vector<GradientPoint>& points, std::vector<glm::vec4>& output)
+    {
+
+        for (int i = 0; i < CURVE_RESOLUTION; ++i)
+        {
+            float t = static_cast<float>(i) / (CURVE_RESOLUTION - 1);
+            ImVec4 color = GradientEditor::GetGradientValue(t, points);
+            output[i] = glm::vec4(color.x, color.y, color.z, color.w);
+        }
+    }
+
+    float ParticleEmitter::GetGeneratedCurveValue(const std::vector<float>& curve, float normalizedTime) const
+    {
+        normalizedTime = glm::clamp(normalizedTime, 0.0f, 1.0f);
+
+        float indexFloat = normalizedTime * (CURVE_RESOLUTION - 1);
+        int index = static_cast<int>(indexFloat);
+        float fraction = indexFloat - index;
+
+        if (index >= CURVE_RESOLUTION - 1)
+            return curve[CURVE_RESOLUTION - 1];
+
+        return curve[index] * (1.0f - fraction) + curve[index + 1] * fraction;
+    }
+
+    glm::vec4 ParticleEmitter::GetGeneratedGradientValue(const std::vector<glm::vec4>& gradient, float normalizedTime) const
+    {
+        normalizedTime = glm::clamp(normalizedTime, 0.0f, 1.0f);
+
+        float indexFloat = normalizedTime * (CURVE_RESOLUTION - 1);
+        int index = static_cast<int>(indexFloat);
+        float fraction = indexFloat - index;
+
+        if (index >= CURVE_RESOLUTION - 1)
+            return gradient[CURVE_RESOLUTION - 1];
+
+        return gradient[index] * (1.0f - fraction) + gradient[index + 1] * fraction;
     }
 
 
