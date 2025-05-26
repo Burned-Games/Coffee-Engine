@@ -14,12 +14,12 @@ namespace Coffee
         return transformMatrix;
     }
 
-    void Particle::SetPosition(glm::vec3 position)
+    void Particle::SetPosition(const glm::vec3& position)
     {
         transformMatrix[3] = glm::vec4(position, 1.0f);
     }
 
-    void Particle::SetRotation(glm::vec3 rotation)
+    void Particle::SetRotation(const glm::vec3& rotation)
     {
         glm::vec3 position = GetPosition();
         glm::vec3 scale = GetSize();
@@ -33,7 +33,7 @@ namespace Coffee
         SetPosition(position);
     }
 
-    void Particle::SetSize(glm::vec3 scale)
+    void Particle::SetSize(const glm::vec3& scale)
     {
         glm::vec3 position = GetPosition();
         glm::mat3 rotationMatrix = glm::mat3(glm::normalize(transformMatrix[0]), glm::normalize(transformMatrix[1]),
@@ -73,7 +73,7 @@ namespace Coffee
         particleTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
     }
 
-    void ParticleEmitter::InitParticle(Ref<Particle> particle)
+    void ParticleEmitter::InitParticle(const Ref<Particle>& particle)
     {
         glm::vec3 startPos = GetRandomPointByShape(shape);
         glm::vec4 startPosVec4 = glm::vec4(startPos.x, startPos.y, startPos.z, 0);
@@ -132,7 +132,7 @@ namespace Coffee
 
     void ParticleEmitter::GenerateParticle()
     {
-        Ref<Particle> particle = CreateRef<Particle>();
+        const Ref<Particle> particle = CreateRef<Particle>();
         InitParticle(particle);
         activeParticles.push_back(particle);
     }
@@ -150,11 +150,8 @@ namespace Coffee
                 accumulatedParticles -= 1.0f;
             }
 
-
-            for (int i = 0; i < bursts.size(); i++)
+            for (auto burst : bursts)
             {
-                Ref<BurstParticleEmitter> burst = bursts[i];
-
                 if (burst->initialTime <= elapsedTime)
                 {
                     burst->intervalTimer += deltaTime;
@@ -183,7 +180,7 @@ namespace Coffee
         }
     }
 
-    void ParticleEmitter::UpdateParticle(Ref<Particle> particle, float deltaTime)
+    void ParticleEmitter::UpdateParticle(const Ref<Particle>& particle, float deltaTime)
     {
         float normalizedLife = 1.0f - (particle->lifetime / particle->startLifetime);
 
@@ -331,13 +328,11 @@ namespace Coffee
 
     }
 
-
-    glm::mat4 ParticleEmitter::CalculateBillboardTransform(const glm::mat4& particleTransform,
-                                                           const glm::mat4& viewMatrix)
+    glm::mat4 ParticleEmitter::CalculateBillboardTransform(const glm::mat4& particleTransform) const
     {
         glm::vec3 position = glm::vec3(particleTransform[3]);
 
-        glm::mat4 rotationMatrix = glm::mat4(glm::mat3(viewMatrix));
+        glm::mat4 rotationMatrix = glm::mat4(glm::mat3(cameraViewMatrix));
 
         glm::mat4 billboardTransform = glm::inverse(rotationMatrix);
         billboardTransform[3] = glm::vec4(position, 1.0f);
@@ -345,17 +340,15 @@ namespace Coffee
         return billboardTransform;
     }
 
-
-    void ParticleEmitter::DrawParticles() {
-        for (size_t i = 0; i < activeParticles.size(); i++)
+    void ParticleEmitter::DrawParticles() const {
+        for (const auto& particle : activeParticles)
         {
-            Ref<Particle> p = activeParticles.at(i);
-            DrawParticles(p);
+            DrawParticles(particle);
         }
     }
 
-    void ParticleEmitter::DrawParticles(Ref<Particle> p)
-    {  
+    void ParticleEmitter::DrawParticles(const Ref<Particle>& p)
+    {
         if (p->current_texture)
         {
             Renderer2D::DrawQuad(p->GetWorldTransform(), p->current_texture, 1, p->color,
@@ -430,7 +423,7 @@ namespace Coffee
     }
 
 
-    glm::vec3 ParticleEmitter::GetRandomPointInCircle() {
+    glm::vec3 ParticleEmitter::GetRandomPointInCircle() const {
 
         //float minRadius = shapeRadius * (1.0f - shapeRadiusThickness);
         float randomRadius = glm::mix(shapeRadiusThickness, shapeRadius, static_cast<float>(rand()) / RAND_MAX);
@@ -442,7 +435,7 @@ namespace Coffee
         return glm::mat3(transformComponentMatrix) * glm::vec3(x, 0.0f, z);
     }
 
-    glm::vec3 ParticleEmitter::GetRandomPointInCone()
+    glm::vec3 ParticleEmitter::GetRandomPointInCone() const
     {
 
         // float minRadius = shapeRadius * (1.0f - shapeRadiusThickness);
@@ -456,11 +449,12 @@ namespace Coffee
     }
 
 
-    glm::vec3 ParticleEmitter::GetRandomPointInBox() {
+    glm::vec3 ParticleEmitter::GetRandomPointInBox() const {
         return glm::linearRand(minSpread, maxSpread);
     }
 
-    glm::vec3 ParticleEmitter::GetRandomPointByShape(ShapeType type) {
+    glm::vec3 ParticleEmitter::GetRandomPointByShape(ShapeType type) const
+    {
         switch (type)
         {
         case Coffee::ParticleEmitter::ShapeType::Circle:
