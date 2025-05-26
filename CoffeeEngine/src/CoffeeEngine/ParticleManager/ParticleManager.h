@@ -48,6 +48,9 @@ namespace Coffee
         Ref<Texture2D> current_texture; //Current texture of the particle
         glm::vec3 localPosition;
 
+        glm::vec3 startRotationRadians;
+        glm::mat4 startRotationMatrix;
+
         /**
          * @brief Default constructor for Particle.
          */
@@ -63,19 +66,19 @@ namespace Coffee
          * @brief Sets the position of the particle.
          * @param position The new position of the particle.
          */
-        void SetPosition(glm::vec3 position);
+        void SetPosition(const glm::vec3& position);
 
         /**
          * @brief Sets the rotation of the particle.
          * @param rotation The new rotation of the particle.
          */
-        void SetRotation(glm::vec3 rotation);
+        void SetRotation(const glm::vec3& rotation);
 
         /**
          * @brief Sets the size (scale) of the particle.
          * @param size The new size of the particle.
          */
-        void SetSize(glm::vec3 size);
+        void SetSize(const glm::vec3& size);
 
         /**
          * @brief Update the transform matrix of the particle.
@@ -250,11 +253,73 @@ namespace Coffee
          */
         void GenerateParticle();
 
-        glm::vec3 GetRandomPointByShape(ShapeType type);
+        glm::vec3 GetRandomPointByShape(ShapeType type) const;
 
-        glm::vec3 GetRandomPointInCircle();
-        glm::vec3 GetRandomPointInCone();
-        glm::vec3 GetRandomPointInBox();
+        glm::vec3 GetRandomPointInCircle() const;
+        glm::vec3 GetRandomPointInCone() const;
+        glm::vec3 GetRandomPointInBox() const;
+
+        static constexpr int CURVE_RESOLUTION = 256;
+
+        struct GeneratedCurves
+        {
+            std::vector<float> velocityX;
+            std::vector<float> velocityY;
+            std::vector<float> velocityZ;
+            std::vector<float> velocityGeneral;
+
+            std::vector<float> sizeX;
+            std::vector<float> sizeY;
+            std::vector<float> sizeZ;
+            std::vector<float> sizeGeneral;
+
+            std::vector<float> rotationX;
+            std::vector<float> rotationY;
+            std::vector<float> rotationZ;
+
+            std::vector<glm::vec4> colorGradient;
+
+            bool isValid = false;
+        };
+
+        GeneratedCurves generatedCurves;
+
+       /**
+        * @brief Generates all required curves for the particle emitter (velocity, size, rotation, color).
+        */
+       void GenerateCurves();
+
+       /**
+        * @brief Generates a curve from a set of points and stores the result in the output vector.
+        * @param points The control points for the curve.
+        * @param output The vector to store the generated curve values.
+        * @param multiplier Optional multiplier applied to the curve values.
+        */
+       void GenerateCurve(const std::vector<CurvePoint>& points, std::vector<float>& output, float multiplier = 1.0f);
+
+       /**
+        * @brief Generates a color gradient from a set of gradient points.
+        * @param points The gradient control points.
+        * @param output The vector to store the generated gradient colors.
+        */
+       void GenerateGradient(const std::vector<GradientPoint>& points, std::vector<glm::vec4>& output);
+
+       /**
+        * @brief Retrieves a value from a generated curve at a normalized time.
+        * @param curve The generated curve values.
+        * @param normalizedTime The normalized time (0.0 to 1.0).
+        * @return The interpolated curve value.
+        */
+       float GetGeneratedCurveValue(const std::vector<float>& curve, float normalizedTime) const;
+
+       /**
+        * @brief Retrieves a color from a generated gradient at a normalized time.
+        * @param gradient The generated gradient colors.
+        * @param normalizedTime The normalized time (0.0 to 1.0).
+        * @return The interpolated color value.
+        */
+       glm::vec4 GetGeneratedGradientValue(const std::vector<glm::vec4>& gradient, float normalizedTime) const;
+
 
       public:
         /**
@@ -266,7 +331,7 @@ namespace Coffee
          * @brief Initializes a particle with random values based on emitter settings.
          * @param particle The particle to initialize.
          */
-        void InitParticle(Ref<Particle> particle);
+        void InitParticle(const Ref<Particle>& particle);
 
         /**
          * @brief Updates the particle emitter and its particles.
@@ -279,18 +344,18 @@ namespace Coffee
          * @param particle The particle to update.
          * @param deltaTime The time elapsed since the last frame.
          */
-        void UpdateParticle(Ref<Particle> particle, float deltaTime);
+        void UpdateParticle(const Ref<Particle>& particle, float deltaTime);
 
 
         /**
          * @brief Draw all particles.
          */
-        void DrawParticles();
+        void DrawParticles() const;
 
         /**
          * @brief Draw a single particle.
          */
-        void DrawParticles(Ref<Particle> particle);
+        static void DrawParticles(const Ref<Particle>& particle);
 
 
         /**
@@ -307,10 +372,14 @@ namespace Coffee
         /**
          * @brief Calculates the billboard transform for a particle.
          * @param particleTransform The particle's current transform.
-         * @param viewMatrix The camera's view matrix.
          * @return The billboard transform matrix.
          */
-        glm::mat4 CalculateBillboardTransform(const glm::mat4& particleTransform, const glm::mat4& viewMatrix);
+        glm::mat4 CalculateBillboardTransform(const glm::mat4& particleTransform) const;
+
+        /**
+         * @brief Invalidates the generated curves, forcing them to be regenerated.
+         */
+        void InvalidateCurves() { generatedCurves.isValid = false; }
 
         /**
          * @brief Serializes the ParticleEmitter object.

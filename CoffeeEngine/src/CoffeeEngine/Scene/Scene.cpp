@@ -737,7 +737,7 @@ namespace Coffee {
 
                 auto& scriptComponent = scriptView.get<ScriptComponent>(entity);
                 ZoneScoped;
-                ZoneText(scriptComponent.script->GetPath().filename().string().c_str(), scriptComponent.script->GetPath().filename().string().length());
+                //ZoneText(scriptComponent.script->GetPath().filename().string().c_str(), scriptComponent.script->GetPath().filename().string().length());
                 scriptComponent.script->OnUpdate(dt);
                 if(SceneManager::GetActiveScene().get() != this)
                     return;
@@ -815,8 +815,8 @@ namespace Coffee {
 
             for (auto& entity : particleSystemView)
             {
-                /*if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
-                    continue;*/
+                if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
+                    continue;
 
                 auto& particlesSystemComponent = particleSystemView.get<ParticlesSystemComponent>(entity);
                 auto& transformComponent = particleSystemView.get<TransformComponent>(entity);

@@ -57,13 +57,13 @@ class GradientEditor
      * @param canvas_pos Canvas position.
      * @param canvas_size Canvas size.
      */
-    static void EditGradientPoints(std::vector<GradientPoint>& points, ImVec2 canvas_pos, ImVec2 canvas_size);
+    static bool EditGradientPoints(std::vector<GradientPoint>& points, ImVec2 canvas_pos, ImVec2 canvas_size);
 
     /**
      * @brief Displays the gradient editor in ImGui.
      * @param points Gradient points.
      */
-    static void ShowGradientEditor(std::vector<GradientPoint>& points);
+    static bool ShowGradientEditor(std::vector<GradientPoint>& points);
 
     /**
      * @brief Gets the color at a specific position in the gradient.
@@ -86,7 +86,7 @@ class CurveEditor
      * @param points Curve points.
      * @param graph_size Graph size.
      */
-    static void DrawCurve(const char* label, std::vector<CurvePoint>& points, ImVec2 graph_size = ImVec2(200, 50));
+    static bool DrawCurve(const char* label, std::vector<CurvePoint>& points, ImVec2 graph_size = ImVec2(200, 50));
 
     /**
      * @brief Gets the curve value at a specific time.
