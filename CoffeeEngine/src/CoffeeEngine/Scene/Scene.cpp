@@ -815,8 +815,8 @@ namespace Coffee {
 
             for (auto& entity : particleSystemView)
             {
-                /*if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
-                    continue;*/
+                if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
+                    continue;
 
                 auto& particlesSystemComponent = particleSystemView.get<ParticlesSystemComponent>(entity);
                 auto& transformComponent = particleSystemView.get<TransformComponent>(entity);
