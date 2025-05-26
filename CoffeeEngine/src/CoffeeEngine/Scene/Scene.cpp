@@ -79,8 +79,8 @@ namespace Coffee {
     void CopyComponentIfExists<ActiveComponent>(entt::entity destinyEntity, entt::entity sourceEntity, entt::registry& registry)
     {
         // ActiveComponent is empty, just place it
-        if (!registry.all_of<ActiveComponent>(destinyEntity)) {
-            registry.emplace<ActiveComponent>(destinyEntity);
+        if (!registry.all_of<ActiveComponent>(sourceEntity)) {
+            registry.remove<ActiveComponent>(destinyEntity);
         }
     }
 
@@ -88,7 +88,7 @@ namespace Coffee {
     void CopyComponentIfExists<StaticComponent>(entt::entity destinyEntity, entt::entity sourceEntity, entt::registry& registry)
     {
         // StaticComponent is empty, just place it
-        if (!registry.all_of<StaticComponent>(destinyEntity)) {
+        if (registry.all_of<StaticComponent>(sourceEntity)) {
             registry.emplace<StaticComponent>(destinyEntity);
         }
     }

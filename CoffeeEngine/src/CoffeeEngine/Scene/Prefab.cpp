@@ -61,6 +61,9 @@ namespace Coffee {
         CopyEmptyComponentToPrefab<StaticComponent>(sourceEntity, destEntity);
         CopyEmptyComponentToPrefab<ActiveComponent>(sourceEntity, destEntity);
         
+        if (!m_Registry.all_of<ActiveComponent>(sourceEntity))
+            m_Registry.remove<ActiveComponent>(destEntity);
+
         // Process children - this part remains unchanged
         std::vector<Entity> children = sourceEntity.GetChildren();
         for (auto& child : children)
@@ -281,6 +284,9 @@ namespace Coffee {
             entity.AddComponent<ActiveComponent>();
         }
         */
+
+        if (!m_Registry.all_of<ActiveComponent>(prefabEntity))
+            entity.RemoveComponent<ActiveComponent>();
 
         if (parent)
         {
