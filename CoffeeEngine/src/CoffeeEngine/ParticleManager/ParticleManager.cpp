@@ -200,7 +200,6 @@ namespace Coffee
             glm::mat4 billboardTransform = CalculateBillboardTransform(particle->transformMatrix);
 
             if (!useRotationOverLifetime) {
-                ZoneScopedN("No Rotation Over Lifetime");
                 billboardTransform *= particle->startRotationMatrix;
             }
             else
@@ -296,7 +295,6 @@ namespace Coffee
         }
         else
         {
-            ZoneScopedN("Simulation Space World");
             finalPosition = particle->GetPosition() + velocityDelta;
         }
         particle->SetPosition(finalPosition);

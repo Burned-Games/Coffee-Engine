@@ -737,7 +737,7 @@ namespace Coffee {
 
                 auto& scriptComponent = scriptView.get<ScriptComponent>(entity);
                 ZoneScoped;
-                ZoneText(scriptComponent.script->GetPath().filename().string().c_str(), scriptComponent.script->GetPath().filename().string().length());
+                //ZoneText(scriptComponent.script->GetPath().filename().string().c_str(), scriptComponent.script->GetPath().filename().string().length());
                 scriptComponent.script->OnUpdate(dt);
                 if(SceneManager::GetActiveScene().get() != this)
                     return;
