@@ -624,11 +624,10 @@ namespace Coffee
 
         // Mockup
         bool Fog = false;                        ///< Flag to enable fog.
-        glm::vec3 FogColor = {1.0f, 1.0f, 1.0f}; ///< The color of the fog.
+        glm::vec3 FogColor = {0.5f, 0.5f, 0.5f}; ///< The color of the fog.
         float FogDensity = 0.1f;                 ///< The density of the fog.
-        float FogGradient = 0.1f;                ///< The gradient of the fog.
-        float FogStart = 0.0f;                   ///< The start distance of the fog.
-        float FogEnd = 100.0f;                   ///< The end distance of the fog.
+        float FogHeight = 0.0f; ///< Fog height.
+        float FogHeightDensity = 0.1f; ///< Fog height density.///< The end distance of the fog.
 
         // Mockup
         bool SSAO = false;          ///< Flag to enable screen space ambient occlusion.
@@ -650,18 +649,31 @@ namespace Coffee
 
         template <class Archive> void save(Archive& archive, std::uint32_t const version) const
         {
-            if (Skybox)
-                archive(cereal::make_nvp("Skybox", Skybox->GetUUID()));
+            UUID skyboxUUID = Skybox ? Skybox->GetUUID() : UUID::null;
+            archive(cereal::make_nvp("Skybox", skyboxUUID));
 
             archive(cereal::make_nvp("SkyboxIntensity", SkyboxIntensity));
+            archive(cereal::make_nvp("TonemappingExposure", TonemappingExposure));
+            archive(cereal::make_nvp("Fog", Fog), cereal::make_nvp("FogColor", FogColor),
+                    cereal::make_nvp("FogDensity", FogDensity), cereal::make_nvp("FogHeight", FogHeight),
+                    cereal::make_nvp("FogHeightDensity", FogHeightDensity));
         }
 
         template <class Archive> void load(Archive& archive, std::uint32_t const version)
         {
             UUID skyboxUUID;
             archive(cereal::make_nvp("Skybox", skyboxUUID));
-            this->Skybox = ResourceLoader::GetResource<Cubemap>(skyboxUUID);;
+            if(skyboxUUID != UUID::null) this->Skybox = ResourceLoader::GetResource<Cubemap>(skyboxUUID);
             archive(cereal::make_nvp("SkyboxIntensity", SkyboxIntensity));
+
+            if (version >= 1)
+            {
+                archive(cereal::make_nvp("TonemappingExposure", TonemappingExposure));
+
+                archive(cereal::make_nvp("Fog", Fog), cereal::make_nvp("FogColor", FogColor),
+                        cereal::make_nvp("FogDensity", FogDensity), cereal::make_nvp("FogHeight", FogHeight),
+                        cereal::make_nvp("FogHeightDensity", FogHeightDensity));
+            }
         }
     };
 
@@ -1429,6 +1441,7 @@ CEREAL_CLASS_VERSION(Coffee::AnimatorComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::MeshComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::MaterialComponent, 1);
 CEREAL_CLASS_VERSION(Coffee::LightComponent, 1);
+CEREAL_CLASS_VERSION(Coffee::WorldEnvironmentComponent, 1);
 CEREAL_CLASS_VERSION(Coffee::AudioSourceComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::AudioListenerComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::AudioZoneComponent, 0);

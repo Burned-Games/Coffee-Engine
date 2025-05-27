@@ -111,7 +111,7 @@ namespace Coffee {
         Texture2D() = default;
         Texture2D(const TextureProperties& properties);
         Texture2D(uint32_t width, uint32_t height, ImageFormat imageFormat, TextureWrap wrapping = TextureWrap::Repeat,
-                  TextureFilter minFilter = TextureFilter::Linear, TextureFilter magFilter = TextureFilter::Linear,
+                  TextureFilter minFilter = TextureFilter::LinearMipmapLinear, TextureFilter magFilter = TextureFilter::Linear,
                   TextureFilter mipMapFilter = TextureFilter::Linear, const glm::vec4& borderColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
         Texture2D(const std::filesystem::path& path, bool srgb = true);
         Texture2D(ImportData& importData);

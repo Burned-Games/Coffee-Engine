@@ -13,7 +13,7 @@
 #include "CoffeeEngine/Embedded/ToneMappingShader.inl"
 #include "CoffeeEngine/Embedded/FinalPassShader.inl"
 #include "CoffeeEngine/Embedded/MissingShader.inl"
-#include "CoffeeEngine/Embedded/ShadowShader.inl"
+#include "CoffeeEngine/Embedded/SimpleDepthShader.inl"
 #include "CoffeeEngine/Embedded/BRDFLUTShader.inl"
 
 #include <cstdint>
@@ -30,9 +30,13 @@ namespace Coffee {
     Ref<Mesh> Renderer3D::s_ScreenQuad;
     Ref<Mesh> Renderer3D::s_CubeMesh;
 
+    Ref<Shader> Renderer3D::s_FogShader;
     Ref<Shader> Renderer3D::s_ToneMappingShader;
+    Ref<Shader> Renderer3D::s_FXAAShader;
     Ref<Shader> Renderer3D::s_FinalPassShader;
     Ref<Shader> Renderer3D::s_SkyboxShader;
+    Ref<Shader> Renderer3D::depthShader;
+    Ref<Shader> Renderer3D::brdfShader;
 
     void Renderer3D::Init()
     {
@@ -42,11 +46,24 @@ namespace Coffee {
         s_CubeMesh = PrimitiveMesh::CreateCube({-1.0f, -1.0f, -1.0f});
         s_SkyboxShader = CreateRef<Shader>("assets/shaders/SkyboxShader.glsl");
 
+        depthShader = CreateRef<Shader>("DepthShader", std::string(simpleDepthShaderSource));
+
+        brdfShader = CreateRef<Shader>("BRDFLUTShader", std::string(BRDFLUTSource));
+
         // Shadow map
+        TextureProperties shadowMapProperties;
+        shadowMapProperties.srgb = false;
+        shadowMapProperties.GenerateMipmaps = false;
+        shadowMapProperties.Format = ImageFormat::DEPTH24STENCIL8;
+        shadowMapProperties.Width = 4096;
+        shadowMapProperties.Height = 4096;
+        shadowMapProperties.Wrapping = TextureWrap::ClampToEdge;
+        shadowMapProperties.BorderColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
         s_RendererData.ShadowMapFramebuffer = Framebuffer::Create(4096, 4096, {});
         for (int i = 0; i < 4; i++)
         {
-            s_RendererData.DirectionalShadowMapTextures[i] = Texture2D::Create(4096, 4096, ImageFormat::DEPTH24STENCIL8);
+            s_RendererData.DirectionalShadowMapTextures[i] = Texture2D::Create(shadowMapProperties);
         }
 
         s_RendererData.SceneRenderDataUniformBuffer = UniformBuffer::Create(sizeof(Renderer3DData::RenderData), 1);
@@ -60,7 +77,10 @@ namespace Coffee {
 
         s_ScreenQuad = PrimitiveMesh::CreateQuad();
 
+        //s_FogShader = CreateRef<Shader>("FogShader", std::string(fogShaderSource));
+        s_FogShader = CreateRef<Shader>("assets/shaders/FogShader.glsl");
         s_ToneMappingShader = CreateRef<Shader>("ToneMappingShader", std::string(toneMappingShaderSource));
+        s_FXAAShader = CreateRef<Shader>("assets/shaders/FXAAShader.glsl"); // Shader source is too large
         s_FinalPassShader = CreateRef<Shader>("FinalPassShader", std::string(finalPassShaderSource));
 
         GenerateBRDFLUT();
@@ -119,8 +139,20 @@ namespace Coffee {
         s_Stats.DrawCalls++;
     }
 
+    void Renderer3D::DepthPrePass(const RenderTarget &target)
+    {
+        ZoneScoped;
+
+        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        forwardBuffer->Bind();
+
+
+    }
+
     void Renderer3D::ShadowPass(const RenderTarget& target)
     {
+        ZoneScoped;
+
         int directionalLightCount = 0;
     
         for (int i = 0; i < s_RendererData.RenderData.lightCount; ++i)
@@ -138,10 +170,17 @@ namespace Coffee {
                 RendererAPI::SetViewport(0, 0, 4096, 4096);
                 RendererAPI::Clear();
 
+                // Calculate light position based on camera and scene bounds
+                glm::vec3 cameraPos = target.GetCameraTransform()[3];
+                float shadowDistance = light.ShadowMaxDistance;
+                
+                // Position the light to cover the camera's view frustum
+                glm::vec3 lightPos = cameraPos - light.Direction * (shadowDistance * 0.5f);
+
                 // Adjust the orthographic projection bounds based on ShadowMaxDistance
-                float orthoBounds = light.ShadowMaxDistance * 0.5f;
+                float orthoBounds = shadowDistance * 0.5f; // Slightly larger to avoid edge artifacts
                 float nearPlane = 0.1f;
-                float farPlane = light.ShadowMaxDistance;
+                float farPlane = shadowDistance;
 
                 glm::mat4 lightProjection = glm::ortho(
                     -orthoBounds, orthoBounds, // left, right
@@ -150,23 +189,30 @@ namespace Coffee {
                 );
 
                 glm::mat4 lightView = glm::lookAt(
-                    light.Position,
-                    light.Position + light.Direction,
+                    lightPos,
+                    lightPos + light.Direction,
                     glm::vec3(0.0f, 1.0f, 0.0f)
                 );
 
                 glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
-                static Ref<Shader> shadowShader = CreateRef<Shader>("ShadowShader", std::string(shadowShaderSource));
-                shadowShader->Bind();
-                shadowShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+                // Store the light space matrix for use in forward pass
+                s_RendererData.RenderData.LightSpaceMatrices[directionalLightCount] = lightSpaceMatrix;
+
+                depthShader->Bind();
+                depthShader->setMat4("projView", lightSpaceMatrix);
 
                 RendererAPI::SetCullFace(CullFace::Front);
     
                 for (const auto& command : s_RendererData.opaqueRenderQueue)
                 {
+                    if (command.animator)
+                        AnimationSystem::SetBoneTransformations(depthShader, command.animator);
+                    else
+                        depthShader->setBool("animated", false);
+
                     // Set the model matrix
-                    shadowShader->setMat4("model", command.transform);
+                    depthShader->setMat4("model", command.transform);
 
                     Mesh* mesh = command.mesh.get();
                     
@@ -189,14 +235,14 @@ namespace Coffee {
                     break;
             }
         }
+
+        // Update the uniform buffer with the light data
+        s_RendererData.SceneRenderDataUniformBuffer->SetData(&s_RendererData.RenderData, sizeof(Renderer3DData::RenderData));
     }
 
     void Renderer3D::ForwardPass(const RenderTarget& target)
     {
         ZoneScoped;
-
-        // TODO: Think if this should be done here
-        s_RendererData.SceneRenderDataUniformBuffer->SetData(&s_RendererData.RenderData, sizeof(Renderer3DData::RenderData));
 
         const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
 
@@ -220,40 +266,10 @@ namespace Coffee {
         // Bind the BRDF LUT
         s_RendererData.BRDFLUT->Bind(8);
 
-        // TEMPORAL: lightSpaceMatrix array for shadow mapping
-        glm::mat4 lightSpaceMatrices[Renderer3DData::MAX_DIRECTIONAL_SHADOWS];
-        int directionalLightCount = 0;
-        for (int i = 0; i < s_RendererData.RenderData.lightCount; ++i)
+        // Set shadow map textures
+        for (int i = 0; i < Renderer3DData::MAX_DIRECTIONAL_SHADOWS; ++i)
         {
-            const auto& light = s_RendererData.RenderData.lights[i];
-
-            // Check if the light is directional
-            if (light.type == LightComponent::Type::DirectionalLight)
-            {
-                // Adjust the orthographic projection bounds based on ShadowMaxDistance
-                float orthoBounds = light.ShadowMaxDistance * 0.5f;
-                float nearPlane = 0.1f;
-                float farPlane = light.ShadowMaxDistance;
-
-                glm::mat4 lightProjection = glm::ortho(
-                    -orthoBounds, orthoBounds, // left, right
-                    -orthoBounds, orthoBounds, // bottom, top
-                    nearPlane, farPlane        // near, far
-                );
-
-                glm::mat4 lightView = glm::lookAt(
-                    light.Position,
-                    light.Position + light.Direction,
-                    glm::vec3(0.0f, 1.0f, 0.0f)
-                );
-
-                lightSpaceMatrices[directionalLightCount] = lightProjection * lightView;
-                
-                directionalLightCount++;
-            }
-            // Stop after processing the first 4 directional lights
-            if (directionalLightCount >= Renderer3DData::MAX_DIRECTIONAL_SHADOWS)
-                break;
+            s_RendererData.DirectionalShadowMapTextures[i]->Bind(9 + i);
         }
 
         // Sort the render queue based on material and mesh
@@ -281,16 +297,9 @@ namespace Coffee {
             shader->setInt("prefilterMap", 7);
             shader->setInt("brdfLUT", 8);
 
-            // Set the light space matrices for shadow mapping
-            for (int i = 0; i < Renderer3DData::MAX_DIRECTIONAL_SHADOWS; ++i)
-            {
-                shader->setMat4("lightSpaceMatrices[" + std::to_string(i) + "]", lightSpaceMatrices[i]);
-            }
-
             // Set shadow map textures
             for (int i = 0; i < Renderer3DData::MAX_DIRECTIONAL_SHADOWS; ++i)
             {
-                s_RendererData.DirectionalShadowMapTextures[i]->Bind(9 + i);
                 shader->setInt("shadowMaps[" + std::to_string(i) + "]", 9 + i);
             }
 
@@ -507,19 +516,80 @@ namespace Coffee {
 
         //Render All the fancy effects :D
         const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
-        const Ref<Framebuffer>& postBuffer = target.GetFramebuffer("PostProcessing");
-        postBuffer->Bind();
+        
+        Ref<Framebuffer> lastBuffer = target.GetFramebuffer("PostProcessingA");
+        Ref<Framebuffer> postBuffer = target.GetFramebuffer("PostProcessingB");
+
+        // Copy the forward buffer to the last buffer (think if is necessary)
+        lastBuffer->Bind();
+        s_FinalPassShader->Bind();
+        s_FinalPassShader->setInt("screenTexture", 0);
+        forwardBuffer->GetColorTexture("Color")->Bind(0);
+
+        RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+        s_FinalPassShader->Unbind();
+        lastBuffer->UnBind();
+
+        std::swap(lastBuffer, postBuffer);
+
+        // Depth Fog (Is possible that some uniforms are not needed)
+        if (s_RenderSettings.DepthFog)
+        {
+            lastBuffer->Bind();
+            s_FogShader->Bind();
+            s_FogShader->setBool("DepthFog", s_RenderSettings.DepthFog);
+            s_FogShader->setVec3("FogColor", s_RenderSettings.FogColor);
+            s_FogShader->setFloat("FogDensity", s_RenderSettings.FogDensity);
+            s_FogShader->setFloat("FogHeight", s_RenderSettings.FogHeight);
+            s_FogShader->setFloat("FogHeightDensity", s_RenderSettings.FogHeightDensity);
+            s_FogShader->setMat4("invProjection", glm::inverse(target.GetCamera().GetProjection()));
+            s_FogShader->setMat4("invView", target.GetCameraTransform());
+            s_FogShader->setInt("colorTexture", 0);
+            s_FogShader->setInt("depthTexture", 1);
+            postBuffer->GetColorTexture("Color")->Bind(0);
+            forwardBuffer->GetColorTexture("Depth")->Bind(1);
+
+            RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+            s_FogShader->Unbind();
+            lastBuffer->UnBind();
+
+            std::swap(lastBuffer, postBuffer);
+        }
 
         //ToneMapping
-
+        lastBuffer->Bind();
         s_ToneMappingShader->Bind();
         s_ToneMappingShader->setInt("screenTexture", 0);
         s_ToneMappingShader->setFloat("exposure", s_RenderSettings.Exposure);
-        forwardBuffer->GetColorTexture("Color")->Bind(0);
+        postBuffer->GetColorTexture("Color")->Bind(0);
 
         RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
         s_ToneMappingShader->Unbind();
+        lastBuffer->UnBind();
+
+        std::swap(lastBuffer, postBuffer);
+
+        // TODO better logic for dynamically enabling and disabling individual post-processing effects
+        // Fast aproXimate AntiAliasing
+        if (s_RenderSettings.FXAA)
+        {
+
+            lastBuffer->Bind();
+            s_FXAAShader->Bind();
+            s_FXAAShader->setInt("screenTexture", 0);
+            s_FXAAShader->setVec2("screenSize", {forwardBuffer->GetWidth(), forwardBuffer->GetHeight()});
+            postBuffer->GetColorTexture("Color")->Bind(0);
+
+            RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+
+            s_FXAAShader->Unbind();
+            lastBuffer->UnBind();
+
+            std::swap(lastBuffer, postBuffer);
+        }
+
+        // Final pass to copy the post-processing texture to the main render texture
 
         //This has to be set because the s_ScreenQuad overwrites the depth buffer
         RendererAPI::SetDepthMask(false);
@@ -570,16 +640,13 @@ namespace Coffee {
 
         RendererAPI::SetViewport(0, 0, properties.Width, properties.Height);
 
-        static Ref<Shader> brdfShader = CreateRef<Shader>("BRDFLUT", BRDFLUTSource);
         brdfShader->Bind();
-
-        static Ref<Mesh> quad = PrimitiveMesh::CreateQuad();
 
         RendererAPI::SetClearColor({0.0f, 0.0f, 0.0f, 1.0f});
         RendererAPI::Clear();
 
-        quad->GetVertexArray()->Bind();
-        RendererAPI::DrawIndexed(quad->GetVertexArray());
+        s_ScreenQuad->GetVertexArray()->Bind();
+        RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
         framebuffer.UnBind();
     }

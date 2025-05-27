@@ -973,6 +973,16 @@ namespace Coffee
 
                     ImGui::TreePop();
                 }
+                if(ImGui::TreeNode("Fog"))
+                {
+                    ImGui::Checkbox("Enable Fog", &worldEnvironmentComponent.Fog);
+                    ImGui::DragFloat("Density", &worldEnvironmentComponent.FogDensity, 0.001f, 0.0f, 1.0f);
+                    ImGui::ColorEdit3("Color", glm::value_ptr(worldEnvironmentComponent.FogColor));
+                    ImGui::DragFloat("Height", &worldEnvironmentComponent.FogHeight, 0.1f, -1024.0f, 1024.0f);
+                    ImGui::DragFloat("Height Density", &worldEnvironmentComponent.FogHeightDensity, 0.001f, -16.0f, 16.0f);
+
+                    ImGui::TreePop();
+                }
             }
         }
 
@@ -3777,7 +3787,7 @@ namespace Coffee
             static char buffer[256] = "";
             ImGui::InputTextWithHint("##Search Component", "Search Component:", buffer, 256);
 
-            std::string items[] = {"Empty", "Camera", "Primitive", "Light", "Particle System", "Sprite2D"};
+            std::string items[] = {"Empty", "Camera", "Primitive", "Light", "World Environment", "Particle System", "Sprite2D"};
             static int item_current = 1;
 
             if (ImGui::BeginListBox("##listbox 2", ImVec2(-FLT_MIN, ImGui::GetContentRegionAvail().y - 200)))
@@ -3832,6 +3842,13 @@ namespace Coffee
                 {
                     Entity e = m_Context->CreateEntity("Light");
                     e.AddComponent<LightComponent>();
+                    SetSelectedEntity(e);
+                    ImGui::CloseCurrentPopup();
+                }
+                else if (items[item_current] == "World Environment")
+                {
+                    Entity e = m_Context->CreateEntity("World Environment");
+                    e.AddComponent<WorldEnvironmentComponent>();
                     SetSelectedEntity(e);
                     ImGui::CloseCurrentPopup();
                 }

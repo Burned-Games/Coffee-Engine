@@ -20,6 +20,36 @@ layout (std140, binding = 0) uniform camera
     vec3 cameraPos;
 };
 
+#define MAX_LIGHTS 32
+#define MAX_DIRECTIONAL_SHADOWS 4
+
+struct Light
+{
+    vec3 color;
+    vec3 direction;
+    vec3 position;
+
+    float range;
+    float attenuation;
+    float intensity;
+
+    float angle;
+
+    int type;
+
+    // Shadows
+    bool shadow;
+    float shadowBias;
+    float shadowMaxDistance;
+};
+
+layout (std140, binding = 1) uniform RenderData
+{
+    Light lights[MAX_LIGHTS];
+    int lightCount;
+    mat4 lightSpaceMatrices[MAX_DIRECTIONAL_SHADOWS];
+};
+
 struct VertexData
 {
     vec2 TexCoords;
@@ -27,15 +57,13 @@ struct VertexData
     vec3 WorldPos;
     vec3 camPos;
     mat3 TBN;
-    vec4 FragPosLightSpace[4];
+    vec4 FragPosLightSpace[MAX_DIRECTIONAL_SHADOWS];
 };
 
 layout (location = 2) out VertexData Output;
 
 uniform mat4 model;
 uniform mat3 normalMatrix;
-
-uniform mat4 lightSpaceMatrices[4];
 
 uniform bool animated;
 const int MAX_BONES = 100;
@@ -159,6 +187,7 @@ uniform samplerCube prefilterMap;
 uniform sampler2D brdfLUT;
 
 #define MAX_LIGHTS 32
+#define MAX_DIRECTIONAL_SHADOWS 4
 
 struct Light
 {
@@ -184,9 +213,10 @@ layout (std140, binding = 1) uniform RenderData
 {
     Light lights[MAX_LIGHTS];
     int lightCount;
+    mat4 lightSpaceMatrices[MAX_DIRECTIONAL_SHADOWS];
 };
 
-uniform sampler2D shadowMaps[4];
+uniform sampler2D shadowMaps[MAX_DIRECTIONAL_SHADOWS];
 
 uniform bool showNormals;
 
@@ -255,7 +285,7 @@ float ShadowCalculation(int lightIdx)
     // calculate bias (based on depth map resolution and slope)
     vec3 normal = normalize(VertexInput.Normal);
     vec3 lightDir = normalize(lights[lightIdx].position - VertexInput.WorldPos);
-    float bias = max(lights[lightIdx].shadowBias * (1.0 - dot(normal, lightDir)), 0.005);
+    float bias = max(lights[lightIdx].shadowBias * (1.0 - dot(normal, lightDir)), 0.0005);
     // check whether current frag pos is in shadow
     // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
     // PCF
