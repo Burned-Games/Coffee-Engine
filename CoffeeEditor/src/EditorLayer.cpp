@@ -65,11 +65,11 @@ namespace Coffee {
         };
 
         std::initializer_list<Attachment> PostProcessingFramebufferAttachmentsA = {
-            {ImageFormat::RGBA8, "Color"}
+            {ImageFormat::RGBA32F, "Color"}
         };
 
         std::initializer_list<Attachment> PostProcessingFramebufferAttachmentsB = {
-            {ImageFormat::RGBA8, "Color"},
+            {ImageFormat::RGBA32F, "Color"},
         };
 
         std::vector<std::pair<std::string, std::initializer_list<Attachment>>> EditorViewportRenderTargetFramebufferAttachments = {
