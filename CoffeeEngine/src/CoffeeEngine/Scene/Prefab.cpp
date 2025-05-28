@@ -61,7 +61,7 @@ namespace Coffee {
         CopyEmptyComponentToPrefab<StaticComponent>(sourceEntity, destEntity);
         CopyEmptyComponentToPrefab<ActiveComponent>(sourceEntity, destEntity);
         
-        if (!m_Registry.all_of<ActiveComponent>(sourceEntity))
+        if (!sourceEntity.HasComponent<ActiveComponent>())
             m_Registry.remove<ActiveComponent>(destEntity);
 
         // Process children - this part remains unchanged
