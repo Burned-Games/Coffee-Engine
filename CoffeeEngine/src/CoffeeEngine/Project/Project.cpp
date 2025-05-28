@@ -56,24 +56,9 @@ namespace Coffee {
         Input::Load();
         Audio::OnProjectLoad();
 
-        if (GetProjectDefaultScene().empty())
-        {
-            SetProjectDefaultScene("DefaultScene.TeaScene");
-        }
 
-        auto defaultScene = GetProjectDirectory()/GetProjectDefaultScene();
-
-        LoadDefaultScene();
 
         return project;
-    }
-
-    void Project::LoadDefaultScene()
-    {
-        auto defaultScene = GetProjectDirectory()/GetProjectDefaultScene();
-
-        if (std::filesystem::exists(defaultScene))
-            SceneManager::ChangeScene(defaultScene);
     }
 
     void Project::SaveActive()

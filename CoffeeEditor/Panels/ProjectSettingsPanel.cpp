@@ -4,7 +4,6 @@
 #include "CoffeeEngine/Core/FileDialog.h"
 #include "CoffeeEngine/Core/Input.h"
 #include "CoffeeEngine/Project/Project.h"
-#include "src/EditorLayer.h"
 #include <imgui.h>
 
 namespace Coffee {
@@ -277,7 +276,7 @@ namespace Coffee {
         ImGui::EndChild();
     }
 
-    void ProjectSettingsPanel::RenderGeneralSettings(const ImGuiWindowFlags flags)
+    void ProjectSettingsPanel::RenderGeneralSettings(Ref<Project>& project, const ImGuiWindowFlags flags)
     {
         if (!(m_VisiblePanels & PanelDisplayEnum::General))
             return;
@@ -285,7 +284,7 @@ namespace Coffee {
         if (m_RefreshPanels & PanelDisplayEnum::General)
         {
             // Refresh values (in case of new project loaded)
-            std::string s = Project::GetProjectName();
+            std::string s = project->GetProjectName();
             m_NewProjectName.fill('\0');
             std::copy_n(s.begin(), min(s.size(), 255),m_NewProjectName.begin());
 
@@ -302,10 +301,10 @@ namespace Coffee {
         {
             // no need to check for active project, this window is only accessible when a project is active
             // NOT a redundant call to c_str(). It is being used to trim extra null characters at the end of the string
-            Project::SetProjectName(std::string(m_NewProjectName.begin(), m_NewProjectName.end()).c_str());
+            project->SetProjectName(std::string(m_NewProjectName.begin(), m_NewProjectName.end()).c_str());
         }
 
-        std::string defScenePath = Project::GetProjectDefaultScene().string();
+        std::string defScenePath = project->GetProjectDefaultScene().string();
         ImGui::Text("Default scene path: ");
         ImGui::SameLine();
         ImGui::InputText("##DefaultScenePath", defScenePath.data(), defScenePath.size(), ImGuiInputTextFlags_ReadOnly);
@@ -313,17 +312,17 @@ namespace Coffee {
         if (ImGui::Button("Select...##DefaultScenePathButton"))
         {
             FileDialogArgs args;
-            args.DefaultPath = Project::GetProjectDirectory().string();
+            args.DefaultPath = project->GetProjectDirectory().string();
             args.Filters.push_back({"Coffee Engine Scene", "TeaScene"});
             std::filesystem::path path = FileDialog::OpenFile(args);
             if (!path.empty())
             {
-                path = std::filesystem::relative(path, Project::GetProjectDirectory());
-                Project::SetProjectDefaultScene(path);
+                path = std::filesystem::relative(path, project->GetProjectDirectory());
+                project->SetProjectDefaultScene(path);
             }
         }
 
-        std::string audioDirPath = Project::GetRelativeAudioDirectory().string();
+        std::string audioDirPath = project->GetRelativeAudioDirectory().string();
         ImGui::Text("Audio directory: ");
         ImGui::SameLine();
         ImGui::InputText("##AudioBanksPath", audioDirPath.data(), audioDirPath.size(), ImGuiInputTextFlags_ReadOnly);
@@ -331,12 +330,12 @@ namespace Coffee {
         if (ImGui::Button("Select...##AudioBanksPathButton"))
         {
             FileDialogArgs args;
-            args.DefaultPath = Project::GetProjectDirectory().string();
+            args.DefaultPath = project->GetProjectDirectory().string();
             std::filesystem::path path = FileDialog::PickFolder(args);
             if (is_directory(path))
             {
-                path = std::filesystem::relative(path, Project::GetProjectDirectory());
-                Project::SetRelativeAudioDirectory(path);
+                path = std::filesystem::relative(path, project->GetProjectDirectory());
+                project->SetRelativeAudioDirectory(path);
                 Audio::OnProjectLoad();
             }
         }
@@ -387,7 +386,7 @@ namespace Coffee {
         ImGui::SameLine();
         ImGui::Separator();
 
-        RenderGeneralSettings(flags);
+        RenderGeneralSettings(project, flags);
         RenderInputSettings(flags);
 
         ImGui::PopID();

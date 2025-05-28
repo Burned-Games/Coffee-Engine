@@ -835,16 +835,7 @@ namespace Coffee {
             Project::Load(path);
             Application::Get().GetWindow().SetTitle(Project::GetActive()->GetProjectName() + " - Coffee Engine");
 
-            // Set the editor environment correctly if there's a default scene loaded
-            if (SceneManager::GetActiveScene())
-            {
-                m_EditorScene = SceneManager::GetActiveScene();
 
-                m_SceneTreePanel = SceneTreePanel();
-
-                m_SceneTreePanel.SetContext(SceneManager::GetActiveScene());
-                m_ContentBrowserPanel.SetContext(SceneManager::GetActiveScene());
-            }
         }
         else
         {

@@ -29,7 +29,7 @@ namespace Coffee {
         static void BeginHorizontalChild(const char* label, ImGuiWindowFlags flags = ImGuiWindowFlags_None);
         void SetSelectedBinding(std::string actionName, InputBinding* binding);
         void RenderInputSettings(ImGuiWindowFlags flags);
-        void RenderGeneralSettings(ImGuiWindowFlags flags);
+        void RenderGeneralSettings(Ref<Project>& project, ImGuiWindowFlags flags);
 
         /**
          * @brief Set what panels to display in the Project Settings window. If multiple panels are set, they will
