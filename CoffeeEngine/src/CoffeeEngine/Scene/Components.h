@@ -679,7 +679,7 @@ namespace Coffee
 
     struct AudioSourceComponent
     {
-        uint64_t gameObjectID = -1;      ///< The object ID.
+        uint64_t gameObjectID = 0;      ///< The object ID.
         Ref<Audio::AudioBank> audioBank; ///< The audio bank.
         std::string audioBankName;       ///< The name of the audio bank.
         std::string eventName;           ///< The name of the event.
@@ -690,6 +690,8 @@ namespace Coffee
         bool isPlaying = false;          ///< True if the audio source is playing.
         bool isPaused = false;           ///< True if the audio source is paused.
         bool toDelete = false;           ///< True if the audio source should be deleted.
+        bool toUnregister = false;       ///< True if the audio source should be unregistered.
+        bool toRegister = true;          ///< True if the audio source should be registered.
 
         AudioSourceComponent() = default;
 
@@ -699,6 +701,9 @@ namespace Coffee
         {
             if (isPlaying || playOnAwake)
                 Stop();
+
+            if (toUnregister && !toDelete)
+                Audio::UnregisterAudioSourceComponent(*this);
         }
 
         AudioSourceComponent& operator=(const AudioSourceComponent& other)
@@ -716,6 +721,8 @@ namespace Coffee
                 isPlaying = other.isPlaying;
                 isPaused = other.isPaused;
                 toDelete = other.toDelete;
+                toUnregister = other.toUnregister;
+                toRegister = other.toRegister;
 
                 if (!toDelete)
                 {
@@ -724,6 +731,20 @@ namespace Coffee
                 }
             }
             return *this;
+        }
+
+        static AudioSourceComponent CreateCopy(const AudioSourceComponent& other)
+        {
+            AudioSourceComponent newComp;
+            newComp.audioBank = other.audioBank;
+            newComp.audioBankName = other.audioBankName;
+            newComp.eventName = other.eventName;
+            newComp.volume = other.volume;
+            newComp.mute = other.mute;
+            newComp.playOnAwake = other.playOnAwake;
+            newComp.transform = other.transform;
+
+            return newComp;
         }
 
         void SetVolume(float volumen)
@@ -748,7 +769,8 @@ namespace Coffee
             archive(cereal::make_nvp("GameObjectID", gameObjectID), cereal::make_nvp("AudioBank", audioBank),
                     cereal::make_nvp("AudioBankName", audioBankName), cereal::make_nvp("EventName", eventName),
                     cereal::make_nvp("Volume", volume), cereal::make_nvp("Mute", mute),
-                    cereal::make_nvp("PlayOnAwake", playOnAwake), cereal::make_nvp("Transform", transform));
+                    cereal::make_nvp("PlayOnAwake", playOnAwake), cereal::make_nvp("Transform", transform),
+                    cereal::make_nvp("ToRegister", toRegister));
         }
 
         template <class Archive> void load(Archive& archive, std::uint32_t const version)
@@ -757,14 +779,21 @@ namespace Coffee
                     cereal::make_nvp("AudioBankName", audioBankName), cereal::make_nvp("EventName", eventName),
                     cereal::make_nvp("Volume", volume), cereal::make_nvp("Mute", mute),
                     cereal::make_nvp("PlayOnAwake", playOnAwake), cereal::make_nvp("Transform", transform));
+
+            if (version >= 1)
+            {
+                archive(cereal::make_nvp("ToRegister", toRegister));
+            }
         }
     };
 
     struct AudioListenerComponent
     {
-        uint64_t gameObjectID = -1; ///< The object ID.
+        uint64_t gameObjectID = 0; ///< The object ID.
         glm::mat4 transform;        ///< The transform of the audio listener.
         bool toDelete = false;      ///< True if the audio listener should be deleted.
+        bool toUnregister = false;  ///< True if the audio listener should be unregistered.
+        bool toRegister = true;     ///< True if the audio listener should be registered.
 
         AudioListenerComponent() = default;
 
@@ -777,6 +806,8 @@ namespace Coffee
                 gameObjectID = other.gameObjectID;
                 transform = other.transform;
                 toDelete = other.toDelete;
+                toUnregister = other.toUnregister;
+                toRegister = other.toRegister;
 
                 if (!toDelete)
                     Audio::RegisterAudioListenerComponent(*this);
@@ -784,14 +815,28 @@ namespace Coffee
             return *this;
         }
 
+        static AudioListenerComponent CreateCopy(const AudioListenerComponent& other)
+        {
+            AudioListenerComponent newComp;
+            newComp.transform = other.transform;
+
+            return newComp;
+        }
+
         template <class Archive> void save(Archive& archive, std::uint32_t const version) const
         {
-            archive(cereal::make_nvp("GameObjectID", gameObjectID), cereal::make_nvp("Transform", transform));
+            archive(cereal::make_nvp("GameObjectID", gameObjectID), cereal::make_nvp("Transform", transform),
+                    cereal::make_nvp("ToRegister", toRegister));
         }
 
         template <class Archive> void load(Archive& archive, std::uint32_t const version)
         {
             archive(cereal::make_nvp("GameObjectID", gameObjectID), cereal::make_nvp("Transform", transform));
+
+            if (version >= 1)
+            {
+                archive(cereal::make_nvp("ToRegister", toRegister));
+            }
         }
     };
 
@@ -1442,8 +1487,8 @@ CEREAL_CLASS_VERSION(Coffee::MeshComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::MaterialComponent, 1);
 CEREAL_CLASS_VERSION(Coffee::LightComponent, 1);
 CEREAL_CLASS_VERSION(Coffee::WorldEnvironmentComponent, 1);
-CEREAL_CLASS_VERSION(Coffee::AudioSourceComponent, 0);
-CEREAL_CLASS_VERSION(Coffee::AudioListenerComponent, 0);
+CEREAL_CLASS_VERSION(Coffee::AudioSourceComponent, 1);
+CEREAL_CLASS_VERSION(Coffee::AudioListenerComponent, 1);
 CEREAL_CLASS_VERSION(Coffee::AudioZoneComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::ScriptComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::RigidbodyComponent, 0);
