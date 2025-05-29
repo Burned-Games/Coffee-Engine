@@ -142,6 +142,39 @@ namespace Coffee {
     }
 
     template <>
+    void CopyComponentIfExists<AudioSourceComponent>(entt::entity destinyEntity, entt::entity sourceEntity, entt::registry& registry)
+    {
+        if(registry.all_of<AudioSourceComponent>(sourceEntity))
+        {
+            const auto& srcComponent = registry.get<AudioSourceComponent>(sourceEntity);
+
+            AudioSourceComponent newComponent = AudioSourceComponent::CreateCopy(srcComponent);
+
+            registry.emplace<AudioSourceComponent>(destinyEntity, std::move(newComponent));
+
+            auto& audioSourceComponent = registry.get<AudioSourceComponent>(destinyEntity);
+            Audio::RegisterAudioSourceComponent(audioSourceComponent);
+            AudioZone::RegisterObject(audioSourceComponent.gameObjectID, audioSourceComponent.transform[3]);
+        }
+    }
+
+    template <>
+    void CopyComponentIfExists<AudioListenerComponent>(entt::entity destinyEntity, entt::entity sourceEntity, entt::registry& registry)
+    {
+        if(registry.all_of<AudioListenerComponent>(sourceEntity))
+        {
+            const auto& srcComponent = registry.get<AudioListenerComponent>(sourceEntity);
+
+            AudioListenerComponent newComponent = AudioListenerComponent::CreateCopy(srcComponent);
+
+            registry.emplace<AudioListenerComponent>(destinyEntity, std::move(newComponent));
+
+            auto& audioListenerComponent = registry.get<AudioListenerComponent>(destinyEntity);
+            Audio::RegisterAudioListenerComponent(audioListenerComponent);
+        }
+    }
+
+    template <>
     void CopyComponentIfExists<RigidbodyComponent>(entt::entity destinyEntity, entt::entity sourceEntity, entt::registry& registry)
     {
         if(registry.all_of<RigidbodyComponent>(sourceEntity))
@@ -283,6 +316,20 @@ namespace Coffee {
                 rbComponent.rb->GetNativeBody()->setUserPointer(nullptr);
                 rbComponent.rb.reset();
             }
+        }
+
+        if (entity.HasComponent<AudioSourceComponent>())
+        {
+            auto& audioSourceComponent = entity.GetComponent<AudioSourceComponent>();
+            if (audioSourceComponent.toUnregister)
+                Audio::UnregisterAudioSourceComponent(audioSourceComponent);
+        }
+
+        if (entity.HasComponent<AudioListenerComponent>())
+        {
+            auto& audioListenerComponent = entity.GetComponent<AudioListenerComponent>();
+            if (audioListenerComponent.toUnregister)
+                Audio::UnregisterAudioListenerComponent(audioListenerComponent);
         }
 
         auto& hierarchyComponent = m_Registry.get<HierarchyComponent>(entity);

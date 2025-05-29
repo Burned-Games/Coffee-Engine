@@ -30,7 +30,33 @@ namespace Coffee {
                 return Entity();
             }
 
-            return prefab->Instantiate(scene, transform.value_or(glm::mat4(1.0f)));
+            Entity prefabEntity = prefab->Instantiate(scene, transform.value_or(glm::mat4(1.0f)));
+
+            std::function<void(Entity&)> markAudioComponentsToDelete = [&](Entity& entity) {
+                if (entity.HasComponent<AudioSourceComponent>())
+                {
+                    auto& audioSource = entity.GetComponent<AudioSourceComponent>();
+                    audioSource.toUnregister = true;
+                }
+
+                if (entity.HasComponent<AudioListenerComponent>())
+                {
+                    auto& audioListener = entity.GetComponent<AudioSourceComponent>();
+                    audioListener.toUnregister = true;
+                }
+
+                if constexpr (requires(Entity e) { e.GetChildren(); })
+                {
+                    for (auto& child : entity.GetChildren())
+                    {
+                        markAudioComponentsToDelete(child);
+                    }
+                }
+            };
+
+            markAudioComponentsToDelete(prefabEntity);
+
+            return prefabEntity;
         });
     }
 }
