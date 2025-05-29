@@ -126,13 +126,16 @@ namespace Coffee
 
     void Audio::RegisterAudioSourceComponent(AudioSourceComponent& audioSourceComponent)
     {
+        if (!audioSourceComponent.toRegister)
+            return;
+
         for (const auto& source : audioSources)
         {
             if (source->gameObjectID == audioSourceComponent.gameObjectID)
                 return;
         }
 
-        if (audioSourceComponent.gameObjectID == -1)
+        if (audioSourceComponent.gameObjectID == 0)
             audioSourceComponent.gameObjectID = UUID();
 
         audioSources.push_back(&audioSourceComponent);
@@ -151,19 +154,27 @@ namespace Coffee
 
         UnregisterGameObject(audioSourceComponent.gameObjectID);
 
-        auto it = std::ranges::find(audioSources, &audioSourceComponent);
-        audioSources.erase(it);
+        auto it = std::ranges::find_if(audioSources,
+           [&](const AudioSourceComponent* source) {
+               return source->gameObjectID == audioSourceComponent.gameObjectID;
+           });
+
+        if (it != audioSources.end())
+            audioSources.erase(it);
     }
 
     void Audio::RegisterAudioListenerComponent(AudioListenerComponent& audioListenerComponent)
     {
+        if (!audioListenerComponent.toRegister)
+            return;
+
         for (const auto* listener : audioListeners)
         {
             if (listener->gameObjectID == audioListenerComponent.gameObjectID)
                 return;
         }
 
-        if (audioListenerComponent.gameObjectID == -1)
+        if (audioListenerComponent.gameObjectID == 0)
             audioListenerComponent.gameObjectID = UUID();
 
         audioListeners.push_back(&audioListenerComponent);
@@ -178,8 +189,13 @@ namespace Coffee
 
         audioListenerComponent.toDelete = true;
 
-        auto it = std::ranges::find(audioListeners, &audioListenerComponent);
-        audioListeners.erase(it);
+        auto it = std::ranges::find_if(audioListeners,
+           [&](const AudioListenerComponent* source) {
+               return source->gameObjectID == audioListenerComponent.gameObjectID;
+           });
+
+        if (it != audioListeners.end())
+            audioListeners.erase(it);
     }
 
     void Audio::PlayInitialAudios()
