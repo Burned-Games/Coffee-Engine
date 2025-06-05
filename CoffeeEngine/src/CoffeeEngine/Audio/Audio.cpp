@@ -74,6 +74,9 @@ namespace Coffee
         {
             UnregisterAudioListenerComponent(*audioListener);
         }
+
+        audioSources.clear();
+        audioListeners.clear();
     }
 
     void Audio::Set3DPosition(uint64_t gameObjectID, glm::vec3 pos, glm::vec3 forward, glm::vec3 up)
@@ -126,9 +129,6 @@ namespace Coffee
 
     void Audio::RegisterAudioSourceComponent(AudioSourceComponent& audioSourceComponent)
     {
-        if (!audioSourceComponent.toRegister)
-            return;
-
         for (const auto& source : audioSources)
         {
             if (source->gameObjectID == audioSourceComponent.gameObjectID)
@@ -148,8 +148,6 @@ namespace Coffee
         if (!audioSourceComponent.eventName.empty() && audioSourceComponent.isPlaying)
             StopEvent(audioSourceComponent);
 
-        audioSourceComponent.toDelete = true;
-
         AudioZone::UnregisterObject(audioSourceComponent.gameObjectID);
 
         UnregisterGameObject(audioSourceComponent.gameObjectID);
@@ -165,9 +163,6 @@ namespace Coffee
 
     void Audio::RegisterAudioListenerComponent(AudioListenerComponent& audioListenerComponent)
     {
-        if (!audioListenerComponent.toRegister)
-            return;
-
         for (const auto* listener : audioListeners)
         {
             if (listener->gameObjectID == audioListenerComponent.gameObjectID)
@@ -186,8 +181,6 @@ namespace Coffee
     void Audio::UnregisterAudioListenerComponent(AudioListenerComponent& audioListenerComponent)
     {
         UnregisterGameObject(audioListenerComponent.gameObjectID);
-
-        audioListenerComponent.toDelete = true;
 
         auto it = std::ranges::find_if(audioListeners,
            [&](const AudioListenerComponent* source) {
@@ -214,6 +207,8 @@ namespace Coffee
             if (audioSource->isPlaying)
                 StopEvent(*audioSource);
         }
+
+        AK::SoundEngine::StopAll();
     }
 
     void Audio::SetBusVolume(const char* busName, float volume)
@@ -249,7 +244,7 @@ namespace Coffee
 
     void Audio::ProcessAudio()
     {
-        AudioZone::Update();
+        //AudioZone::Update();
 
         AK::SoundEngine::RenderAudio();
     }

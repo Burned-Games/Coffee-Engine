@@ -55,18 +55,6 @@ namespace Coffee {
         CopyComponentToPrefab<UIButtonComponent>(sourceEntity, destEntity);
         CopyComponentToPrefab<UISliderComponent>(sourceEntity, destEntity);
         CopyComponentToPrefab<UIComponent>(sourceEntity, destEntity);
-
-        if (m_Registry.all_of<AudioSourceComponent>(destEntity))
-        {
-            auto& audioSourceComp = m_Registry.get<AudioSourceComponent>(destEntity);
-            audioSourceComp.toRegister = false;
-        }
-
-        if (m_Registry.all_of<AudioListenerComponent>(destEntity))
-        {
-            auto& audioListenerComp = m_Registry.get<AudioListenerComponent>(destEntity);
-            audioListenerComp.toRegister = false;
-        }
         
         // Copy empty components (which don't need values)
         CopyEmptyComponentToPrefab<StaticComponent>(sourceEntity, destEntity);

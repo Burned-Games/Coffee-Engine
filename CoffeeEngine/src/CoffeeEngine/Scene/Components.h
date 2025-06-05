@@ -689,49 +689,10 @@ namespace Coffee
         glm::mat4 transform;             ///< The transform of the audio source.
         bool isPlaying = false;          ///< True if the audio source is playing.
         bool isPaused = false;           ///< True if the audio source is paused.
-        bool toDelete = false;           ///< True if the audio source should be deleted.
-        bool toUnregister = false;       ///< True if the audio source should be unregistered.
-        bool toRegister = true;          ///< True if the audio source should be registered.
 
         AudioSourceComponent() = default;
 
         AudioSourceComponent(const AudioSourceComponent& other) { *this = other; }
-
-        ~AudioSourceComponent()
-        {
-            if (isPlaying || playOnAwake)
-                Stop();
-
-            if (toUnregister && !toDelete)
-                Audio::UnregisterAudioSourceComponent(*this);
-        }
-
-        AudioSourceComponent& operator=(const AudioSourceComponent& other)
-        {
-            if (this != &other)
-            {
-                gameObjectID = other.gameObjectID;
-                audioBank = other.audioBank;
-                audioBankName = other.audioBankName;
-                eventName = other.eventName;
-                volume = other.volume;
-                mute = other.mute;
-                playOnAwake = other.playOnAwake;
-                transform = other.transform;
-                isPlaying = other.isPlaying;
-                isPaused = other.isPaused;
-                toDelete = other.toDelete;
-                toUnregister = other.toUnregister;
-                toRegister = other.toRegister;
-
-                if (!toDelete)
-                {
-                    Audio::RegisterAudioSourceComponent(*this);
-                    AudioZone::RegisterObject(gameObjectID, transform[3]);
-                }
-            }
-            return *this;
-        }
 
         static AudioSourceComponent CreateCopy(const AudioSourceComponent& other)
         {
@@ -769,8 +730,7 @@ namespace Coffee
             archive(cereal::make_nvp("GameObjectID", gameObjectID), cereal::make_nvp("AudioBank", audioBank),
                     cereal::make_nvp("AudioBankName", audioBankName), cereal::make_nvp("EventName", eventName),
                     cereal::make_nvp("Volume", volume), cereal::make_nvp("Mute", mute),
-                    cereal::make_nvp("PlayOnAwake", playOnAwake), cereal::make_nvp("Transform", transform),
-                    cereal::make_nvp("ToRegister", toRegister));
+                    cereal::make_nvp("PlayOnAwake", playOnAwake), cereal::make_nvp("Transform", transform));
         }
 
         template <class Archive> void load(Archive& archive, std::uint32_t const version)
@@ -779,11 +739,6 @@ namespace Coffee
                     cereal::make_nvp("AudioBankName", audioBankName), cereal::make_nvp("EventName", eventName),
                     cereal::make_nvp("Volume", volume), cereal::make_nvp("Mute", mute),
                     cereal::make_nvp("PlayOnAwake", playOnAwake), cereal::make_nvp("Transform", transform));
-
-            if (version >= 1)
-            {
-                archive(cereal::make_nvp("ToRegister", toRegister));
-            }
         }
     };
 
@@ -791,29 +746,10 @@ namespace Coffee
     {
         uint64_t gameObjectID = 0; ///< The object ID.
         glm::mat4 transform;        ///< The transform of the audio listener.
-        bool toDelete = false;      ///< True if the audio listener should be deleted.
-        bool toUnregister = false;  ///< True if the audio listener should be unregistered.
-        bool toRegister = true;     ///< True if the audio listener should be registered.
 
         AudioListenerComponent() = default;
 
         AudioListenerComponent(const AudioListenerComponent& other) { *this = other; }
-
-        AudioListenerComponent& operator=(const AudioListenerComponent& other)
-        {
-            if (this != &other)
-            {
-                gameObjectID = other.gameObjectID;
-                transform = other.transform;
-                toDelete = other.toDelete;
-                toUnregister = other.toUnregister;
-                toRegister = other.toRegister;
-
-                if (!toDelete)
-                    Audio::RegisterAudioListenerComponent(*this);
-            }
-            return *this;
-        }
 
         static AudioListenerComponent CreateCopy(const AudioListenerComponent& other)
         {
@@ -825,18 +761,12 @@ namespace Coffee
 
         template <class Archive> void save(Archive& archive, std::uint32_t const version) const
         {
-            archive(cereal::make_nvp("GameObjectID", gameObjectID), cereal::make_nvp("Transform", transform),
-                    cereal::make_nvp("ToRegister", toRegister));
+            archive(cereal::make_nvp("GameObjectID", gameObjectID), cereal::make_nvp("Transform", transform));
         }
 
         template <class Archive> void load(Archive& archive, std::uint32_t const version)
         {
             archive(cereal::make_nvp("GameObjectID", gameObjectID), cereal::make_nvp("Transform", transform));
-
-            if (version >= 1)
-            {
-                archive(cereal::make_nvp("ToRegister", toRegister));
-            }
         }
     };
 
@@ -1487,8 +1417,8 @@ CEREAL_CLASS_VERSION(Coffee::MeshComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::MaterialComponent, 1);
 CEREAL_CLASS_VERSION(Coffee::LightComponent, 1);
 CEREAL_CLASS_VERSION(Coffee::WorldEnvironmentComponent, 1);
-CEREAL_CLASS_VERSION(Coffee::AudioSourceComponent, 1);
-CEREAL_CLASS_VERSION(Coffee::AudioListenerComponent, 1);
+CEREAL_CLASS_VERSION(Coffee::AudioSourceComponent, 0);
+CEREAL_CLASS_VERSION(Coffee::AudioListenerComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::AudioZoneComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::ScriptComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::RigidbodyComponent, 0);

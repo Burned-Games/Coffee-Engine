@@ -321,15 +321,13 @@ namespace Coffee {
         if (entity.HasComponent<AudioSourceComponent>())
         {
             auto& audioSourceComponent = entity.GetComponent<AudioSourceComponent>();
-            if (audioSourceComponent.toUnregister)
-                Audio::UnregisterAudioSourceComponent(audioSourceComponent);
+            Audio::UnregisterAudioSourceComponent(audioSourceComponent);
         }
 
         if (entity.HasComponent<AudioListenerComponent>())
         {
             auto& audioListenerComponent = entity.GetComponent<AudioListenerComponent>();
-            if (audioListenerComponent.toUnregister)
-                Audio::UnregisterAudioListenerComponent(audioListenerComponent);
+            Audio::UnregisterAudioListenerComponent(audioListenerComponent);
         }
 
         auto& hierarchyComponent = m_Registry.get<HierarchyComponent>(entity);
@@ -380,6 +378,19 @@ namespace Coffee {
 
         CollisionSystem::Initialize(this);
 
+        auto audioListenerView = m_Registry.view<AudioListenerComponent>();
+        for (auto& entity : audioListenerView)
+        {
+            auto& audioListenerComponent = audioListenerView.get<AudioListenerComponent>(entity);
+            Audio::RegisterAudioListenerComponent(audioListenerComponent);
+        }
+        auto audioSourceView = m_Registry.view<AudioSourceComponent>();
+        for (auto& entity : audioSourceView)
+        {
+            auto& audioSourceComponent = audioSourceView.get<AudioSourceComponent>(entity);
+            Audio::RegisterAudioSourceComponent(audioSourceComponent);
+            AudioZone::RegisterObject(audioSourceComponent.gameObjectID, audioSourceComponent.transform[3]);
+        }
     }
 
     void Scene::OnInitRuntime()
@@ -445,7 +456,19 @@ namespace Coffee {
             m_Octree->Insert(object);
         }
 
-        Audio::StopAllEvents();
+        auto audioListenerView = m_Registry.view<AudioListenerComponent>();
+        for (auto& entity : audioListenerView)
+        {
+            auto& audioListenerComponent = audioListenerView.get<AudioListenerComponent>(entity);
+            Audio::RegisterAudioListenerComponent(audioListenerComponent);
+        }
+        auto audioSourceView = m_Registry.view<AudioSourceComponent>();
+        for (auto& entity : audioSourceView)
+        {
+            auto& audioSourceComponent = audioSourceView.get<AudioSourceComponent>(entity);
+            Audio::RegisterAudioSourceComponent(audioSourceComponent);
+            AudioZone::RegisterObject(audioSourceComponent.gameObjectID, audioSourceComponent.transform[3]);
+        }
         Audio::PlayInitialAudios();
 
         // Get all entities with ScriptComponent
