@@ -35,12 +35,35 @@ namespace Coffee {
 
     };
 
-     enum class CullFace 
-     {
-        Front = 0,
-        Back = 1,
-        FrontAndBack = 2
-     };
+    enum class BlendFunc
+    {
+        Zero = 0,
+        One = 1,
+        SrcColor = 0x0300,
+        OneMinusSrcColor = 0x0301,
+        SrcAlpha = 0x0302,
+        OneMinusSrcAlpha = 0x0303,
+        DstColor = 0x0306,
+        OneMinusDstColor = 0x0307,
+        DstAlpha = 0x0304,
+        OneMinusDstAlpha = 0x0305
+    };
+
+    enum class BlendEquation
+    {
+        Add = 0x8006,
+        Subtract = 0x800A,
+        ReverseSubtract = 0x800B,
+        Min = 0x8007,
+        Max = 0x8008
+    };
+    
+    enum class CullFace 
+    {
+    Front = 0,
+    Back = 1,
+    FrontAndBack = 2
+    };
 
     enum class PolygonMode
     {
@@ -81,6 +104,10 @@ namespace Coffee {
         static void SetDepthMask(bool enabled);
 
         static void SetDepthFunc(DepthFunc func);
+
+        static void SetBlend(bool enabled);
+        static void SetBlendFunc(BlendFunc src, BlendFunc dst);
+        static void SetBlendEquation(BlendEquation equation);
 
         static void SetFaceCulling(bool enabled);
 

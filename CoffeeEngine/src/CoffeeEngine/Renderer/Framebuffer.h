@@ -49,8 +49,8 @@ namespace Coffee {
          */
         void UnBind();
 
-        void AttachColorTexture(const Ref<Texture2D>& texture);
-        void AttachColorTexture(uint32_t attachmentIndex, const Ref<Texture2D>& texture);
+        void AttachColorTexture(const Ref<Texture2D>& texture, uint32_t mipLevel = 0);
+        void AttachColorTexture(uint32_t attachmentIndex, const Ref<Texture2D>& texture, uint32_t mipLevel = 0);
         
         const Ref<Texture2D>& GetColorAttachment(uint32_t attachmentIndex);
         

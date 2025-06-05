@@ -128,15 +128,15 @@ namespace Coffee {
         glNamedFramebufferDrawBuffers(m_fboID, drawBuffers.size(), drawBuffers.data());
     }
 
-    void Framebuffer::AttachColorTexture(const Ref<Texture2D>& texture)
+    void Framebuffer::AttachColorTexture(const Ref<Texture2D>& texture, uint32_t mipLevel)
     {
         ZoneScoped;
 
         m_ColorTextures.push_back(texture);
-        glNamedFramebufferTexture(m_fboID, GL_COLOR_ATTACHMENT0 + m_ColorTextures.size() - 1, texture->GetID(), 0);
+        glNamedFramebufferTexture(m_fboID, GL_COLOR_ATTACHMENT0 + m_ColorTextures.size() - 1, texture->GetID(), mipLevel);
     }
 
-    void Framebuffer::AttachColorTexture(uint32_t attachmentIndex, const Ref<Texture2D>& texture)
+    void Framebuffer::AttachColorTexture(uint32_t attachmentIndex, const Ref<Texture2D>& texture, uint32_t mipLevel)
     {
         if(m_ColorTextures.size() <= attachmentIndex)
         {
@@ -145,7 +145,7 @@ namespace Coffee {
 
         m_ColorTextures[attachmentIndex] = texture;
 
-        glNamedFramebufferTexture(m_fboID, GL_COLOR_ATTACHMENT0 + attachmentIndex, texture->GetID(), 0);
+        glNamedFramebufferTexture(m_fboID, GL_COLOR_ATTACHMENT0 + attachmentIndex, texture->GetID(), mipLevel);
     }
 
     const Ref<Texture2D>& Framebuffer::GetColorAttachment(uint32_t attachmentIndex)
