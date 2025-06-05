@@ -180,9 +180,9 @@ namespace Coffee {
         s_Renderer2DData.TextShader = CreateRef<Shader>("TextShader", std::string(textShaderSource));
     }
 
-    void Renderer2D::WorldPass(const RenderTarget& target)
+    void Renderer2D::WorldPass(const Ref<RenderTarget>& target)
     {
-        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        const Ref<Framebuffer>& forwardBuffer = target->GetFramebuffer("Forward");
 
         forwardBuffer->Bind();
         //forwardBuffer->SetDrawBuffers({0, 1}); //TODO: This should only be done in the editor
@@ -230,10 +230,10 @@ namespace Coffee {
         forwardBuffer->UnBind();
     }
 
-    void Renderer2D::ScreenPass(const RenderTarget& target)
+    void Renderer2D::ScreenPass(const Ref<RenderTarget>& target)
     {
         // TODO: Modify the target to have a framebuffer for 2D elements
-        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        const Ref<Framebuffer>& forwardBuffer = target->GetFramebuffer("Forward");
 
         forwardBuffer->Bind();
         //forwardBuffer->SetDrawBuffers({0, 1}); //TODO: This should only be done in the editor

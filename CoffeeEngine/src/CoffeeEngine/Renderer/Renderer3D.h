@@ -143,13 +143,13 @@ namespace Coffee {
 
         static void SetEnvironmentMap(const Ref<Cubemap>& environmentMap) { s_RendererData.EnvironmentMap = environmentMap; }
         
-        static void DepthPrePass(const RenderTarget& target);
-        //static void SSAOPass(const RenderTarget& target);
-        static void ShadowPass(const RenderTarget& target);
-        static void ForwardPass(const RenderTarget& target);
-        static void SkyboxPass(const RenderTarget& target);
-        static void TransparentPass(const RenderTarget& target);
-        static void PostProcessingPass(const RenderTarget& target);
+        static void DepthPrePass(const Ref<RenderTarget>& target);
+        //static void SSAOPass(const Ref<RenderTarget>& target);
+        static void ShadowPass(const Ref<RenderTarget>& target);
+        static void ForwardPass(const Ref<RenderTarget>& target);
+        static void SkyboxPass(const Ref<RenderTarget>& target);
+        static void TransparentPass(const Ref<RenderTarget>& target);
+        static void PostProcessingPass(const Ref<RenderTarget>& target);
 
         /**
          * @brief Gets the renderer data.

@@ -14,13 +14,6 @@ namespace Coffee {
      * @brief Renderer components of the CoffeeEngine.
      * @{
      */
-    
-    struct Attachment 
-    {
-        ImageFormat format;
-        std::string name;
-        Ref<Texture2D> texture;
-    };
 
     /**
      * @brief Class representing a framebuffer.
@@ -34,7 +27,7 @@ namespace Coffee {
          * @param height The height of the framebuffer.
          * @param attachments The list of image formats for the attachments.
          */
-        Framebuffer(uint32_t width, uint32_t height, std::initializer_list<Attachment> attachments = {});
+        Framebuffer(uint32_t width, uint32_t height);
 
         /**
          * @brief Destroys the Framebuffer.
@@ -56,13 +49,22 @@ namespace Coffee {
          */
         void UnBind();
 
+        void AttachColorTexture(const Ref<Texture2D>& texture);
+        void AttachColorTexture(uint32_t attachmentIndex, const Ref<Texture2D>& texture);
+        
+        const Ref<Texture2D>& GetColorAttachment(uint32_t attachmentIndex);
+        
+        void AttachDepthTexture(const Ref<Texture2D>& texture);
+
+        const Ref<Texture2D>& GetDepthTexture();
+
         glm::vec4 GetPixelColor(int x, int y, uint32_t attachmentIndex = 0);
 
         /**
          * @brief Sets the draw buffers for the framebuffer.
          * @param colorAttachments The list of color attachment indices.
          */
-        void SetDrawBuffers(std::initializer_list<uint32_t> colorAttachments);
+        void SetDrawBuffers(std::initializer_list<uint32_t> indices);
 
         /**
          * @brief Resizes the framebuffer.
@@ -83,26 +85,6 @@ namespace Coffee {
          */
         const uint32_t GetHeight() const { return m_Height; }
 
-        void AttachColorTexture(const Ref<Texture2D>& texture, const std::string& name);
-
-        /**
-         * @brief Gets the color texture at the specified index.
-         * @param index The index of the color texture.
-         * @return A reference to the color texture.
-         */
-        const Ref<Texture2D>& GetColorTexture(const std::string& name)
-        {
-            for (const Attachment& attachment: m_Attachments)
-            {
-                if (attachment.name == name)
-                {
-                    return attachment.texture;
-                }
-            }
-        }
-
-        void AttachDepthTexture(const Ref<Texture2D>& texture);
-
         /**
          * @brief Gets the depth texture.
          * @return A reference to the depth texture.
@@ -116,15 +98,13 @@ namespace Coffee {
          * @param attachments The list of image formats for the attachments.
          * @return A reference to the created framebuffer.
          */
-        static Ref<Framebuffer> Create(uint32_t width, uint32_t height, std::initializer_list<Attachment> attachments = {});
+        static Ref<Framebuffer> Create(uint32_t width, uint32_t height);
 
     private:
         uint32_t m_fboID; ///< The ID of the framebuffer object.
 
         uint32_t m_Width; ///< The width of the framebuffer.
         uint32_t m_Height; ///< The height of the framebuffer.
-
-        std::vector<Attachment> m_Attachments; ///< The list of image formats for the attachments.
 
         std::vector<Ref<Texture2D>> m_ColorTextures; ///< The list of color textures.
         Ref<Texture2D> m_DepthTexture; ///< The depth texture.

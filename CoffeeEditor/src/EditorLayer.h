@@ -56,7 +56,7 @@ namespace Coffee {
         void SaveScene();
         void SaveSceneAs();
     private:
-        RenderTarget* m_ViewportRenderTarget;
+        Ref<RenderTarget> m_ViewportRenderTarget;
 
         Ref<Scene> m_EditorScene;
         EditorCamera m_EditorCamera;

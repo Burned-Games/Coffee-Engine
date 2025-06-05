@@ -60,7 +60,7 @@ namespace Coffee {
         shadowMapProperties.Wrapping = TextureWrap::ClampToEdge;
         shadowMapProperties.BorderColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
-        s_RendererData.ShadowMapFramebuffer = Framebuffer::Create(4096, 4096, {});
+        s_RendererData.ShadowMapFramebuffer = Framebuffer::Create(4096, 4096);
         for (int i = 0; i < 4; i++)
         {
             s_RendererData.DirectionalShadowMapTextures[i] = Texture2D::Create(shadowMapProperties);
@@ -139,17 +139,17 @@ namespace Coffee {
         s_Stats.DrawCalls++;
     }
 
-    void Renderer3D::DepthPrePass(const RenderTarget &target)
+    void Renderer3D::DepthPrePass(const Ref<RenderTarget>& target)
     {
         ZoneScoped;
 
-        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        const Ref<Framebuffer>& forwardBuffer = target->GetFramebuffer("Forward");
         forwardBuffer->Bind();
 
 
     }
 
-    void Renderer3D::ShadowPass(const RenderTarget& target)
+    void Renderer3D::ShadowPass(const Ref<RenderTarget>& target)
     {
         ZoneScoped;
 
@@ -171,7 +171,7 @@ namespace Coffee {
                 RendererAPI::Clear();
 
                 // Calculate light position based on camera and scene bounds
-                glm::vec3 cameraPos = target.GetCameraTransform()[3];
+                glm::vec3 cameraPos = target->GetCameraTransform()[3];
                 float shadowDistance = light.ShadowMaxDistance;
                 
                 // Position the light to cover the camera's view frustum
@@ -240,11 +240,11 @@ namespace Coffee {
         s_RendererData.SceneRenderDataUniformBuffer->SetData(&s_RendererData.RenderData, sizeof(Renderer3DData::RenderData));
     }
 
-    void Renderer3D::ForwardPass(const RenderTarget& target)
+    void Renderer3D::ForwardPass(const Ref<RenderTarget>& target)
     {
         ZoneScoped;
 
-        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        const Ref<Framebuffer>& forwardBuffer = target->GetFramebuffer("Forward");
 
         forwardBuffer->Bind();
         forwardBuffer->SetDrawBuffers({0, 1}); //TODO: This should only be done in the editor
@@ -252,7 +252,7 @@ namespace Coffee {
         RendererAPI::SetClearColor({0.03f,0.03f,0.03f,1.0});
         RendererAPI::Clear();
         
-        forwardBuffer->GetColorTexture("EntityID")->Clear({-1.0f,0.0f,0.0f,0.0f}); //TODO: This should only be done in the editor
+        forwardBuffer->GetColorAttachment(1)->Clear({-1.0f,0.0f,0.0f,0.0f}); //TODO: This should only be done in the editor
 
         if (!s_RendererData.EnvironmentMap)
         {
@@ -380,12 +380,12 @@ namespace Coffee {
         RendererAPI::SetPolygonMode(PolygonMode::Fill);
     }
 
-    void Renderer3D::SkyboxPass(const RenderTarget& target)
+    void Renderer3D::SkyboxPass(const Ref<RenderTarget>& target)
     {
         ZoneScoped;
 
         // TODO: Think if this should be done here another time
-        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        const Ref<Framebuffer>& forwardBuffer = target->GetFramebuffer("Forward");
 
         forwardBuffer->Bind();
         forwardBuffer->SetDrawBuffers({0, 1});
@@ -401,11 +401,11 @@ namespace Coffee {
         forwardBuffer->UnBind();
     }
 
-    void Renderer3D::TransparentPass(const RenderTarget& target)
+    void Renderer3D::TransparentPass(const Ref<RenderTarget>& target)
     {
         ZoneScoped;
 
-        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        const Ref<Framebuffer>& forwardBuffer = target->GetFramebuffer("Forward");
         forwardBuffer->Bind();
         forwardBuffer->SetDrawBuffers({0, 1}); //TODO: This should only be done in the editor
 
@@ -417,7 +417,7 @@ namespace Coffee {
         s_RendererData.BRDFLUT->Bind(8);
 
         // Render transparent objects (back to front)
-        glm::vec3 cameraPos = target.GetCameraTransform()[3];
+        glm::vec3 cameraPos = target->GetCameraTransform()[3];
         std::sort(s_RendererData.transparentRenderQueue.begin(), s_RendererData.transparentRenderQueue.end(), [&cameraPos](const RenderCommand& a, const RenderCommand& b) {
             float distA = glm::length(cameraPos - glm::vec3(a.transform[3]));
             float distB = glm::length(cameraPos - glm::vec3(b.transform[3]));
@@ -510,21 +510,21 @@ namespace Coffee {
         RendererAPI::SetPolygonMode(PolygonMode::Fill);
     }
 
-    void Renderer3D::PostProcessingPass(const RenderTarget &target)
+    void Renderer3D::PostProcessingPass(const Ref<RenderTarget>& target)
     {
         ZoneScoped;
 
         //Render All the fancy effects :D
-        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        const Ref<Framebuffer>& forwardBuffer = target->GetFramebuffer("Forward");
         
-        Ref<Framebuffer> lastBuffer = target.GetFramebuffer("PostProcessingA");
-        Ref<Framebuffer> postBuffer = target.GetFramebuffer("PostProcessingB");
+        Ref<Framebuffer> lastBuffer = target->GetFramebuffer("PostProcessingA");
+        Ref<Framebuffer> postBuffer = target->GetFramebuffer("PostProcessingB");
 
         // Copy the forward buffer to the last buffer (think if is necessary)
         lastBuffer->Bind();
         s_FinalPassShader->Bind();
         s_FinalPassShader->setInt("screenTexture", 0);
-        forwardBuffer->GetColorTexture("Color")->Bind(0);
+        forwardBuffer->GetColorAttachment(0)->Bind(0);
 
         RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
         s_FinalPassShader->Unbind();
@@ -542,12 +542,12 @@ namespace Coffee {
             s_FogShader->setFloat("FogDensity", s_RenderSettings.FogDensity);
             s_FogShader->setFloat("FogHeight", s_RenderSettings.FogHeight);
             s_FogShader->setFloat("FogHeightDensity", s_RenderSettings.FogHeightDensity);
-            s_FogShader->setMat4("invProjection", glm::inverse(target.GetCamera().GetProjection()));
-            s_FogShader->setMat4("invView", target.GetCameraTransform());
+            s_FogShader->setMat4("invProjection", glm::inverse(target->GetCamera().GetProjection()));
+            s_FogShader->setMat4("invView", target->GetCameraTransform());
             s_FogShader->setInt("colorTexture", 0);
             s_FogShader->setInt("depthTexture", 1);
-            postBuffer->GetColorTexture("Color")->Bind(0);
-            forwardBuffer->GetColorTexture("Depth")->Bind(1);
+            postBuffer->GetColorAttachment(0)->Bind(0);
+            forwardBuffer->GetDepthTexture()->Bind(1);
 
             RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
             s_FogShader->Unbind();
@@ -561,7 +561,7 @@ namespace Coffee {
         s_ToneMappingShader->Bind();
         s_ToneMappingShader->setInt("screenTexture", 0);
         s_ToneMappingShader->setFloat("exposure", s_RenderSettings.Exposure);
-        postBuffer->GetColorTexture("Color")->Bind(0);
+        postBuffer->GetColorAttachment(0)->Bind(0);
 
         RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
@@ -579,7 +579,7 @@ namespace Coffee {
             s_FXAAShader->Bind();
             s_FXAAShader->setInt("screenTexture", 0);
             s_FXAAShader->setVec2("screenSize", {forwardBuffer->GetWidth(), forwardBuffer->GetHeight()});
-            postBuffer->GetColorTexture("Color")->Bind(0);
+            postBuffer->GetColorAttachment(0)->Bind(0);
 
             RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
@@ -600,7 +600,7 @@ namespace Coffee {
 
         s_FinalPassShader->Bind();
         s_FinalPassShader->setInt("screenTexture", 0);
-        postBuffer->GetColorTexture("Color")->Bind(0);
+        postBuffer->GetColorAttachment(0)->Bind(0);
 
         RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
@@ -633,8 +633,8 @@ namespace Coffee {
 
         s_RendererData.BRDFLUT = Texture2D::Create(properties);
         
-        Framebuffer framebuffer = Framebuffer(properties.Width, properties.Height, {{ImageFormat::DEPTH24STENCIL8, "Depth"}});
-        framebuffer.AttachColorTexture(s_RendererData.BRDFLUT, "BRDFLUT");
+        Framebuffer framebuffer = Framebuffer(properties.Width, properties.Height);
+        framebuffer.AttachColorTexture(0, s_RendererData.BRDFLUT);
         framebuffer.Bind();
         framebuffer.SetDrawBuffers({0});
 

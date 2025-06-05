@@ -13,8 +13,18 @@ namespace Coffee {
     {
     public:
         RenderTarget() = default;
-        RenderTarget(const std::string& name, const glm::vec2& size, const std::vector<std::pair<std::string, std::initializer_list<Attachment>>>& framebufferAttachments);
+        RenderTarget(const std::string& name, const glm::vec2& size);
         ~RenderTarget() = default;
+
+        void AddFramebuffer(const std::string& name, const Ref<Framebuffer>& framebuffer)
+        {
+            m_Framebuffers[name] = framebuffer;
+        }
+
+        void RemoveFramebuffer(const std::string& name)
+        {
+            m_Framebuffers.erase(name);
+        }
 
         const std::unordered_map<std::string, Ref<Framebuffer>>& GetFramebuffers() const { return m_Framebuffers; }
         const Ref<Framebuffer>& GetFramebuffer(const std::string& name) const { return m_Framebuffers.at(name); }
@@ -45,8 +55,6 @@ namespace Coffee {
 
         glm::vec2 m_Size;
         std::unordered_map<std::string, Ref<Framebuffer>> m_Framebuffers;
-
-        // bool m_IsActive = false;
     };
 
 }
