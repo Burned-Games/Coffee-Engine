@@ -143,7 +143,17 @@ namespace Coffee {
             
             // Create a copy of the mesh component
             MeshComponent newMeshComp = meshComp;
-            
+
+            if (!newMeshComp.GetMesh())
+            {
+                COFFEE_CORE_ERROR("Prefab::CopyEntityToScene: Failed to load mesh for prefab entity");
+            }
+
+            if (!newMeshComp.GetMesh()->GetVertexArray())
+            {
+                COFFEE_CORE_ERROR("Prefab::CopyEntityToScene: Mesh has invalid vertex array for prefab entity");
+            }
+
             // Update animator UUID if needed
             if (meshComp.animatorUUID != UUID())
             {

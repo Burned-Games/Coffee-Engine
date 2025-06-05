@@ -423,6 +423,7 @@ namespace Coffee
         MeshComponent() {}
         MeshComponent(const MeshComponent&) = default;
         MeshComponent(Ref<Mesh> mesh) : mesh(mesh) {}
+        ~MeshComponent() { animator = nullptr; }
 
         /**
          * @brief Gets the mesh reference.
