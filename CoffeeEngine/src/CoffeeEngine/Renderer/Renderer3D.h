@@ -98,7 +98,7 @@ namespace Coffee {
         float FogHeight = 0.0f; ///< Fog height.
         float FogHeightDensity = 0.0f; ///< Fog height density.
 
-        bool Bloom = false; ///< Enable or disable bloom.
+        bool Bloom = true; ///< Enable or disable bloom.
         float BloomThreshold = 1.0f; ///< Bloom threshold.
         float BloomIntensity = 1.0f; ///< Bloom intensity.
         float BloomRadius = 1.0f; ///< Bloom radius.
@@ -195,6 +195,12 @@ namespace Coffee {
         static Ref<Shader> s_SkyboxShader; ///< Skybox shader.
         static Ref<Shader> depthShader; ///< Depth shader.
         static Ref<Shader> brdfShader; ///< BRDF shader.
+        static Ref<Shader> s_BloomDownsampleShader; ///< Bloom downsample shader.
+        static Ref<Shader> s_BloomUpsampleShader; ///< Bloom upsample shader.
+
+        static Ref<Framebuffer> s_BloomFramebuffer; ///< Bloom framebuffer.
+        static Ref<Texture2D> s_BloomDownsampleTexture; ///< Bloom downsampled texture.
+        static Ref<Texture2D> s_BloomUpsampleTexture; ///< Bloom upsampled texture.
     };
 
     /** @} */
