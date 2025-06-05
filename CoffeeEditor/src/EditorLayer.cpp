@@ -864,9 +864,6 @@ namespace Coffee {
 
         if (!path.empty() and path.extension() == ".TeaScene")
         {
-            AudioZone::RemoveAllReverbZones();
-            Audio::UnregisterAllGameObjects();
-
             m_EditorScene = Scene::Load(path);
             SceneManager::ChangeScene(m_EditorScene);
 

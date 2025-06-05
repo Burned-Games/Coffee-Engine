@@ -93,6 +93,10 @@ namespace Coffee {
             {
                 s_ActiveScene->OnExitEditor();
             }
+
+            Audio::StopAllEvents();
+            AudioZone::RemoveAllReverbZones();
+            Audio::UnregisterAllGameObjects();
         }
     }
 
