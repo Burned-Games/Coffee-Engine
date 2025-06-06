@@ -24,12 +24,20 @@ uniform sampler2D downsampleTexture; // The downsampled (current mip) texture
 uniform float filterRadius;
 uniform int upsampleMipLevel;   // mip to upsample from (higher mip, lower res)
 uniform int downsampleMipLevel; // mip to blend with (current mip, output res)
+uniform bool firstPass; // Add this uniform
 
 in vec2 TexCoord;
 layout (location = 0) out vec4 FragColor;
 
 void main()
 {
+    if (firstPass) {
+    // Only copy the highest mipmap (no blending)
+    vec3 color = textureLod(downsampleTexture, TexCoord, downsampleMipLevel).rgb;
+    FragColor = vec4(color, 1.0);
+    return;
+    }
+
     // Tent filter upsample from the higher mip
     vec2 texelSize = 1.0 / textureSize(upsampleTexture, upsampleMipLevel);
     float x = filterRadius * texelSize.x;

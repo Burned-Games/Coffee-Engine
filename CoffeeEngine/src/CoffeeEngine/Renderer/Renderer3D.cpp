@@ -37,8 +37,7 @@ namespace Coffee {
     Ref<Shader> Renderer3D::s_SkyboxShader;
     Ref<Shader> Renderer3D::depthShader;
     Ref<Shader> Renderer3D::brdfShader;
-    Ref<Shader> Renderer3D::s_BloomDownsampleShader;
-    Ref<Shader> Renderer3D::s_BloomUpsampleShader;
+    Ref<Shader> Renderer3D::s_BloomShader;
 
     Ref<Framebuffer> Renderer3D::s_BloomFramebuffer;
     Ref<Texture2D> Renderer3D::s_BloomDownsampleTexture;
@@ -89,8 +88,7 @@ namespace Coffee {
         s_FXAAShader = CreateRef<Shader>("assets/shaders/FXAAShader.glsl"); // Shader source is too large
         s_FinalPassShader = CreateRef<Shader>("FinalPassShader", std::string(finalPassShaderSource));
 
-        s_BloomDownsampleShader = CreateRef<Shader>("assets/shaders/DownsamplingShader.glsl");
-        s_BloomUpsampleShader = CreateRef<Shader>("assets/shaders/UpsamplingShader.glsl");
+        s_BloomShader = CreateRef<Shader>("assets/shaders/BloomShader.glsl");
 
         TextureProperties bloomTextureProperties;
         bloomTextureProperties.srgb = false;
@@ -585,15 +583,83 @@ namespace Coffee {
             // Iterate over all the downsampling passes, binding each mip as output and the previous mip as input
             // In other framebuffer (output), we set as input the texture of the downsampling pass and
 
+            glm::vec2 currentTargetSize = target->GetSize() / 2.0f;
+
             // TODO: Do it only when the resolution changes not every frame
-            s_BloomFramebuffer->Resize(target->GetSize().x, target->GetSize().y);
-            s_BloomDownsampleTexture->Resize(target->GetSize().x, target->GetSize().y);
-            s_BloomUpsampleTexture->Resize(target->GetSize().x, target->GetSize().y);
+            s_BloomFramebuffer->Resize(currentTargetSize.x, currentTargetSize.y);
+            s_BloomDownsampleTexture->Resize(currentTargetSize.x, currentTargetSize.y);
+            s_BloomUpsampleTexture->Resize(currentTargetSize.x, currentTargetSize.y);
 
-            s_BloomDownsampleShader->Bind();
-            s_BloomDownsampleShader->setInt("srcTexture", 0);
+            s_BloomShader->Bind();
+            s_BloomShader->setInt("sourceTexture", 0);
+            postBuffer->GetColorAttachment(0)->Bind(0); // Bind the post-processing texture as the source
+            s_BloomShader->setInt("downsamplingTexture", 1);
+            s_BloomDownsampleTexture->Bind(1); // Bind the downsample texture to texture unit 1
+            s_BloomShader->setInt("upsamplingTexture", 2);
+            s_BloomUpsampleTexture->Bind(2); // Bind the upsample texture to texture unit 2
 
-            int maxMipLevel = 5; // Number of downsampling passes
+            // Copy the scene texture to the bloom downsample texture
+            s_BloomShader->setInt("mode", 0); // 0 for copy
+            s_BloomShader->setInt("mipmapLevel", 0); // Use mip level 0 for the initial copy
+            s_BloomShader->setInt("sourceTextureScale", 1);
+
+            s_BloomFramebuffer->AttachColorTexture(0, s_BloomDownsampleTexture, 0);
+            s_BloomFramebuffer->Bind();
+            s_BloomFramebuffer->SetDrawBuffers({0});
+            RendererAPI::SetViewport(0, 0, currentTargetSize.x, currentTargetSize.y);
+            RendererAPI::Clear();
+            
+            RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+
+            // Downsampling Passes
+            int maxMipLevel = 7; // Number of downsampling passes
+            for (int mip = 1; mip < maxMipLevel; mip++)
+            {
+                // Resize the bloom downsample texture for the current mip level
+                uint32_t mipWidth = static_cast<uint32_t>(currentTargetSize.x) >> mip;
+                uint32_t mipHeight = static_cast<uint32_t>(currentTargetSize.y) >> mip;
+
+                // Attach the current mip level to the framebuffer
+                s_BloomFramebuffer->AttachColorTexture(0, s_BloomDownsampleTexture, mip);
+                s_BloomFramebuffer->Bind();
+
+                RendererAPI::SetViewport(0, 0, mipWidth, mipHeight);
+
+                // Set the shader for downsampling
+                s_BloomShader->setInt("mode", 1); // 1 for downsampling
+                s_BloomShader->setInt("mipmapLevel", mip);
+
+                RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+
+                s_BloomFramebuffer->UnBind();
+            }
+
+            s_BloomShader->setFloat("filterRadius", 0.05f); // Set a filter radius for the bloom effect
+
+            // Upsampling Passes
+            for (int mip = maxMipLevel - 2; mip >= 0; --mip)
+            {
+                // Resize the bloom upsample texture for the current mip level
+                uint32_t mipWidth = static_cast<uint32_t>(currentTargetSize.x) >> mip;
+                uint32_t mipHeight = static_cast<uint32_t>(currentTargetSize.y) >> mip;
+
+                // Attach the current mip level to the framebuffer
+                s_BloomFramebuffer->AttachColorTexture(0, s_BloomUpsampleTexture, mip);
+                s_BloomFramebuffer->Bind();
+
+                RendererAPI::SetViewport(0, 0, mipWidth, mipHeight);
+
+                // Set the shader for upsampling
+                s_BloomShader->setInt("mode", 2); // 2 for upsampling
+                s_BloomShader->setInt("mipmapLevel", mip);
+
+                RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+
+                s_BloomFramebuffer->UnBind();
+            }
+
+
+/*             int maxMipLevel = 7; // Number of downsampling passes
             
             for (int i = 0; i < maxMipLevel; ++i)
             {
@@ -631,8 +697,8 @@ namespace Coffee {
             s_BloomDownsampleShader->Unbind();
             s_BloomFramebuffer->UnBind();
 
-            RendererAPI::SetBlendFunc(BlendFunc::One, BlendFunc::One);
-            RendererAPI::SetBlendEquation(BlendEquation::Add);
+            //RendererAPI::SetBlendFunc(BlendFunc::One, BlendFunc::One);
+            //RendererAPI::SetBlendEquation(BlendEquation::Add);
 
             // Upsample and blur chain
             for (int mip = maxMipLevel - 2; mip >= 0; --mip)
@@ -660,13 +726,16 @@ namespace Coffee {
                 if (mip == maxMipLevel - 2)
                 {
                     // First upsample pass: upsample from last downsampled mip
-                    
+                    s_BloomUpsampleShader->setBool("firstPass", true);
+                                    s_BloomUpsampleShader->setInt("downsampleMipLevel", mip + 1);
                     s_BloomDownsampleTexture->Bind(1); // downsampleTexture (current mip)
                 }
                 else
                 {
+                    s_BloomUpsampleShader->setBool("firstPass", false);
                     // Subsequent passes: upsample from previous upsampled mip
-                    //s_BloomUpsampleShader->setInt("downsampleTexture", 1);
+                    s_BloomUpsampleShader->setInt("upsampleMipLevel", mip + 1);
+                    s_BloomUpsampleShader->setInt("downsampleMipLevel", mip);
                     s_BloomUpsampleTexture->Bind(0); // upsampleTexture (higher mip)
                     s_BloomDownsampleTexture->Bind(1); // downsampleTexture (current mip)
                 }
@@ -676,7 +745,7 @@ namespace Coffee {
                 s_BloomFramebuffer->UnBind();
             }
 
-            RendererAPI::SetBlendFunc(BlendFunc::SrcAlpha, BlendFunc::OneMinusSrcAlpha);
+            //RendererAPI::SetBlendFunc(BlendFunc::SrcAlpha, BlendFunc::OneMinusSrcAlpha);
 
             s_BloomUpsampleShader->Unbind();
 
@@ -692,7 +761,7 @@ namespace Coffee {
             RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
             s_BloomUpsampleShader->Unbind();
             lastBuffer->UnBind();
-            std::swap(lastBuffer, postBuffer);
+            std::swap(lastBuffer, postBuffer); */
         }
 
         //ToneMapping
@@ -739,8 +808,9 @@ namespace Coffee {
 
         s_FinalPassShader->Bind();
         s_FinalPassShader->setInt("screenTexture", 0);
-        postBuffer->GetColorAttachment(0)->Bind(0);
-        //s_BloomUpsampleTexture->Bind(0); // Use the downsampled texture for final pass
+        //postBuffer->GetColorAttachment(0)->Bind(0);
+        //s_BloomDownsampleTexture->Bind(0);
+        s_BloomUpsampleTexture->Bind(0); // Use the downsampled texture for final pass
 
         RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 

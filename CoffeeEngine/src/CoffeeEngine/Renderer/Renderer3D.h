@@ -195,8 +195,7 @@ namespace Coffee {
         static Ref<Shader> s_SkyboxShader; ///< Skybox shader.
         static Ref<Shader> depthShader; ///< Depth shader.
         static Ref<Shader> brdfShader; ///< BRDF shader.
-        static Ref<Shader> s_BloomDownsampleShader; ///< Bloom downsample shader.
-        static Ref<Shader> s_BloomUpsampleShader; ///< Bloom upsample shader.
+        static Ref<Shader> s_BloomShader; ///< Bloom downsample shader.
 
         static Ref<Framebuffer> s_BloomFramebuffer; ///< Bloom framebuffer.
         static Ref<Texture2D> s_BloomDownsampleTexture; ///< Bloom downsampled texture.
