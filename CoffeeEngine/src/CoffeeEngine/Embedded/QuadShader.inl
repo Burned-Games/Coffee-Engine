@@ -65,8 +65,8 @@ void main()
 {
     vec4 color = texture(uTextures[int(TexIndex)], Input.TexCoord * Input.TilingFactor) * Input.Color;
 
-    //if (color.a < 0.1)
-    //    discard;
+    if (color.a < 0.1)
+        discard;
 
     // gamma correct
     color.rgb = pow(color.rgb, vec3(1.0 / 2.2));
