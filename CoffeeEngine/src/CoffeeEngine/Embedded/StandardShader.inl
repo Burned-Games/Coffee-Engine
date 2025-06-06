@@ -34,6 +34,7 @@ struct Light
     float intensity;
 
     float angle;
+    float cone_attenuation;
 
     int type;
 

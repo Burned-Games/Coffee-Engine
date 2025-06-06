@@ -596,7 +596,17 @@ namespace Coffee
          */
         template <class Archive> void serialize(Archive& archive, std::uint32_t const version)
         {
-            if (version >= 1)
+            if (version >= 2)
+            {
+                archive(cereal::make_nvp("Color", Color), cereal::make_nvp("Direction", Direction),
+                            cereal::make_nvp("Position", Position), cereal::make_nvp("Range", Range),
+                            cereal::make_nvp("Attenuation", Attenuation), cereal::make_nvp("Intensity", Intensity),
+                            cereal::make_nvp("Angle", Angle), cereal::make_nvp("Type", type),
+                            cereal::make_nvp("Shadow", Shadow), cereal::make_nvp("ShadowBias", ShadowBias),
+                            cereal::make_nvp("ShadowMaxDistance", ShadowMaxDistance),
+                            cereal::make_nvp("ConeAttenuation", ConeAttenuation));
+            }
+            else if (version >= 1)
             {
                 archive(cereal::make_nvp("Color", Color), cereal::make_nvp("Direction", Direction),
                         cereal::make_nvp("Position", Position), cereal::make_nvp("Range", Range),
@@ -1417,7 +1427,7 @@ CEREAL_CLASS_VERSION(Coffee::CameraComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::AnimatorComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::MeshComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::MaterialComponent, 1);
-CEREAL_CLASS_VERSION(Coffee::LightComponent, 1);
+CEREAL_CLASS_VERSION(Coffee::LightComponent, 2);
 CEREAL_CLASS_VERSION(Coffee::WorldEnvironmentComponent, 1);
 CEREAL_CLASS_VERSION(Coffee::AudioSourceComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::AudioListenerComponent, 0);
