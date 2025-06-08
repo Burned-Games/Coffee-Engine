@@ -983,6 +983,15 @@ namespace Coffee
 
                     ImGui::TreePop();
                 }
+                if (ImGui::TreeNode("Bloom"))
+                {
+                    ImGui::Checkbox("Enable Bloom", &worldEnvironmentComponent.Bloom);
+                    ImGui::DragFloat("Intensity", &worldEnvironmentComponent.BloomIntensity, 0.001f, 0.0f, 10.0f);
+                    ImGui::DragFloat("Radius", &worldEnvironmentComponent.BloomRadius, 0.001f, 0.0f, 5.0f);
+                    ImGui::DragInt("Max Mip Levels", &worldEnvironmentComponent.BloomMaxMipLevels, 1, 1, 10);
+
+                    ImGui::TreePop();
+                }
             }
         }
 
