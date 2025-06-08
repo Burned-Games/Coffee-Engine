@@ -750,7 +750,7 @@ namespace Coffee {
         static Ref<Material> gridShaderMaterial = ShaderMaterial::Create("GridShaderMaterial", gridShader);
         MaterialRenderSettings& gridMaterialRenderSettings = gridShaderMaterial->GetRenderSettings();
         gridMaterialRenderSettings.cullMode = MaterialRenderSettings::CullMode::None;
-        gridMaterialRenderSettings.transparencyMode = MaterialRenderSettings::TransparencyMode::Alpha;
+        gridMaterialRenderSettings.transparencyMode = MaterialRenderSettings::TransparencyMode::Disabled;
 
         Renderer3D::Submit(RenderCommand{.mesh = gridPlane, .material = gridShaderMaterial});
     }
