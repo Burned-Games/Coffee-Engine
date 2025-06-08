@@ -577,6 +577,7 @@ namespace Coffee
         float Intensity = 1.0f;   ///< The intensity of the light.
 
         float Angle = 45.0f; ///< The angle of the light.
+        float ConeAttenuation = 48.0f; ///< The cone attenuation of the light.
 
         int type = static_cast<int>(Type::DirectionalLight); ///< The type of the light.
 
@@ -595,7 +596,17 @@ namespace Coffee
          */
         template <class Archive> void serialize(Archive& archive, std::uint32_t const version)
         {
-            if (version >= 1)
+            if (version >= 2)
+            {
+                archive(cereal::make_nvp("Color", Color), cereal::make_nvp("Direction", Direction),
+                            cereal::make_nvp("Position", Position), cereal::make_nvp("Range", Range),
+                            cereal::make_nvp("Attenuation", Attenuation), cereal::make_nvp("Intensity", Intensity),
+                            cereal::make_nvp("Angle", Angle), cereal::make_nvp("Type", type),
+                            cereal::make_nvp("Shadow", Shadow), cereal::make_nvp("ShadowBias", ShadowBias),
+                            cereal::make_nvp("ShadowMaxDistance", ShadowMaxDistance),
+                            cereal::make_nvp("ConeAttenuation", ConeAttenuation));
+            }
+            else if (version >= 1)
             {
                 archive(cereal::make_nvp("Color", Color), cereal::make_nvp("Direction", Direction),
                         cereal::make_nvp("Position", Position), cereal::make_nvp("Range", Range),
@@ -619,7 +630,7 @@ namespace Coffee
         // Skybox
         Ref<Cubemap> Skybox; ///< The skybox reference.
         float SkyboxIntensity = 1.0f; ///< The exposure of the skybox.
-        
+
         // Tonemapping
         float TonemappingExposure = 1.0f; ///< The exposure for tonemapping.
 
@@ -1416,7 +1427,7 @@ CEREAL_CLASS_VERSION(Coffee::CameraComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::AnimatorComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::MeshComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::MaterialComponent, 1);
-CEREAL_CLASS_VERSION(Coffee::LightComponent, 1);
+CEREAL_CLASS_VERSION(Coffee::LightComponent, 2);
 CEREAL_CLASS_VERSION(Coffee::WorldEnvironmentComponent, 1);
 CEREAL_CLASS_VERSION(Coffee::AudioSourceComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::AudioListenerComponent, 0);
