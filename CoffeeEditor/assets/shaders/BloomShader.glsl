@@ -137,11 +137,15 @@ void main()
     else if (mode == MODE_COMPOSITION)
     {
         // Blend the upsampled texture with the source texture
-        vec3 upsampled = textureLod(upsamplingTexture, TexCoord, 0).rgb;
+        //vec3 upsampled = textureLod(upsamplingTexture, TexCoord, 0).rgb;
+        vec3 upsampled = UpsampleTent9(upsamplingTexture, 0, TexCoord, 1.0f / vec2(textureSize(sourceTexture, 0)), filterRadius);
         vec3 source = textureLod(sourceTexture, TexCoord, 0).rgb;
 
-        FragColor.rgb = mix(source, upsampled, bloomStrength);
+        float tmpBloomStrength = 0.1;
+        //FragColor.rgb = mix(source, upsampled, tmpBloomStrength);
+        FragColor.rgb = source + upsampled * tmpBloomStrength;
         FragColor.a = 1.0f;
+        //FragColor = vec4(upsampled, 1.0);
     }
     else
     {
