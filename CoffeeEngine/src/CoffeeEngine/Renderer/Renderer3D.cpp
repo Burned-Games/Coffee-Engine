@@ -92,7 +92,8 @@ namespace Coffee {
 
     void Renderer3D::Submit(const LightComponent& light)
     {
-        if (s_RendererData.RenderData.lightCount < Renderer3DData::MAX_LIGHTS)
+        const int maxLights = Renderer3DData::MAX_LIGHTS - (light.type == LightComponent::Type::DirectionalLight ? 0 : 4);
+        if (s_RendererData.RenderData.lightCount < maxLights)
         {
             s_RendererData.RenderData.lights[s_RendererData.RenderData.lightCount] = light;
             s_RendererData.RenderData.lightCount++;
