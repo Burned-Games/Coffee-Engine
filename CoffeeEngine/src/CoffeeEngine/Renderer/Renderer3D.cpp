@@ -97,7 +97,8 @@ namespace Coffee {
         bloomTextureProperties.Width = 911; // Initial size, will be resized later
         bloomTextureProperties.Height = 559; // Initial size, will be resized later
         bloomTextureProperties.Wrapping = TextureWrap::ClampToEdge;
-        bloomTextureProperties.MinFilter = TextureFilter::Linear;
+        bloomTextureProperties.MinFilter = TextureFilter::LinearMipmapLinear;
+        bloomTextureProperties.MagFilter = TextureFilter::Linear;
 
         s_BloomDownsampleTexture = Texture2D::Create(bloomTextureProperties);
         s_BloomUpsampleTexture = Texture2D::Create(bloomTextureProperties);
@@ -653,7 +654,7 @@ namespace Coffee {
             s_BloomShader->setFloat("filterRadius", 0.05f); // Set a filter radius for the bloom effect
 
             // Upsampling Passes
-/*             for (int mip = maxMipLevel - 2; mip >= 0; --mip)
+            for (int mip = maxMipLevel - 2; mip >= 0; --mip)
             {
                 // Resize the bloom upsample texture for the current mip level
                 uint32_t mipWidth = static_cast<uint32_t>(currentTargetSize.x) >> mip;
@@ -672,7 +673,7 @@ namespace Coffee {
                 RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
                 s_BloomFramebuffer->UnBind();
-            } */
+            }
 
             //RendererAPI::SetBlendFunc(BlendFunc::SrcAlpha, BlendFunc::OneMinusSrcAlpha);
 

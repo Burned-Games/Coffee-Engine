@@ -107,13 +107,23 @@ void main()
 {
     if (mode == MODE_COPY)
     {
-        FragColor = textureLod(sourceTexture, gl_FragCoord.xy / vec2(textureSize(sourceTexture, sourceTextureScale)), mipmapLevel);
+        FragColor = textureLod(sourceTexture, TexCoord, float(mipmapLevel));
     }
     else if (mode == MODE_DOWNSAMPLING)
     {
         vec2 texelSize = 1.0f / textureSize(downsamplingTexture, mipmapLevel);
         FragColor.rgb = DownsampleBox13(downsamplingTexture, mipmapLevel - 1, gl_FragCoord.xy / vec2(textureSize(downsamplingTexture, mipmapLevel)), texelSize);
         FragColor.a = 1.0f;
+
+/*          vec3 mipColor = vec3(1.0); // default white
+        if (mipmapLevel == 0) mipColor = vec3(1.0, 0.0, 0.0);      // Red
+        else if (mipmapLevel == 1) mipColor = vec3(0.0, 1.0, 0.0); // Green
+        else if (mipmapLevel == 2) mipColor = vec3(0.0, 0.0, 1.0); // Blue
+        else if (mipmapLevel == 3) mipColor = vec3(1.0, 1.0, 0.0); // Yellow
+        else if (mipmapLevel == 4) mipColor = vec3(1.0, 0.0, 1.0); // Magenta
+
+        FragColor.rgb = mipColor; // Use mipColor for visualization
+        FragColor.a = 1.0f; // Set alpha to 1.0 for visibility */
     }
     else if (mode == MODE_UPSAMPLING)
     {
