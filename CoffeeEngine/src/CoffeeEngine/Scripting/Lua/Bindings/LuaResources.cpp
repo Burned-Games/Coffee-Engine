@@ -40,16 +40,32 @@ namespace Coffee
 
         // Shader class binding (inherits from Resource)
         luaState.new_usertype<Shader>("Shader",
-            sol::base_classes, sol::bases<Resource>()
-    /*         "setBool", &Shader::setBool,
-            "setInt", &Shader::setInt,
-            "setFloat", &Shader::setFloat,
-            "setVec2", &Shader::setVec2,
-            "setVec3", &Shader::setVec3,
-            "setVec4", &Shader::setVec4,
-            "setMat2", &Shader::setMat2,
-            "setMat3", &Shader::setMat3,
-            "setMat4", &Shader::setMat4 */
+            sol::base_classes, sol::bases<Resource>(),
+            "set_uniform", [](Shader& shader, const std::string& name, sol::object value) {
+                shader.Bind();
+                if (value.is<bool>()) {
+                    shader.setBool(name, value.as<bool>());
+                } else if (value.is<int>()) {
+                    shader.setInt(name, value.as<int>());
+                } else if (value.is<float>()) {
+                    shader.setFloat(name, value.as<float>());
+                } else if (value.is<glm::vec2>()) {
+                    shader.setVec2(name, value.as<glm::vec2>());
+                } else if (value.is<glm::vec3>()) {
+                    shader.setVec3(name, value.as<glm::vec3>());
+                } else if (value.is<glm::vec4>()) {
+                    shader.setVec4(name, value.as<glm::vec4>());
+                } else if (value.is<glm::mat2>()) {
+                    shader.setMat2(name, value.as<glm::mat2>());
+                } else if (value.is<glm::mat3>()) {
+                    shader.setMat3(name, value.as<glm::mat3>());
+                } else if (value.is<glm::mat4>()) {
+                    shader.setMat4(name, value.as<glm::mat4>());
+                } else {
+                    throw std::runtime_error("Unsupported uniform type");
+                }
+                shader.Unbind();
+            }
         );
 
         // Model class binding (inherits from Resource)
