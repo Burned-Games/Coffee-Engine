@@ -29,7 +29,7 @@ uniform float filterRadius; // Radius for upsampling
 uniform int mipmapLevel;
 uniform int sourceTextureScale;
 
-uniform float bloomStrength; // Strength of the bloom effect
+uniform float bloomIntensity; // Intensity of the bloom effect
 
 #define MODE_COPY 0
 #define MODE_DOWNSAMPLING 1
@@ -126,7 +126,7 @@ void main()
         vec2 texelSize = 1.0 / vec2(textureSize(upsamplingTexture, prevMip));
 
         // Upsample from previous mip at the current UV
-        vec3 upsampled = UpsampleTent9(upsamplingTexture, prevMip, uv, texelSize, 1.0f);
+        vec3 upsampled = UpsampleTent9(upsamplingTexture, prevMip, uv, texelSize, filterRadius);
 
         // Sample the current downsampled mip at the current UV
         vec3 downsampled = textureLod(downsamplingTexture, uv, mipmapLevel).rgb;
@@ -140,7 +140,7 @@ void main()
         vec3 upsampled = textureLod(upsamplingTexture, TexCoord, 0).rgb;
         vec3 source = textureLod(sourceTexture, TexCoord, 0).rgb;
 
-        FragColor.rgb = mix(source, upsampled, bloomStrength);
+        FragColor.rgb = mix(source, upsampled, bloomIntensity);
         FragColor.a = 1.0f;
     }
     else

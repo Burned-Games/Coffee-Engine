@@ -605,6 +605,7 @@ namespace Coffee {
             s_BloomShader->setInt("mode", 0); // 0 for copy
             s_BloomShader->setInt("mipmapLevel", 0); // Use mip level 0 for the initial copy
             s_BloomShader->setInt("sourceTextureScale", 0);
+            s_BloomShader->setFloat("bloomIntensity", s_RenderSettings.BloomIntensity);
 
             s_BloomFramebuffer->AttachColorTexture(0, s_BloomDownsampleTexture, 0);
             s_BloomFramebuffer->Bind();
@@ -615,7 +616,7 @@ namespace Coffee {
             RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
             // Downsampling Passes
-            int maxMipLevel = 6; // Number of downsampling passes
+            int maxMipLevel = s_RenderSettings.BloomMaxMipLevels; // Number of downsampling passes
             for (int mip = 1; mip < maxMipLevel; mip++)
             {
                 // Resize the bloom downsample texture for the current mip level
@@ -651,7 +652,7 @@ namespace Coffee {
 
             RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
-            s_BloomShader->setFloat("filterRadius", 0.05f); // Set a filter radius for the bloom effect
+            s_BloomShader->setFloat("filterRadius", s_RenderSettings.BloomRadius); // Set a filter radius for the bloom effect
 
             // Upsampling Passes
             for (int mip = maxMipLevel - 2; mip >= 0; --mip)

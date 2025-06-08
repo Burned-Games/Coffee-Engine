@@ -99,10 +99,9 @@ namespace Coffee {
         float FogHeightDensity = 0.0f; ///< Fog height density.
 
         bool Bloom = true; ///< Enable or disable bloom.
-        float BloomThreshold = 1.0f; ///< Bloom threshold.
-        float BloomIntensity = 1.0f; ///< Bloom intensity.
+        float BloomIntensity = 0.1f; ///< Bloom intensity.
         float BloomRadius = 1.0f; ///< Bloom radius.
-        float BloomScale = 1.0f; ///< Bloom scale.
+        int BloomMaxMipLevels = 5; ///< Maximum number of mip levels for bloom.
 
         bool FXAA = true; ///< Enable or disable FXAA.
 
