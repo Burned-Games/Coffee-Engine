@@ -28,8 +28,8 @@ uniform sampler2D upsamplingTexture;
 uniform float filterRadius; // Radius for upsampling
 uniform int mipmapLevel;
 uniform int sourceTextureScale;
-/* uniform int upsampleMipLevel;   // Mip level to upsample from (higher mip, lower res)
-uniform int downsampleMipLevel; // Mip level to blend with (current mip, output res) */
+
+uniform float bloomStrength; // Strength of the bloom effect
 
 #define MODE_COPY 0
 #define MODE_DOWNSAMPLING 1
@@ -114,16 +114,6 @@ void main()
         vec2 texelSize = 1.0f / textureSize(downsamplingTexture, mipmapLevel);
         FragColor.rgb = DownsampleBox13(downsamplingTexture, mipmapLevel - 1, gl_FragCoord.xy / vec2(textureSize(downsamplingTexture, mipmapLevel)), texelSize);
         FragColor.a = 1.0f;
-
-/*          vec3 mipColor = vec3(1.0); // default white
-        if (mipmapLevel == 0) mipColor = vec3(1.0, 0.0, 0.0);      // Red
-        else if (mipmapLevel == 1) mipColor = vec3(0.0, 1.0, 0.0); // Green
-        else if (mipmapLevel == 2) mipColor = vec3(0.0, 0.0, 1.0); // Blue
-        else if (mipmapLevel == 3) mipColor = vec3(1.0, 1.0, 0.0); // Yellow
-        else if (mipmapLevel == 4) mipColor = vec3(1.0, 0.0, 1.0); // Magenta
-
-        FragColor.rgb = mipColor; // Use mipColor for visualization
-        FragColor.a = 1.0f; // Set alpha to 1.0 for visibility */
     }
     else if (mode == MODE_UPSAMPLING)
     {
@@ -141,7 +131,7 @@ void main()
         // Sample the current downsampled mip at the current UV
         vec3 downsampled = textureLod(downsamplingTexture, uv, mipmapLevel).rgb;
 
-        FragColor.rgb = mix(upsampled, downsampled, 0.5f); // Blend the two
+        FragColor.rgb = upsampled + downsampled;
         FragColor.a = 1.0f;
     }
     else if (mode == MODE_COMPOSITION)
@@ -150,7 +140,7 @@ void main()
         vec3 upsampled = textureLod(upsamplingTexture, TexCoord, 0).rgb;
         vec3 source = textureLod(sourceTexture, TexCoord, 0).rgb;
 
-        FragColor.rgb = mix(upsampled, source, 0.5f); // Blend the upsampled texture with the source texture
+        FragColor.rgb = mix(source, upsampled, bloomStrength);
         FragColor.a = 1.0f;
     }
     else
