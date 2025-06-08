@@ -19,6 +19,8 @@ void main()
 
 layout (location = 0) out vec4 FragColor;
 
+in vec2 TexCoord;
+
 uniform sampler2D sourceTexture;
 uniform sampler2D downsamplingTexture;
 uniform sampler2D upsamplingTexture;
@@ -32,6 +34,7 @@ uniform int downsampleMipLevel; // Mip level to blend with (current mip, output 
 #define MODE_COPY 0
 #define MODE_DOWNSAMPLING 1
 #define MODE_UPSAMPLING 2
+#define MODE_COMPOSITION 3
 
 uniform int mode;
 
@@ -114,18 +117,34 @@ void main()
     }
     else if (mode == MODE_UPSAMPLING)
     {
-        // Sample from previous mip level for upsampling
         int prevMip = mipmapLevel + 1;
-        vec2 texelSize = 1.0f / textureSize(upsamplingTexture, prevMip);
+
+        // Calculate UVs in [0,1] for the current mip (higher res)
         vec2 uv = gl_FragCoord.xy / vec2(textureSize(upsamplingTexture, mipmapLevel));
 
-        // Upsample from previous mip
-        vec3 upsampledTexture = UpsampleTent9(upsamplingTexture, prevMip, uv, texelSize, 1.0f);
+        // Calculate texel size for the previous mip (lower res)
+        vec2 texelSize = 1.0 / vec2(textureSize(upsamplingTexture, prevMip));
 
-        // Add current downsampled mip
-        vec3 currentDownsampledMip = textureLod(downsamplingTexture, uv, mipmapLevel).rgb;
+        // Upsample from previous mip at the current UV
+        vec3 upsampled = UpsampleTent9(upsamplingTexture, prevMip, uv, texelSize, 1.0f);
 
-        FragColor.rgb = currentDownsampledMip + upsampledTexture;
+        // Sample the current downsampled mip at the current UV
+        vec3 downsampled = textureLod(downsamplingTexture, uv, mipmapLevel).rgb;
+
+        FragColor.rgb = mix(upsampled, downsampled, 0.5f); // Blend the two
         FragColor.a = 1.0f;
+    }
+    else if (mode == MODE_COMPOSITION)
+    {
+        // Blend the upsampled texture with the source texture
+        vec3 upsampled = textureLod(upsamplingTexture, TexCoord, 0).rgb;
+        vec3 source = textureLod(sourceTexture, TexCoord, 0).rgb;
+
+        FragColor.rgb = mix(upsampled, source, 0.5f); // Blend the upsampled texture with the source texture
+        FragColor.a = 1.0f;
+    }
+    else
+    {
+        FragColor = vec4(0.0f); // Fallback to black if mode is invalid
     }
 }
