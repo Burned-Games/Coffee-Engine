@@ -456,7 +456,6 @@ namespace Coffee {
 
             // Bloom
             Renderer3D::GetRenderSettings().Bloom = firstWorldEnv.Bloom;
-            // Renderer3D::GetRenderSettings().BloomThreshold = firstWorldEnv.BloomThreshold;
             Renderer3D::GetRenderSettings().BloomIntensity = firstWorldEnv.BloomIntensity;
             Renderer3D::GetRenderSettings().BloomRadius = firstWorldEnv.BloomRadius;
             Renderer3D::GetRenderSettings().BloomMaxMipLevels = firstWorldEnv.BloomMaxMipLevels;
