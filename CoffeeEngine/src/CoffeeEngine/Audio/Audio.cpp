@@ -74,6 +74,9 @@ namespace Coffee
         {
             UnregisterAudioListenerComponent(*audioListener);
         }
+
+        audioSources.clear();
+        audioListeners.clear();
     }
 
     void Audio::Set3DPosition(uint64_t gameObjectID, glm::vec3 pos, glm::vec3 forward, glm::vec3 up)
@@ -132,7 +135,7 @@ namespace Coffee
                 return;
         }
 
-        if (audioSourceComponent.gameObjectID == -1)
+        if (audioSourceComponent.gameObjectID == 0)
             audioSourceComponent.gameObjectID = UUID();
 
         audioSources.push_back(&audioSourceComponent);
@@ -145,14 +148,17 @@ namespace Coffee
         if (!audioSourceComponent.eventName.empty() && audioSourceComponent.isPlaying)
             StopEvent(audioSourceComponent);
 
-        audioSourceComponent.toDelete = true;
-
         AudioZone::UnregisterObject(audioSourceComponent.gameObjectID);
 
         UnregisterGameObject(audioSourceComponent.gameObjectID);
 
-        auto it = std::ranges::find(audioSources, &audioSourceComponent);
-        audioSources.erase(it);
+        auto it = std::ranges::find_if(audioSources,
+           [&](const AudioSourceComponent* source) {
+               return source->gameObjectID == audioSourceComponent.gameObjectID;
+           });
+
+        if (it != audioSources.end())
+            audioSources.erase(it);
     }
 
     void Audio::RegisterAudioListenerComponent(AudioListenerComponent& audioListenerComponent)
@@ -163,7 +169,7 @@ namespace Coffee
                 return;
         }
 
-        if (audioListenerComponent.gameObjectID == -1)
+        if (audioListenerComponent.gameObjectID == 0)
             audioListenerComponent.gameObjectID = UUID();
 
         audioListeners.push_back(&audioListenerComponent);
@@ -176,10 +182,13 @@ namespace Coffee
     {
         UnregisterGameObject(audioListenerComponent.gameObjectID);
 
-        audioListenerComponent.toDelete = true;
+        auto it = std::ranges::find_if(audioListeners,
+           [&](const AudioListenerComponent* source) {
+               return source->gameObjectID == audioListenerComponent.gameObjectID;
+           });
 
-        auto it = std::ranges::find(audioListeners, &audioListenerComponent);
-        audioListeners.erase(it);
+        if (it != audioListeners.end())
+            audioListeners.erase(it);
     }
 
     void Audio::PlayInitialAudios()
@@ -198,6 +207,8 @@ namespace Coffee
             if (audioSource->isPlaying)
                 StopEvent(*audioSource);
         }
+
+        AK::SoundEngine::StopAll();
     }
 
     void Audio::SetBusVolume(const char* busName, float volume)
@@ -233,7 +244,7 @@ namespace Coffee
 
     void Audio::ProcessAudio()
     {
-        AudioZone::Update();
+        //AudioZone::Update();
 
         AK::SoundEngine::RenderAudio();
     }

@@ -55,12 +55,14 @@ namespace Coffee {
         CopyComponentToPrefab<UIButtonComponent>(sourceEntity, destEntity);
         CopyComponentToPrefab<UISliderComponent>(sourceEntity, destEntity);
         CopyComponentToPrefab<UIComponent>(sourceEntity, destEntity);
-
         
         // Copy empty components (which don't need values)
         CopyEmptyComponentToPrefab<StaticComponent>(sourceEntity, destEntity);
         CopyEmptyComponentToPrefab<ActiveComponent>(sourceEntity, destEntity);
         
+        if (!sourceEntity.HasComponent<ActiveComponent>())
+            m_Registry.remove<ActiveComponent>(destEntity);
+
         // Process children - this part remains unchanged
         std::vector<Entity> children = sourceEntity.GetChildren();
         for (auto& child : children)
@@ -141,7 +143,17 @@ namespace Coffee {
             
             // Create a copy of the mesh component
             MeshComponent newMeshComp = meshComp;
-            
+
+            if (!newMeshComp.GetMesh())
+            {
+                COFFEE_CORE_ERROR("Prefab::CopyEntityToScene: Failed to load mesh for prefab entity");
+            }
+
+            if (!newMeshComp.GetMesh()->GetVertexArray())
+            {
+                COFFEE_CORE_ERROR("Prefab::CopyEntityToScene: Mesh has invalid vertex array for prefab entity");
+            }
+
             // Update animator UUID if needed
             if (meshComp.animatorUUID != UUID())
             {
@@ -228,7 +240,7 @@ namespace Coffee {
         
                 auto& newComponent = entity.AddComponent<RigidbodyComponent>(props, collider);
         
-                newComponent.callback = rbComponent.callback;
+                newComponent = rbComponent;
         
                 // Set initial transform
                 auto& transform = entity.GetComponent<TransformComponent>();
@@ -249,13 +261,32 @@ namespace Coffee {
                 }
             }
         }
+
+        if (m_Registry.all_of<AudioSourceComponent>(prefabEntity))
+        {
+            const auto& audioSourceComp = m_Registry.get<AudioSourceComponent>(prefabEntity);
+            AudioSourceComponent newAudioSourceComp = AudioSourceComponent::CreateCopy(audioSourceComp);
+            entity.AddComponent<AudioSourceComponent>(newAudioSourceComp);
+
+            auto& audioSourceComponent = entity.GetComponent<AudioSourceComponent>();
+            Audio::RegisterAudioSourceComponent(audioSourceComponent);
+            AudioZone::RegisterObject(audioSourceComponent.gameObjectID, audioSourceComponent.transform[3]);
+        }
+
+        if (m_Registry.all_of<AudioListenerComponent>(prefabEntity))
+        {
+            const auto& audioListenerComp = m_Registry.get<AudioListenerComponent>(prefabEntity);
+            AudioListenerComponent newAudioListenerComp = AudioListenerComponent::CreateCopy(audioListenerComp);
+            entity.AddComponent<AudioListenerComponent>(newAudioListenerComp);
+
+            auto& audioListenerComponent = entity.GetComponent<AudioListenerComponent>();
+            Audio::RegisterAudioListenerComponent(audioListenerComponent);
+        }
         
         // Copy standard components
         CopyComponentToScene<MaterialComponent>(scene, prefabEntity, entity);
         CopyComponentToScene<LightComponent>(scene, prefabEntity, entity);
         CopyComponentToScene<ParticlesSystemComponent>(scene, prefabEntity, entity);
-        CopyComponentToScene<AudioSourceComponent>(scene, prefabEntity, entity);
-        CopyComponentToScene<AudioListenerComponent>(scene, prefabEntity, entity);
         CopyComponentToScene<AudioZoneComponent>(scene, prefabEntity, entity);
         CopyComponentToScene<NavigationAgentComponent>(scene, prefabEntity, entity);
         CopyComponentToScene<NavMeshComponent>(scene, prefabEntity, entity);
@@ -281,6 +312,9 @@ namespace Coffee {
             entity.AddComponent<ActiveComponent>();
         }
         */
+
+        if (!m_Registry.all_of<ActiveComponent>(prefabEntity))
+            entity.RemoveComponent<ActiveComponent>();
 
         if (parent)
         {

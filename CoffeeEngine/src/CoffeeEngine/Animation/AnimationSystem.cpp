@@ -41,7 +41,8 @@ namespace Coffee {
 
         if (upperBodyRootIndex < 0)
         {
-            std::cerr << "Failed to find upper body root joint: " << upperBodyJointName << std::endl;
+            std::string error = std::string("OZZ: FFailed to find upper body root joint: ") + upperBodyJointName;
+            COFFEE_CORE_ERROR(error);
             return;
         }
 
@@ -106,7 +107,7 @@ namespace Coffee {
 
         if (!upperBodyCurrentAnim || !lowerBodyCurrentAnim)
         {
-            std::cerr << "Invalid animations for partial blending" << std::endl;
+            COFFEE_CORE_ERROR("OZZ: Invalid animations for partial blending");
             return;
         }
 
@@ -131,7 +132,8 @@ namespace Coffee {
 
         if (!animator->GetBlendJob().Run())
         {
-            std::cerr << "Failed to blend partial animations" << std::endl;
+            COFFEE_CORE_ERROR("OZZ: Failed to blend partial animations");
+
             return;
         }
 
@@ -176,7 +178,7 @@ namespace Coffee {
 
             if (!currentSamplingJob.Run())
             {
-                std::cerr << "Failed to sample current animation" << std::endl;
+                COFFEE_CORE_ERROR("OZZ: Failed to sample current animation");
                 return;
             }
 
@@ -193,7 +195,7 @@ namespace Coffee {
 
             if (!nextSamplingJob.Run())
             {
-                std::cerr << "Failed to sample next animation" << std::endl;
+                COFFEE_CORE_ERROR("OZZ: Failed to sample next animation");
                 return;
             }
 
@@ -215,7 +217,7 @@ namespace Coffee {
 
             if (!transitionBlendJob.Run())
             {
-                std::cerr << "Failed to blend animations during transition" << std::endl;
+                COFFEE_CORE_ERROR("OZZ: Failed to blend animations during transition");
                 return;
             }
         }
@@ -229,7 +231,7 @@ namespace Coffee {
 
             if (!samplingJob.Run())
             {
-                std::cerr << "Failed to sample animation" << std::endl;
+                COFFEE_CORE_ERROR("OZZ: Failed to sample animation");
                 return;
             }
         }
@@ -239,7 +241,7 @@ namespace Coffee {
     {
         if (currentTransforms.size() != nextTransforms.size())
         {
-            std::cerr << "Cannot blend transforms with different sizes" << std::endl;
+            COFFEE_CORE_ERROR("OZZ: Cannot blend transforms with different sizes");
             return;
         }
 
@@ -256,7 +258,9 @@ namespace Coffee {
         blendingJob.threshold = 0.01f;
 
         if (!blendingJob.Run())
-            std::cerr << "Failed to blend transforms" << std::endl;
+        {
+            COFFEE_CORE_ERROR("OZZ: Failed to blend transforms");
+        }
     }
 
     void AnimationSystem::UpdateBlending(float deltaTime, const AnimatorComponent* animator, AnimationLayer* layer)
@@ -294,7 +298,7 @@ namespace Coffee {
 
         if (!samplingJob.Run())
         {
-            std::cerr << "Failed to sample animation" << std::endl;
+            COFFEE_CORE_ERROR("OZZ: Failed to sample animation");
         }
 
         return localTransforms;
@@ -312,7 +316,7 @@ namespace Coffee {
 
         if (!localToModelJob.Run())
         {
-            std::cerr << "Failed to convert local to model transforms" << std::endl;
+            COFFEE_CORE_ERROR("OZZ: Failed to convert local to model transforms");
             std::fill(animator->JointMatrices.begin(), animator->JointMatrices.end(), glm::mat4(1.0f));
         }
 

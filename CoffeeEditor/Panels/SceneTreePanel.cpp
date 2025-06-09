@@ -156,7 +156,7 @@ namespace Coffee
                     {
                         const Entity instance = prefab->Instantiate(m_Context.get());
                         SetSelectedEntity(instance);
-                        
+
                         COFFEE_CORE_INFO("Instantiated prefab: {0}", prefab->GetPath().string());
                     }
                     break;
@@ -172,18 +172,18 @@ namespace Coffee
             {
                 const char* pathStr = (const char*)prefabPayload->Data;
                 std::filesystem::path prefabPath = pathStr;
-                
+
                 // Load the prefab now that it's being used
                 Ref<Prefab> prefab = Prefab::Load(prefabPath);
                 if (prefab)
                 {
                     Entity instance = prefab->Instantiate(m_Context.get());
                     SetSelectedEntity(instance);
-                    
+
                     COFFEE_CORE_INFO("Instantiated prefab: {0}", prefabPath.string());
                 }
             }
-            
+
             ImGui::EndDragDropTarget();
         }
 
@@ -207,11 +207,11 @@ namespace Coffee
     {
         auto& entityNameTag = entity.GetComponent<TagComponent>().Tag;
         auto& hierarchyComponent = entity.GetComponent<HierarchyComponent>();
-    
+
         ImGuiTreeNodeFlags flags = ((m_SelectionContext == entity) ? ImGuiTreeNodeFlags_Selected : 0) |
                                    ((!drawChildren || hierarchyComponent.m_First == entt::null) ? ImGuiTreeNodeFlags_Leaf : 0) |
                                    ((drawChildren) ? ImGuiTreeNodeFlags_OpenOnArrow : 0) | ImGuiTreeNodeFlags_FramePadding;
-        
+
         bool isActive = entity.IsActive();
         const char* icon = isActive ? ICON_LC_EYE : ICON_LC_EYE_OFF;
         std::string buttonId = "##Active" + std::to_string((uint32_t)entity);
@@ -240,7 +240,7 @@ namespace Coffee
 
         // Draw the tree node first, so ImGui sets up the proper indentation
         bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(uint32_t)entity, flags, entityNameTag.c_str());
-    
+
         if (ImGui::IsItemClicked())
         {
             m_SelectionContext = entity;
@@ -265,10 +265,10 @@ namespace Coffee
             }
             ImGui::EndPopup();
         }
-    
+
         // Code of Double clicking the item for changing the name (WIP)
         ImVec2 itemSize = ImGui::GetItemRectSize();
-    
+
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
         {
             ImVec2 popupPos = ImGui::GetItemRectMin();
@@ -276,9 +276,9 @@ namespace Coffee
             ImGui::SetNextWindowPos({popupPos.x + indent, popupPos.y});
             ImGui::OpenPopup("EntityPopup");
         }
-    
+
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    
+
         if (ImGui::BeginPopup("EntityPopup" /*, ImGuiWindowFlags_NoBackground*/))
         {
             auto buff = entity.GetComponent<TagComponent>().Tag.c_str();
@@ -286,9 +286,9 @@ namespace Coffee
             ImGui::InputText("##entity-name", (char*)buff, 128);
             ImGui::EndPopup();
         }
-    
+
         ImGui::PopStyleVar();
-    
+
         if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
         {
             ImGui::SetDragDropPayload("ENTITY_NODE", &entity,
@@ -296,7 +296,7 @@ namespace Coffee
             ImGui::Text("%s", entityNameTag.c_str());
             ImGui::EndDragDropSource();
         }
-    
+
         if (ImGui::BeginDragDropTarget())
         {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_NODE"))
@@ -311,23 +311,23 @@ namespace Coffee
             }
             ImGui::EndDragDropTarget();
         }
-    
+
         // Calculate the eye icon position based on current indentation level
         // This fixes the issue where eye icon moves left when entity becomes a child
-        float iconPosition = ImGui::GetWindowContentRegionMax().x - 
-                             ImGui::CalcTextSize(icon).x - 
+        float iconPosition = ImGui::GetWindowContentRegionMax().x -
+                             ImGui::CalcTextSize(icon).x -
                              ImGui::GetStyle().FramePadding.x * 2.0f;
-    
+
         // Set cursor position to align icon to the right
         float currentX = ImGui::GetCursorPosX();
         ImGui::SameLine();
         ImGui::SetCursorPosX(iconPosition);
-    
+
         // Style the icon button
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.4f, 0.4f, 0.8f));
-    
+
         // Create button with just the icon
         if (ImGui::Button((icon + buttonId).c_str()))
         {
@@ -335,10 +335,10 @@ namespace Coffee
             isActive = !isActive;
             entity.SetActive(isActive);
         }
-    
+
         // Restore original style
         ImGui::PopStyleColor(3);
-    
+
         if (opened)
         {
             if (drawChildren && hierarchyComponent.m_First != entt::null)
@@ -576,31 +576,31 @@ namespace Coffee
         if (entity.HasComponent<TagComponent>())
         {
             auto& entityNameTag = entity.GetComponent<TagComponent>().Tag;
-        
+
             ImGui::Text(ICON_LC_TAG " Tag");
             ImGui::SameLine();
-        
+
             // Make the tag input field smaller to accommodate the "Static" checkbox
             float availableWidth = ImGui::GetContentRegionAvail().x;
             float tagInputWidth = availableWidth * 0.7f; // Use 70% of the width for the tag input
-        
+
             // Set the width of the input field
             ImGui::PushItemWidth(tagInputWidth);
-        
+
             char buffer[256];
             memset(buffer, 0, sizeof(buffer));
             strcpy(buffer, entityNameTag.c_str());
-        
+
             if (ImGui::InputText("##", buffer, sizeof(buffer)))
             {
                 entityNameTag = std::string(buffer);
             }
-            
+
             ImGui::PopItemWidth();
-        
+
             // Add a small space
             ImGui::SameLine();
-            
+
             // Add the "Static" checkbox
             bool isStatic = entity.HasComponent<StaticComponent>();
             if (ImGui::Checkbox("Static", &isStatic))
@@ -643,7 +643,7 @@ namespace Coffee
                     std::function<void(Entity)> SetStaticRecursively = [&](Entity currentEntity) {
                         if (!currentEntity.HasComponent<StaticComponent>())
                             currentEntity.AddComponent<StaticComponent>();
-                
+
                         // Recursively handle children
                         auto children = currentEntity.GetChildren();
                         for (auto& child : children)
@@ -651,7 +651,7 @@ namespace Coffee
                             SetStaticRecursively(child);
                         }
                     };
-                
+
                     SetStaticRecursively(entity);
 
                     ImGui::CloseCurrentPopup();
@@ -696,7 +696,7 @@ namespace Coffee
                 }
                 ImGui::EndPopup();
             }
-        
+
             ImGui::Separator();
         }
 
@@ -874,6 +874,14 @@ namespace Coffee
                     ImGui::Text("Attenuation");
                     ImGui::DragFloat("##Attenuation", &lightComponent.Attenuation, 0.1f);
                 }
+                if(lightComponent.type == LightComponent::Type::SpotLight)
+                {
+                    ImGui::Text("Angle");
+                    ImGui::DragFloat("##Angle", &lightComponent.Angle, 0.1f);
+
+                    ImGui::Text("Cone Attenuation");
+                    ImGui::DragFloat("##Cone Attenuation", &lightComponent.ConeAttenuation, 0.1f);
+                }
                 if (!isCollapsingHeaderOpen)
                 {
                     entity.RemoveComponent<LightComponent>();
@@ -964,7 +972,7 @@ namespace Coffee
                     ImGui::SameLine();
                     float intensityPlaceholder = 1.0f;
                     ImGui::DragFloat("##Skybox Intensity", /* worldEnvironmentComponent.SkyboxIntensity */&intensityPlaceholder, 0.001f, 100.0f);
-                    
+
                     ImGui::TreePop();
                 }
                 if(ImGui::TreeNode("Tonemap"))
@@ -1230,7 +1238,7 @@ namespace Coffee
                             ImGui::SameLine();
                             ImGui::SliderFloat("##AlphaCutoff", &materialRenderSettings.alphaCutoff, 0.0f, 1.0f);
                         }
-                        
+
                         ImGui::Text("Cull Mode");
                         ImGui::SameLine();
                         ImGui::Combo("##CullMode", (int*)&materialRenderSettings.cullMode,
@@ -1333,10 +1341,45 @@ namespace Coffee
                 else if (materialComponent.material->GetType() == ResourceType::ShaderMaterial)
                 {
                     ShaderMaterial& shaderMaterial = *std::static_pointer_cast<ShaderMaterial>(materialComponent.material);
+                    MaterialRenderSettings& materialRenderSettings = shaderMaterial.GetRenderSettings();
+
+                    if (ImGui::TreeNode("Render Settings"))
+                    {
+                        ImGui::BeginChild("##RenderSettings Child", {0, 0},
+                                            ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+
+                        ImGui::Text("Transparency");
+                        ImGui::SameLine();
+                        ImGui::Combo("##Transparency", (int*)&materialRenderSettings.transparencyMode,
+                                        "Disabled\0Alpha\0AlphaCutoff\0");
+
+                        if (materialRenderSettings.transparencyMode == MaterialRenderSettings::TransparencyMode::AlphaCutoff)
+                        {
+                            ImGui::Text("Alpha Cutoff");
+                            ImGui::SameLine();
+                            ImGui::SliderFloat("##AlphaCutoff", &materialRenderSettings.alphaCutoff, 0.0f, 1.0f);
+                        }
+
+                        ImGui::Text("Cull Mode");
+                        ImGui::SameLine();
+                        ImGui::Combo("##CullMode", (int*)&materialRenderSettings.cullMode,
+                                        "Front\0Back\0None\0");
+
+                        ImGui::Text("Depth Test");
+                        ImGui::SameLine();
+                        ImGui::Checkbox("##DepthTest", &materialRenderSettings.depthTest);
+
+                        ImGui::Text("Wireframe");
+                        ImGui::SameLine();
+                        ImGui::Checkbox("##Wireframe", &materialRenderSettings.wireframe);
+
+                        ImGui::EndChild();
+                        ImGui::TreePop();
+                    }
                     ImGui::Text("Shader");
                     ImGui::SameLine();
                     std::string shaderName = shaderMaterial.GetShader() ? shaderMaterial.GetShader()->GetName() : "<Empty>";
-                    
+
                     static bool LoadShaderPopupOpen = false;
 
                     if (ImGui::Button(shaderName.c_str(), {64, 32}))
@@ -1345,7 +1388,7 @@ namespace Coffee
                         {
                             LoadShaderPopupOpen = true;
                         }
-                        else 
+                        else
                         {
                             SDL_OpenURL(("file://" + std::filesystem::absolute(shaderMaterial.GetShader()->GetPath()).string()).c_str());
                         }
@@ -1423,11 +1466,11 @@ namespace Coffee
                 if(materialComponent.material and ImGui::TreeNode("Resource"))
                 {
                     bool embedded = materialComponent.material->IsEmbedded();
-                    ImGui::Checkbox("Embedded", &embedded);
-                    if (embedded != materialComponent.material->IsEmbedded())
+                    if (ImGui::Checkbox("Embedded", &embedded))
                     {
                         materialComponent.material->SetEmbedded(embedded);
                     }
+
                     ImGui::Text("Path: %s", materialComponent.material->GetPath().string().c_str());
                     ImGui::Text("UUID: %s", std::to_string(materialComponent.material->GetUUID()).c_str());
 
@@ -1847,7 +1890,7 @@ namespace Coffee
                                         Ref<BoxCollider> newCollider = CreateRef<BoxCollider>(size);
 
                                         newCollider->setOffset(currentCollider->getOffset());
-                                        
+
                                         // Store current rigidbody properties
                                         RigidBody::Properties props = rbComponent.rb->GetProperties();
                                         glm::vec3 position = rbComponent.rb->GetPosition();
@@ -1882,7 +1925,7 @@ namespace Coffee
                                         Ref<Collider> newCollider = CreateRef<SphereCollider>(radius);
 
                                         newCollider->setOffset(currentCollider->getOffset());
-                                        
+
                                         // Store current rigidbody properties
                                         RigidBody::Properties props = rbComponent.rb->GetProperties();
                                         glm::vec3 position = rbComponent.rb->GetPosition();
@@ -1931,22 +1974,22 @@ namespace Coffee
                                         Ref<Collider> newCollider = CreateRef<CapsuleCollider>(radius, cylinderHeight);
 
                                         newCollider->setOffset(currentCollider->getOffset());
-                                        
+
                                         // Store current rigidbody properties
                                         RigidBody::Properties props = rbComponent.rb->GetProperties();
                                         glm::vec3 position = rbComponent.rb->GetPosition();
                                         glm::vec3 rotation = rbComponent.rb->GetRotation();
                                         glm::vec3 velocity = rbComponent.rb->GetVelocity();
-                                        
+
                                         // Remove from physics world
                                         m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-                                        
+
                                         // Create new rigidbody with new collider
                                         rbComponent.rb = RigidBody::Create(props, newCollider);
                                         rbComponent.rb->SetPosition(position);
                                         rbComponent.rb->SetRotation(rotation);
                                         rbComponent.rb->SetVelocity(velocity);
-                                        
+
                                         // Add back to physics world
                                         m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
                                         rbComponent.rb->GetNativeBody()->setUserPointer(
@@ -1960,34 +2003,34 @@ namespace Coffee
                                 if (coneCollider) {
                                     float radius = coneCollider->GetRadius();
                                     float height = coneCollider->GetHeight();
-                                    
+
                                     ImGui::Text("Radius");
                                     bool radiusChanged = ImGui::DragFloat("##ConeRadius", &radius, 0.1f, 0.01f, 100.0f);
-                                    
+
                                     ImGui::Text("Height");
                                     bool heightChanged = ImGui::DragFloat("##ConeHeight", &height, 0.1f, 0.01f, 100.0f);
-                                    
+
                                     if (radiusChanged || heightChanged) {
                                         // Create new cone collider with updated parameters
                                         Ref<Collider> newCollider = CreateRef<ConeCollider>(radius, height);
 
                                         newCollider->setOffset(currentCollider->getOffset());
-                                        
+
                                         // Store current rigidbody properties
                                         RigidBody::Properties props = rbComponent.rb->GetProperties();
                                         glm::vec3 position = rbComponent.rb->GetPosition();
                                         glm::vec3 rotation = rbComponent.rb->GetRotation();
                                         glm::vec3 velocity = rbComponent.rb->GetVelocity();
-                                        
+
                                         // Remove from physics world
                                         m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-                                        
+
                                         // Create new rigidbody with new collider
                                         rbComponent.rb = RigidBody::Create(props, newCollider);
                                         rbComponent.rb->SetPosition(position);
                                         rbComponent.rb->SetRotation(rotation);
                                         rbComponent.rb->SetVelocity(velocity);
-                                        
+
                                         // Add back to physics world
                                         m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
                                         rbComponent.rb->GetNativeBody()->setUserPointer(
@@ -2001,19 +2044,19 @@ namespace Coffee
                                 if (cylinderCollider) {
                                     float radius = cylinderCollider->GetRadius();
                                     float height = cylinderCollider->GetHeight();
-                                    
+
                                     ImGui::Text("Radius");
                                     bool radiusChanged = ImGui::DragFloat("##CylinderRadius", &radius, 0.1f, 0.01f, 100.0f);
-                                    
+
                                     ImGui::Text("Height");
                                     bool heightChanged = ImGui::DragFloat("##CylinderHeight", &height, 0.1f, 0.01f, 100.0f);
-                                    
+
                                     if (radiusChanged || heightChanged) {
                                         // Create new cylinder collider with updated parameters
                                         Ref<Collider> newCollider = CreateRef<CylinderCollider>(radius, height);
 
                                         newCollider->setOffset(currentCollider->getOffset());
-                                        
+
                                         // Store current rigidbody properties
                                         RigidBody::Properties props = rbComponent.rb->GetProperties();
                                         glm::vec3 position = rbComponent.rb->GetPosition();
@@ -2049,19 +2092,19 @@ namespace Coffee
                         glm::vec3 position = rbComponent.rb->GetPosition();
                         glm::vec3 rotation = rbComponent.rb->GetRotation();
                         glm::vec3 velocity = rbComponent.rb->GetVelocity();
-                        
+
                         // Remove from physics world
                         m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-                        
+
                         // Update the collider offset
                         currentCollider->setOffset(offset);
-                        
+
                         // Create new rigidbody with the updated collider
                         rbComponent.rb = RigidBody::Create(props, currentCollider);
                         rbComponent.rb->SetPosition(position);
                         rbComponent.rb->SetRotation(rotation);
                         rbComponent.rb->SetVelocity(velocity);
-                        
+
                         // Add back to physics world
                         m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
                         rbComponent.rb->GetNativeBody()->setUserPointer(reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
@@ -2077,7 +2120,7 @@ namespace Coffee
                             }
                         }
                     }
-                    
+
                     // Add friction and drag controls
                     ImGui::Separator();
                     
@@ -2347,11 +2390,11 @@ namespace Coffee
                 if (ImGui::Checkbox("Show NavMesh", &showComponent))
                 {
                     navMeshComponent.ShowDebug = showComponent;
-                    
+
                     if (showComponent)
                         m_Context->m_SceneDebugFlags.ShowNavMesh = true;
                 }
-                
+
                 ImGui::DragFloat("Walkable Slope Angle", &navMeshComponent.GetNavMesh()->WalkableSlopeAngle, 0.1f, 0.1f, 60.0f);
 
                 if (ImGui::SmallButton("Generate NavMesh"))
@@ -2377,7 +2420,7 @@ namespace Coffee
                 if (ImGui::Checkbox("Show Path", &showComponent))
                 {
                     navigationAgentComponent.ShowDebug = showComponent;
-                    
+
                     if (showComponent)
                         m_Context->m_SceneDebugFlags.ShowNavMeshPath = true;
                 }
@@ -2478,7 +2521,7 @@ namespace Coffee
                 };
 
                 DrawTextureWidget("Texture 2D", spriteComponent.texture);
-                
+
                 ImGui::ColorEdit4("Tint Color", glm::value_ptr(spriteComponent.tintColor));
                 ImGui::DragFloat("Tilling Factor", &spriteComponent.tilingFactor, 0.1, 0);
 
@@ -2486,7 +2529,7 @@ namespace Coffee
                 ImGui::Checkbox("Flip Y", &spriteComponent.flipY);
             }
             ImGui::PopID();
-        
+
         }
 
         if (entity.HasComponent<ParticlesSystemComponent>())
@@ -2680,7 +2723,7 @@ namespace Coffee
                     ImGui::SameLine();
                     ImGui::DragFloat("##ParticlesEmitTest", &emitter->emitParticlesTest, 0.1, 0);
                     if (ImGui::Button("Emit Particles"))
-                    {   
+                    {
                         emitter->Emit(emitter->emitParticlesTest);
                     }
 
@@ -2700,12 +2743,12 @@ namespace Coffee
                         ImGui::Text("Count  ");
                         ImGui::SameLine();
                         ImGui::Text("Interval");
-                        
+
 
                         for (int i = 0; i < emitter->bursts.size(); i++)
                         {
                             Ref<BurstParticleEmitter> burst = emitter->bursts[i];
-                            
+
                             std::string number = std::to_string(i);
 
                             ImGui::DragFloat(("##Time" + number).c_str(), &burst->initialTime, 0.1, 0);
@@ -2720,7 +2763,7 @@ namespace Coffee
                                 emitter->bursts.erase(emitter->bursts.begin() + i);
                                 i--;
                             }
-                           
+
                         }
 
 
@@ -2808,7 +2851,7 @@ namespace Coffee
                             ImGui::PopStyleColor();
                         }
                     }
-                    
+
 
 
                     if (emitter->shape == ParticleEmitter::ShapeType::Box)
@@ -2823,11 +2866,11 @@ namespace Coffee
                     {
                         ImGui::Text("Radius");
                         ImGui::SameLine();
-                        ImGui::DragFloat("##Radius", &emitter->shapeRadius, 0.001f, 0.001f); 
+                        ImGui::DragFloat("##Radius", &emitter->shapeRadius, 0.001f, 0.001f);
 
                         ImGui::Text("Angle");
                         ImGui::SameLine();
-                        ImGui::DragFloat("##Angle", &emitter->shapeAngle, 0.001f, 0.1f, 1.5f); 
+                        ImGui::DragFloat("##Angle", &emitter->shapeAngle, 0.001f, 0.1f, 1.5f);
                         if (emitter->shapeAngle <= 0.099)
                         {
                             emitter->shapeAngle = 0.1f;
@@ -2840,7 +2883,7 @@ namespace Coffee
                         // Control the radius
                         ImGui::Text("Radius");
                         ImGui::SameLine();
-                        ImGui::DragFloat("##Radius", &emitter->shapeRadius, 0.001f, 0.0f); 
+                        ImGui::DragFloat("##Radius", &emitter->shapeRadius, 0.001f, 0.0f);
 
                         ImGui::Text("Radius Thickness");
                         ImGui::SameLine();
@@ -2884,21 +2927,23 @@ namespace Coffee
 
                     if (emitter->velocityOverLifeTimeSeparateAxes)
                     {
-
                         ImGui::Text("Velocity X");
-                        CurveEditor::DrawCurve("Velocity X", emitter->speedOverLifeTimeX);
+                        if (CurveEditor::DrawCurve("Velocity X", emitter->speedOverLifeTimeX))
+                            emitter->InvalidateCurves();
 
                         ImGui::Text("Velocity Y ");
-                        CurveEditor::DrawCurve("Velocity Y", emitter->speedOverLifeTimeY);
+                        if (CurveEditor::DrawCurve("Velocity Y", emitter->speedOverLifeTimeY))
+                            emitter->InvalidateCurves();
 
                         ImGui::Text("Velocity Z");
-                        CurveEditor::DrawCurve("Velocity Z", emitter->speedOverLifeTimeZ);
+                        if (CurveEditor::DrawCurve("Velocity Z", emitter->speedOverLifeTimeZ))
+                            emitter->InvalidateCurves();
                     }
                     else
                     {
-
                         ImGui::Text("Velocity");
-                        CurveEditor::DrawCurve("Velocity", emitter->speedOverLifeTimeGeneral);
+                        if (CurveEditor::DrawCurve("Velocity", emitter->speedOverLifeTimeGeneral))
+                            emitter->InvalidateCurves();
                     }
 
                     // Restore default state
@@ -2939,7 +2984,8 @@ namespace Coffee
                     //     // Open a gradient editor (Needs implementation)
                     // }
 
-                    GradientEditor::ShowGradientEditor(emitter->colorOverLifetime_gradientPoints);
+                    if (GradientEditor::ShowGradientEditor(emitter->colorOverLifetime_gradientPoints))
+                        emitter->InvalidateCurves();
 
                     // Restore default state
                     if (!emitter->useColorOverLifetime)
@@ -2977,18 +3023,22 @@ namespace Coffee
                     if (emitter->sizeOverLifeTimeSeparateAxes)
                     {
                         ImGui::Text("Size X");
-                        CurveEditor::DrawCurve("Size X", emitter->sizeOverLifetimeX);
+                        if (CurveEditor::DrawCurve("Size X", emitter->sizeOverLifetimeX))
+                            emitter->InvalidateCurves();
 
                         ImGui::Text("Size Y");
-                        CurveEditor::DrawCurve("Size Y", emitter->sizeOverLifetimeY);
+                        if (CurveEditor::DrawCurve("Size Y", emitter->sizeOverLifetimeY))
+                            emitter->InvalidateCurves();
 
                         ImGui::Text("Size Z");
-                        CurveEditor::DrawCurve("Size Z", emitter->sizeOverLifetimeZ);
+                        if (CurveEditor::DrawCurve("Size Z", emitter->sizeOverLifetimeZ))
+                            emitter->InvalidateCurves();
                     }
                     else
                     {
                         ImGui::Text("Size");
-                        CurveEditor::DrawCurve("Size", emitter->sizeOverLifetimeGeneral);
+                        if (CurveEditor::DrawCurve("Size", emitter->sizeOverLifetimeGeneral))
+                            emitter->InvalidateCurves();
                     }
 
                     // Restore default state
@@ -3021,15 +3071,18 @@ namespace Coffee
 
                     // Rotation on X axis
                     ImGui::Text("Rotation X");
-                    CurveEditor::DrawCurve("##RotationX", emitter->rotationOverLifetimeX);
+                    if (CurveEditor::DrawCurve("##RotationX", emitter->rotationOverLifetimeX))
+                        emitter->InvalidateCurves();
 
                     // Rotation on Y axis
                     ImGui::Text("Rotation Y");
-                    CurveEditor::DrawCurve("##RotationY", emitter->rotationOverLifetimeZ);
+                    if (CurveEditor::DrawCurve("##RotationY", emitter->rotationOverLifetimeZ))
+                        emitter->InvalidateCurves();
 
                     // Rotation on Z axis
                     ImGui::Text("Rotation Z");
-                    CurveEditor::DrawCurve("##RotationZ", emitter->rotationOverLifetimeY);
+                    if (CurveEditor::DrawCurve("##RotationZ", emitter->rotationOverLifetimeY))
+                        emitter->InvalidateCurves();
 
                     // Restore default state
                     if (!emitter->useRotationOverLifetime)
@@ -3552,7 +3605,7 @@ namespace Coffee
                         entity.AddComponent<ParticlesSystemComponent>();
                         ImGui::CloseCurrentPopup();
                     }
-                }  
+                }
                 else if (items[item_current] == "Rigidbody Component")
                 {
                     if(!entity.HasComponent<RigidbodyComponent>())
@@ -3566,18 +3619,18 @@ namespace Coffee
                             props.useGravity = true;
                             
                             auto& rbComponent = entity.AddComponent<RigidbodyComponent>(props, collider);
-                            
+
                             if (entity.HasComponent<TransformComponent>()) {
                                 auto& transform = entity.GetComponent<TransformComponent>();
                                 rbComponent.rb->SetPosition(transform.GetLocalPosition());
                                 rbComponent.rb->SetRotation(transform.GetLocalRotation());
                             }
-                            
+
                             m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
                             
                             // Set user pointer for collision detection
                             rbComponent.rb->GetNativeBody()->setUserPointer(reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
-                            
+
                             // Try to automatically size the collider to the mesh AABB
                             ResizeColliderToFitMeshAABB(entity, rbComponent);
                         }
@@ -3588,7 +3641,7 @@ namespace Coffee
                             }
                         }
                     }
-                
+
                     ImGui::CloseCurrentPopup();
                 }
                 else if (items[item_current] == "NavMesh Component")
@@ -3686,28 +3739,28 @@ namespace Coffee
         {
             ImGui::Text("Choose the type of material to create:");
             ImGui::Separator();
-    
+
             if (ImGui::Button("PBRMaterial", ImVec2(120, 0)))
             {
                 entity.AddComponent<MaterialComponent>(PBRMaterial::Create("Default PBR Material"));
                 ImGui::CloseCurrentPopup();
             }
-    
+
             ImGui::SameLine();
-    
+
             if (ImGui::Button("ShaderMaterial", ImVec2(120, 0)))
             {
                 entity.AddComponent<MaterialComponent>(ShaderMaterial::Create("Default Shader Material"));
                 ImGui::CloseCurrentPopup();
             }
-    
+
             ImGui::Separator();
-    
+
             if (ImGui::Button("Cancel", ImVec2(240, 0)))
             {
                 ImGui::CloseCurrentPopup();
             }
-    
+
             ImGui::EndPopup();
         } */
 
@@ -3890,52 +3943,52 @@ namespace Coffee
         if (entity.HasComponent<MeshComponent>()) {
             auto& meshComponent = entity.GetComponent<MeshComponent>();
             Ref<Collider> currentCollider = rbComponent.rb->GetCollider();
-            
+
             // Make sure we have both a valid mesh and collider
             if (meshComponent.GetMesh() && currentCollider) {
                 // Get the mesh's AABB
                 const AABB& meshAABB = meshComponent.GetMesh()->GetAABB();
-                
+
                 // Store current rigidbody properties
                 RigidBody::Properties props = rbComponent.rb->GetProperties();
                 glm::vec3 position = rbComponent.rb->GetPosition();
                 glm::vec3 rotation = rbComponent.rb->GetRotation();
                 glm::vec3 velocity = rbComponent.rb->GetVelocity();
-                
+
                 // Remove from physics world
                 m_Context->m_PhysicsWorld.removeRigidBody(rbComponent.rb->GetNativeBody());
-                
+
                 // Resize the collider to fit the mesh AABB
                 rbComponent.rb->ResizeColliderToFitAABB(meshAABB);
-                
+
                 // Add back to physics world
                 m_Context->m_PhysicsWorld.addRigidBody(rbComponent.rb->GetNativeBody());
                 rbComponent.rb->GetNativeBody()->setUserPointer(
                     reinterpret_cast<void*>(static_cast<uintptr_t>((entt::entity)entity)));
-                
+
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     void SceneTreePanel::CreatePrefab(Entity entity)
     {
         if (!entity)
             return;
-            
+
         FileDialogArgs args;
         args.Filters = {{"Prefab", "prefab"}};
         args.DefaultName = entity.GetComponent<TagComponent>().Tag + ".prefab";
         const std::filesystem::path& path = FileDialog::SaveFile(args);
-        
+
         if (path.empty())
             return;
 
         const Ref<Prefab> prefab = Prefab::Create(entity);
         prefab->Save(path);
-        
+
         COFFEE_CORE_INFO("Created prefab: {0}", path.string());
     }
 } // namespace Coffee

@@ -423,6 +423,7 @@ namespace Coffee
         MeshComponent() {}
         MeshComponent(const MeshComponent&) = default;
         MeshComponent(Ref<Mesh> mesh) : mesh(mesh) {}
+        ~MeshComponent() { animator = nullptr; }
 
         /**
          * @brief Gets the mesh reference.
@@ -524,6 +525,7 @@ namespace Coffee
             if (isEmbedded)
             {
                 archive(cereal::make_nvp("Material", material));
+                this->material->SetEmbedded(isEmbedded);
             }
             else
             {
@@ -575,6 +577,7 @@ namespace Coffee
         float Intensity = 1.0f;   ///< The intensity of the light.
 
         float Angle = 45.0f; ///< The angle of the light.
+        float ConeAttenuation = 48.0f; ///< The cone attenuation of the light.
 
         int type = static_cast<int>(Type::DirectionalLight); ///< The type of the light.
 
@@ -593,7 +596,17 @@ namespace Coffee
          */
         template <class Archive> void serialize(Archive& archive, std::uint32_t const version)
         {
-            if (version >= 1)
+            if (version >= 2)
+            {
+                archive(cereal::make_nvp("Color", Color), cereal::make_nvp("Direction", Direction),
+                            cereal::make_nvp("Position", Position), cereal::make_nvp("Range", Range),
+                            cereal::make_nvp("Attenuation", Attenuation), cereal::make_nvp("Intensity", Intensity),
+                            cereal::make_nvp("Angle", Angle), cereal::make_nvp("Type", type),
+                            cereal::make_nvp("Shadow", Shadow), cereal::make_nvp("ShadowBias", ShadowBias),
+                            cereal::make_nvp("ShadowMaxDistance", ShadowMaxDistance),
+                            cereal::make_nvp("ConeAttenuation", ConeAttenuation));
+            }
+            else if (version >= 1)
             {
                 archive(cereal::make_nvp("Color", Color), cereal::make_nvp("Direction", Direction),
                         cereal::make_nvp("Position", Position), cereal::make_nvp("Range", Range),
@@ -617,7 +630,7 @@ namespace Coffee
         // Skybox
         Ref<Cubemap> Skybox; ///< The skybox reference.
         float SkyboxIntensity = 1.0f; ///< The exposure of the skybox.
-        
+
         // Tonemapping
         float TonemappingExposure = 1.0f; ///< The exposure for tonemapping.
 
@@ -688,7 +701,7 @@ namespace Coffee
 
     struct AudioSourceComponent
     {
-        uint64_t gameObjectID = -1;      ///< The object ID.
+        uint64_t gameObjectID = 0;      ///< The object ID.
         Ref<Audio::AudioBank> audioBank; ///< The audio bank.
         std::string audioBankName;       ///< The name of the audio bank.
         std::string eventName;           ///< The name of the event.
@@ -698,41 +711,23 @@ namespace Coffee
         glm::mat4 transform;             ///< The transform of the audio source.
         bool isPlaying = false;          ///< True if the audio source is playing.
         bool isPaused = false;           ///< True if the audio source is paused.
-        bool toDelete = false;           ///< True if the audio source should be deleted.
 
         AudioSourceComponent() = default;
 
         AudioSourceComponent(const AudioSourceComponent& other) { *this = other; }
 
-        ~AudioSourceComponent()
+        static AudioSourceComponent CreateCopy(const AudioSourceComponent& other)
         {
-            if (isPlaying || playOnAwake)
-                Stop();
-        }
+            AudioSourceComponent newComp;
+            newComp.audioBank = other.audioBank;
+            newComp.audioBankName = other.audioBankName;
+            newComp.eventName = other.eventName;
+            newComp.volume = other.volume;
+            newComp.mute = other.mute;
+            newComp.playOnAwake = other.playOnAwake;
+            newComp.transform = other.transform;
 
-        AudioSourceComponent& operator=(const AudioSourceComponent& other)
-        {
-            if (this != &other)
-            {
-                gameObjectID = other.gameObjectID;
-                audioBank = other.audioBank;
-                audioBankName = other.audioBankName;
-                eventName = other.eventName;
-                volume = other.volume;
-                mute = other.mute;
-                playOnAwake = other.playOnAwake;
-                transform = other.transform;
-                isPlaying = other.isPlaying;
-                isPaused = other.isPaused;
-                toDelete = other.toDelete;
-
-                if (!toDelete)
-                {
-                    Audio::RegisterAudioSourceComponent(*this);
-                    AudioZone::RegisterObject(gameObjectID, transform[3]);
-                }
-            }
-            return *this;
+            return newComp;
         }
 
         void SetVolume(float volumen)
@@ -771,26 +766,19 @@ namespace Coffee
 
     struct AudioListenerComponent
     {
-        uint64_t gameObjectID = -1; ///< The object ID.
+        uint64_t gameObjectID = 0; ///< The object ID.
         glm::mat4 transform;        ///< The transform of the audio listener.
-        bool toDelete = false;      ///< True if the audio listener should be deleted.
 
         AudioListenerComponent() = default;
 
         AudioListenerComponent(const AudioListenerComponent& other) { *this = other; }
 
-        AudioListenerComponent& operator=(const AudioListenerComponent& other)
+        static AudioListenerComponent CreateCopy(const AudioListenerComponent& other)
         {
-            if (this != &other)
-            {
-                gameObjectID = other.gameObjectID;
-                transform = other.transform;
-                toDelete = other.toDelete;
+            AudioListenerComponent newComp;
+            newComp.transform = other.transform;
 
-                if (!toDelete)
-                    Audio::RegisterAudioListenerComponent(*this);
-            }
-            return *this;
+            return newComp;
         }
 
         template <class Archive> void save(Archive& archive, std::uint32_t const version) const

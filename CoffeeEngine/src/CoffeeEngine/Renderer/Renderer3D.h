@@ -41,9 +41,11 @@ namespace Coffee {
 
         static constexpr int MAX_DIRECTIONAL_SHADOWS = 4;
 
+        static constexpr int MAX_LIGHTS = 32;
+
         struct SceneRenderData
         {
-            LightComponent lights[32]; ///< Array of light components.
+            LightComponent lights[MAX_LIGHTS]; ///< Array of light components.
             int lightCount = 0; ///< Number of lights.
             float padding[3]; ///< Padding to align to 16 bytes.
             glm::mat4 LightSpaceMatrices[MAX_DIRECTIONAL_SHADOWS]; ///< Light space matrices for shadow mapping.

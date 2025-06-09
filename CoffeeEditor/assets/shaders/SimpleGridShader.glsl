@@ -71,8 +71,12 @@ void main()
     float blend = smoothstep(10.0, 50.0, distance);
     float gridValue = mix(grid1, grid2, blend);
 
+    if (gridValue * 0.5 < 0.1) {
+        discard; // Discard fragments with low grid value
+    }
+
     // --- Output ---
     vec3 color = vec3(0.45);
-    FragColor = vec4(color, gridValue * 0.5/*  * fade */); // Fade affects grid alpha
+    FragColor = vec4(color, 1.0); // Fade affects grid alpha
     EntityID = vec4(1.0);
 }

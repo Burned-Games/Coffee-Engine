@@ -34,5 +34,20 @@ void Coffee::RegisterApplicationBindings(sol::state& luaState)
         return Application::Get().GetWindow().GetTitle();
     });
 
+    appTable.set_function("set_window_mode", [](WindowMode mode) {
+        Application::Get().GetWindow().SetWindowMode(mode);
+    });
+
+    appTable.set_function("get_window_mode", []() {
+        return Application::Get().GetWindow().GetWindowMode();
+    });
+
+    luaState.new_enum<WindowMode>("WindowMode",
+        {
+            {"Windowed", WindowMode::Windowed},
+            {"Fullscreen", WindowMode::Fullscreen}
+        }
+    );
+
     luaState["App"] = appTable;
 }

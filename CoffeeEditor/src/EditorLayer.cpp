@@ -62,7 +62,6 @@ namespace Coffee {
         // Create texture from texture parameters
         // Add it to the framebuffers
         // Create the RenderTarget and set it to the Renderer
-
         TextureProperties textureProperties;
         textureProperties.Width = 1280;
         textureProperties.Height = 720;
@@ -74,6 +73,7 @@ namespace Coffee {
         textureProperties.MagFilter = TextureFilter::Linear;
 
         Ref<Texture2D> forwardColorTexture = Texture2D::Create(textureProperties);
+
 
         textureProperties.Format = ImageFormat::RGB8;
         Ref<Texture2D> forwardEntityIDTexture = Texture2D::Create(textureProperties);
@@ -368,15 +368,6 @@ namespace Coffee {
                 if(ImGui::MenuItem("About Coffee Engine"))
                 {
                     mainMenuAction = "About Coffee Engine";
-                }
-                ImGui::EndMenu();
-            }
-            // Bugfix menu (options WILL be removed once they're no longer needed) TODO this
-            if (ImGui::BeginMenu("Bugfix"))
-            {
-                if (ImGui::MenuItem("Fix scene hierarchy"))
-                {
-                    SceneManager::GetActiveScene()->FixHierarchy();
                 }
                 ImGui::EndMenu();
             }
@@ -778,12 +769,19 @@ namespace Coffee {
 
         static Ref<Mesh> gridPlane = PrimitiveMesh::CreatePlane({1000.0f, 1000.0f});
         static Ref<Shader> gridShader = Shader::Create("assets/shaders/SimpleGridShader.glsl");
-        static Ref<Material> gridShaderMaterial = ShaderMaterial::Create("GridShaderMaterial", gridShader);
-        MaterialRenderSettings& gridMaterialRenderSettings = gridShaderMaterial->GetRenderSettings();
-        gridMaterialRenderSettings.cullMode = MaterialRenderSettings::CullMode::None;
-        gridMaterialRenderSettings.transparencyMode = MaterialRenderSettings::TransparencyMode::Alpha;
+        static Ref<Material> gridShaderMaterialFront = ShaderMaterial::Create("GridShaderMaterialFront", gridShader);
+        static Ref<Material> gridShaderMaterialBack = ShaderMaterial::Create("GridShaderMaterialBack", gridShader);
 
-        Renderer3D::Submit(RenderCommand{.mesh = gridPlane, .material = gridShaderMaterial});
+        MaterialRenderSettings& gridMaterialRenderSettingsFront = gridShaderMaterialFront->GetRenderSettings();
+        gridMaterialRenderSettingsFront.cullMode = MaterialRenderSettings::CullMode::Front;
+        gridMaterialRenderSettingsFront.transparencyMode = MaterialRenderSettings::TransparencyMode::Alpha;
+
+        MaterialRenderSettings& gridMaterialRenderSettingsBack = gridShaderMaterialBack->GetRenderSettings();
+        gridMaterialRenderSettingsBack.cullMode = MaterialRenderSettings::CullMode::Back;
+        gridMaterialRenderSettingsBack.transparencyMode = MaterialRenderSettings::TransparencyMode::Alpha;
+
+        Renderer3D::Submit(RenderCommand{.mesh = gridPlane, .material = gridShaderMaterialFront});
+        Renderer3D::Submit(RenderCommand{.mesh = gridPlane, .material = gridShaderMaterialBack});
     }
 
     void EditorLayer::ResizeViewport(float width, float height)
@@ -895,9 +893,6 @@ namespace Coffee {
 
         if (!path.empty() and path.extension() == ".TeaScene")
         {
-            AudioZone::RemoveAllReverbZones();
-            Audio::UnregisterAllGameObjects();
-
             m_EditorScene = Scene::Load(path);
             SceneManager::ChangeScene(m_EditorScene);
 
