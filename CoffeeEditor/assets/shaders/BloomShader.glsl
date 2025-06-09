@@ -106,8 +106,8 @@ void main()
 {
     if (mode == MODE_COPY)
     {
-        //FragColor = textureLod(sourceTexture, TexCoord, float(mipmapLevel));
-        FragColor.rgb = UpsampleTent9(sourceTexture, mipmapLevel, TexCoord, 1.0f / vec2(textureSize(sourceTexture, mipmapLevel)), filterRadius);
+        FragColor = textureLod(sourceTexture, TexCoord, float(mipmapLevel));
+        //FragColor.rgb = UpsampleTent9(sourceTexture, mipmapLevel, TexCoord, 1.0f / vec2(textureSize(sourceTexture, mipmapLevel)), filterRadius);
         FragColor.a = 1.0f;
     }
     else if (mode == MODE_DOWNSAMPLING)
@@ -131,6 +131,7 @@ void main()
 
         // Sample the current downsampled mip at the current UV
         vec3 downsampled = textureLod(downsamplingTexture, uv, mipmapLevel).rgb;
+        downsampled = max(downsampled, 0.0001f);
 
         FragColor.rgb = upsampled + downsampled;
         FragColor.a = 1.0f;
@@ -138,8 +139,8 @@ void main()
     else if (mode == MODE_COMPOSITION)
     {
         // Blend the upsampled texture with the source texture
-        //vec3 upsampled = textureLod(upsamplingTexture, TexCoord, 0).rgb;
-        vec3 upsampled = UpsampleTent9(upsamplingTexture, 0, TexCoord, 1.0f / vec2(textureSize(sourceTexture, 0)), filterRadius);
+        vec3 upsampled = textureLod(upsamplingTexture, TexCoord, 0).rgb;
+        //vec3 upsampled = UpsampleTent9(upsamplingTexture, 0, TexCoord, 1.0f / vec2(textureSize(sourceTexture, 0)), filterRadius);
         vec3 source = textureLod(sourceTexture, TexCoord, 0).rgb;
 
         //FragColor.rgb = mix(source, upsampled, bloomIntensity);

@@ -588,7 +588,7 @@ namespace Coffee {
             // Iterate over all the downsampling passes, binding each mip as output and the previous mip as input
             // In other framebuffer (output), we set as input the texture of the downsampling pass and
 
-            glm::vec2 currentTargetSize = target->GetSize() / 2.0f;
+            glm::vec2 currentTargetSize = target->GetSize()/*  * 0.75f */;
 
             // TODO: Do it only when the resolution changes not every frame
             //s_BloomFramebuffer->Resize(currentTargetSize.x, currentTargetSize.y);
