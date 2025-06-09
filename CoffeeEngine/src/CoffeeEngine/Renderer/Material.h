@@ -39,6 +39,8 @@ namespace Coffee {
          float minDistance = 6.0f;
          float maxDistance = 12.0f;
          float circleSize = 1.0f;
+         float radialBiasMin = 0.2f;
+         float radialBiasMax = 1.0f;
  
          // Blend mode
          enum BlendMode

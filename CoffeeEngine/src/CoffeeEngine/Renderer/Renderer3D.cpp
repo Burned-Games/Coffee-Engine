@@ -341,6 +341,8 @@ namespace Coffee {
             shader->setFloat("ditheringCircleSize", settings.circleSize);
             shader->setFloat("ditheringMinDistance", settings.minDistance);
             shader->setFloat("ditheringMaxDistance", settings.maxDistance);
+            shader->setFloat("ditheringRadialBiasMin", settings.radialBiasMin);
+            shader->setFloat("ditheringRadialBiasMax", settings.radialBiasMax);
             shader->setVec3("camViewDir", camViewDir);
 
             if (settings.depthTest)

@@ -158,6 +158,8 @@ uniform bool ditheringEnabled;
 uniform float ditheringMinDistance;
 uniform float ditheringMaxDistance;
 uniform float ditheringCircleSize;
+uniform float ditheringRadialBiasMin;
+uniform float ditheringRadialBiasMax;
 uniform vec3 camViewDir;
 
 uniform samplerCube irradianceMap;
@@ -321,7 +323,15 @@ void main()
                 if (distance <= ditheringMinDistance) {
                     discard;
                 } else {
-                    fadeAlpha = (distance - ditheringMinDistance) / (ditheringMaxDistance - ditheringMinDistance);
+                    float radialPosition = (1.0 - alignment) / (1.0 - threshold);
+                    radialPosition = clamp(radialPosition, 0.0, 1.0);
+
+                    float distanceRange = ditheringMaxDistance - ditheringMinDistance;
+                    float normalizedDistance = (distance - ditheringMinDistance) / distanceRange;
+                    normalizedDistance = clamp(normalizedDistance, 0.0, 1.0);
+
+                    float radialBias = mix(ditheringRadialBiasMin, ditheringRadialBiasMax, radialPosition);
+                    fadeAlpha = normalizedDistance * radialBias;
                     fadeAlpha = smoothstep(0.0, 1.0, fadeAlpha);
 
                     float ditherThreshold = DITHER_PATTERN(gl_FragCoord.xy);

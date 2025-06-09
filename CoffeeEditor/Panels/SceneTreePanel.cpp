@@ -1226,9 +1226,11 @@ namespace Coffee
                         ImGui::Checkbox("##Wireframe", &materialRenderSettings.wireframe);
 
                         ImGui::Checkbox("Fade", &materialRenderSettings.ditheringEnabled);
-                        ImGui::DragFloat("MaxDistance", &materialRenderSettings.maxDistance, 0.1f, 100.0f);
-                        ImGui::DragFloat("MinDistance", &materialRenderSettings.minDistance, 0.1f, 100.0f);
-                        ImGui::DragFloat("circleSize", &materialRenderSettings.circleSize, 0.1f, 0.0f, 1.0f);
+                        ImGui::DragFloat("Max Distance", &materialRenderSettings.maxDistance, 0.1f, 0.0f, 100.0f);
+                        ImGui::DragFloat("Min Distance", &materialRenderSettings.minDistance, 0.1f, 0.0f, 100.0f);
+                        ImGui::DragFloat("Circle Size", &materialRenderSettings.circleSize, 0.1f, 0.0f, 10.0f);
+                        ImGui::DragFloat("Radial Bias Min", &materialRenderSettings.radialBiasMin, 0.01f, 0.0f, 10.0f);
+                        ImGui::DragFloat("Radial Bias Max", &materialRenderSettings.radialBiasMax, 0.01f, 0.0f, 10.0f);
 
                         ImGui::EndChild();
                         ImGui::TreePop();
