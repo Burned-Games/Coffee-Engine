@@ -607,7 +607,6 @@ namespace Coffee {
             // Copy the scene texture to the bloom downsample texture
             s_BloomShader->setInt("mode", 0); // 0 for copy
             s_BloomShader->setInt("mipmapLevel", 0); // Use mip level 0 for the initial copy
-            s_BloomShader->setInt("sourceTextureScale", 0);
             s_BloomShader->setFloat("bloomIntensity", s_RenderSettings.BloomIntensity);
 
             s_BloomFramebuffer->AttachColorTexture(0, s_BloomDownsampleTexture, 0);
@@ -631,6 +630,7 @@ namespace Coffee {
                 s_BloomFramebuffer->Bind();
 
                 RendererAPI::SetViewport(0, 0, mipWidth, mipHeight);
+                RendererAPI::Clear();
 
                 // Set the shader for downsampling
                 s_BloomShader->setInt("mode", 1); // 1 for downsampling
@@ -641,7 +641,7 @@ namespace Coffee {
                 s_BloomFramebuffer->UnBind();
             }
 
-            /* // Copy the last downsampled texture to the upsample texture
+            // Copy the last downsampled texture to the upsample texture
             s_BloomFramebuffer->AttachColorTexture(0, s_BloomUpsampleTexture, maxMipLevel - 1);
             s_BloomFramebuffer->Bind();
             uint32_t mipWidth = static_cast<uint32_t>(currentTargetSize.x) >> (maxMipLevel - 1);
@@ -650,10 +650,9 @@ namespace Coffee {
             RendererAPI::Clear();
             s_BloomShader->setInt("mode", 0); // 0 for copy
             s_BloomShader->setInt("mipmapLevel", maxMipLevel - 1); // Use the last downsampled mip level
-            s_BloomShader->setInt("sourceTextureScale", maxMipLevel - 1); // Scale factor for the source texture
             s_BloomDownsampleTexture->Bind(0); // Bind the last downsampled texture to texture unit 0
 
-            RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray()); */
+            RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
             s_BloomShader->setFloat("filterRadius", s_RenderSettings.BloomRadius); // Set a filter radius for the bloom effect
 
@@ -671,6 +670,7 @@ namespace Coffee {
                 s_BloomFramebuffer->Bind();
 
                 RendererAPI::SetViewport(0, 0, mipWidth, mipHeight);
+                RendererAPI::Clear();
 
                 // Set the shader for upsampling
                 s_BloomShader->setInt("mode", 2); // 2 for upsampling

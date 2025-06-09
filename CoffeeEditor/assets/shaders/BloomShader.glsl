@@ -27,7 +27,6 @@ uniform sampler2D upsamplingTexture;
 
 uniform float filterRadius; // Radius for upsampling
 uniform int mipmapLevel;
-uniform int sourceTextureScale;
 
 uniform float bloomIntensity; // Intensity of the bloom effect
 
@@ -107,7 +106,9 @@ void main()
 {
     if (mode == MODE_COPY)
     {
-        FragColor = textureLod(sourceTexture, TexCoord, float(mipmapLevel));
+        //FragColor = textureLod(sourceTexture, TexCoord, float(mipmapLevel));
+        FragColor.rgb = UpsampleTent9(sourceTexture, mipmapLevel, TexCoord, 1.0f / vec2(textureSize(sourceTexture, mipmapLevel)), filterRadius);
+        FragColor.a = 1.0f;
     }
     else if (mode == MODE_DOWNSAMPLING)
     {
