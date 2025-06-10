@@ -24,8 +24,7 @@ namespace Coffee {
         ImportData(ResourceType type) : type(type) {}
         virtual ~ImportData() = default;
         
-        template<typename Archive>
-        void serialize(Archive& archive)
+        template<typename Archive> void serialize(Archive& archive, std::uint32_t const version)
         {
             archive(CEREAL_NVP(uuid), CEREAL_NVP(type), CEREAL_NVP(originalPath), CEREAL_NVP(cachedPath), CEREAL_NVP(cache), CEREAL_NVP(internal));
         }

@@ -40,8 +40,8 @@ namespace Coffee {
         static UIPass();
         */
 
-        static void WorldPass(const RenderTarget& target);
-        static void ScreenPass(const RenderTarget& target);
+        static void WorldPass(const Ref<RenderTarget>& target);
+        static void ScreenPass(const Ref<RenderTarget>& target);
 
         static void Shutdown();
 
@@ -54,7 +54,7 @@ namespace Coffee {
         static void DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<Texture2D>& texture, float tilingFactor = 1.0f, const glm::vec4& tintColor = glm::vec4(1.0f));
         static void DrawQuad(const glm::vec2& position, const glm::vec2& size, const float rotation, const Ref<Texture2D>& texture, float tilingFactor = 1.0f, const glm::vec4& tintColor = glm::vec4(1.0f));
         static void DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture, float tilingFactor = 1.0f, const glm::vec4& tintColor = glm::vec4(1.0f));
-        static void DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintColor, RenderMode mode, uint32_t entityID = 4294967295);
+        static void DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintColor, RenderMode mode, uint32_t entityID = 4294967295, const glm::vec4& uvRect = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
 
         static void DrawLine(const glm::vec2& start, const glm::vec2& end, const glm::vec4& color = glm::vec4(1.0f), float linewidth = 1.0f);
         static void DrawLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color = glm::vec4(1.0f), float linewidth = 1.0f);
@@ -77,16 +77,30 @@ namespace Coffee {
 
         static void DrawCapsule(const glm::vec3& position, const glm::quat& rotation, float radius, float height, const glm::vec4& color = glm::vec4(1.0f));
         
-        static void DrawCylinder(const glm::vec3& position, const glm::quat& rotation, float radius, float height, const glm::vec4& color = glm::vec4(1.0f));
-        
+        static void DrawCylinder(const glm::vec3& position, const glm::quat& rotation, float radius, float height,
+                                 const glm::vec4& color = glm::vec4(1.0f));
+
+        static void DrawCone(glm::vec3 vec, glm::quat qua, float radius, float height, glm::vec4 vec4);
+        static void DrawTruncatedCone(glm::vec3 position, glm::quat rotation, float baseRadius, float topRadius,
+                                      float height, glm::vec4 color);
+
+        enum class TextAlignment
+        {
+            Left,
+            Center,
+            Right
+        };
+
         struct TextParams
 		{
 			glm::vec4 Color{ 1.0f };
 			float Kerning = 0.0f;
 			float LineSpacing = 0.0f;
+            float Size = 16.0f;
+            TextAlignment Alignment;
 		};
 
-        static void DrawText(const std::string& text, Ref<Font> font, const glm::mat4& transform, const TextParams& textParams, RenderMode mode, uint32_t entityID = 4294967295);
+        static void DrawTextString(const std::string& text, Ref<Font> font, const glm::mat4& transform, const TextParams& textParams, RenderMode mode, uint32_t entityID = 4294967295);
     private:
         static Batch& GetBatch(RenderMode mode);
         static void NextBatch(RenderMode mode);

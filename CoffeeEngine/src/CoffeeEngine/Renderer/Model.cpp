@@ -250,19 +250,19 @@ namespace Coffee {
                 s_ModelMaterialsUUIDs[referenceName] = materialUUID;
             }
 
-            MaterialTextures matTextures = LoadMaterialTextures(material);
+            PBRMaterialTextures matTextures = LoadMaterialTextures(material);
 
-            MaterialImportData materialImportData;
+            PBRMaterialImportData materialImportData;
             materialImportData.name = referenceName;
             materialImportData.materialTextures = &matTextures;
             materialImportData.uuid = materialUUID;
-            materialImportData.cachedPath = CacheManager::GetCachedFilePath(materialUUID, ResourceType::Material);
+            materialImportData.cachedPath = CacheManager::GetCachedFilePath(materialUUID, ResourceType::PBRMaterial);
             
-            meshMaterial = ResourceLoader::LoadEmbedded<Material>(materialImportData);
+            meshMaterial = ResourceLoader::LoadEmbedded<PBRMaterial>(materialImportData);
         }
         else
         {
-            meshMaterial = Material::Create();
+            meshMaterial = PBRMaterial::Create();
         }
 
         AABB aabb(
@@ -308,19 +308,13 @@ namespace Coffee {
 
         m_Transform = aiMatrix4x4ToGLMMat4(node->mTransformation);
 
-        bool isAnimationNode = std::any_of(scene->mAnimations, scene->mAnimations + scene->mNumAnimations, [&](const aiAnimation* animation) {
-            return std::any_of(animation->mChannels, animation->mChannels + animation->mNumChannels, [&](const aiNodeAnim* channel) {
-                return channel->mNodeName.C_Str() == m_NodeName;
-            });
-        });
-
         bool isBone = std::any_of(scene->mMeshes, scene->mMeshes + scene->mNumMeshes, [&](const aiMesh* mesh) {
             return std::any_of(mesh->mBones, mesh->mBones + mesh->mNumBones, [&](const aiBone* bone) {
                 return bone->mName.C_Str() == m_NodeName;
             });
         });
 
-        if (isAnimationNode || isBone)
+        if (isBone)
             return;
 
         for(uint32_t i = 0; i < node->mNumMeshes; i++)
@@ -354,6 +348,12 @@ namespace Coffee {
         std::string directory = m_FilePath.parent_path().string();
         std::string texturePath = directory + "/" + std::string(textureName.C_Str());
 
+        if (!std::filesystem::exists(texturePath))
+        {
+            COFFEE_CORE_WARN("The texture is embedded: {0}", texturePath);
+            return nullptr;
+        }
+
         bool srgb = (type == aiTextureType_DIFFUSE || type == aiTextureType_EMISSIVE);
 
         if(!ImportDataUtils::HasImportFile(texturePath))
@@ -371,9 +371,9 @@ namespace Coffee {
         return Texture2D::Load(texturePath);
     }
 
-    MaterialTextures Model::LoadMaterialTextures(aiMaterial* material)
+    PBRMaterialTextures Model::LoadMaterialTextures(aiMaterial* material)
     {
-        MaterialTextures matTextures;
+        PBRMaterialTextures matTextures;
 
         matTextures.albedo = LoadTexture2D(material, aiTextureType_DIFFUSE);
         matTextures.normal = LoadTexture2D(material, aiTextureType_NORMALS);
@@ -394,7 +394,8 @@ namespace Coffee {
 
         if(joints.empty())
         {
-            std::cerr << "Failed to extract joints" << std::endl;
+            COFFEE_CORE_ERROR("OZZ: Failed to extract joints");
+            
             return false;
         }
 
@@ -426,7 +427,7 @@ namespace Coffee {
 
         if (!rawSkeleton.Validate())
         {
-            std::cerr <<  "Failed to validate Ozz Skeleton" << std::endl;
+            COFFEE_CORE_ERROR("OZZ: Failed to validate Ozz Skeleton");
             return false;
         }
 
@@ -465,7 +466,8 @@ namespace Coffee {
 
             if (!rawAnimation.Validate())
             {
-                std::cerr << "Failed to validate Ozz Animation: " << aiAnim->mName.C_Str() << std::endl;
+                std::string error = std::string("OZZ: Failed to validate Ozz Skeleton ") + aiAnim->mName.C_Str();
+                COFFEE_CORE_ERROR(error);
                 continue;
             }
 

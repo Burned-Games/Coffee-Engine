@@ -30,10 +30,13 @@ namespace Coffee {
         Mesh,   ///< Mesh resource type
         Shader,   ///< Shader resource type
         Material, ///< Material resource type
+        PBRMaterial, ///< PBRMaterial resource type
+        ShaderMaterial, ///< ShaderMaterial resource type
         AnimationSystem, ///< AnimationSystem resource type
         Skeleton, ///< Skeleton resource type
         Animation, ///< Animation resource type
         AnimationController, ///< AnimationController resource type
+        Prefab, ///< Prefab resource type
     };
 
     /**
@@ -67,6 +70,8 @@ namespace Coffee {
          */
         const std::filesystem::path& GetPath() { COFFEE_CORE_ASSERT(m_FilePath.empty(), "This Texture does not exist on disk!"); return m_FilePath; }
 
+        void SetPath(const std::filesystem::path& path) { m_FilePath = path; }
+
         /**
          * @brief Sets the name of the mesh.
          * @param name The name of the mesh.
@@ -91,6 +96,18 @@ namespace Coffee {
          */
         UUID GetUUID() const { return m_UUID; }
 
+        /**
+         * @brief Sets the embedded status of the resource.
+         * @param isEmbedded The embedded status to set.
+         */
+        void SetEmbedded(bool isEmbedded) { m_isEmbedded = isEmbedded; }
+
+        /**
+         * @brief Checks if the resource is embedded.
+         * @return True if the resource is embedded, false otherwise.
+         */
+        bool IsEmbedded() const { return m_isEmbedded; }
+
     private:
         friend class cereal::access;
 
@@ -99,11 +116,10 @@ namespace Coffee {
          * @tparam Archive The type of the archive.
          * @param archive The archive to save the resource to.
          */
-        template <class Archive>
-        void save(Archive& archive) const
+        template <class Archive> void save(Archive& archive, std::uint32_t const version) const
         {
             int typeInt = static_cast<int>(m_Type);
-            archive(m_Name, m_FilePath, typeInt, m_UUID);
+            archive(m_Name, m_FilePath, typeInt, m_UUID, m_isEmbedded);
         }
 
         /**
@@ -111,11 +127,19 @@ namespace Coffee {
          * @tparam Archive The type of the archive.
          * @param archive The archive to load the resource from.
          */
-        template <class Archive>
-        void load(Archive& archive)
+        template <class Archive> void load(Archive& archive, std::uint32_t const version)
         {
             int typeInt;
-            archive(m_Name, m_FilePath, typeInt, m_UUID);
+            if (version < 1)
+            {
+                archive(m_Name, m_FilePath, typeInt, m_UUID);
+            }
+            else
+            {
+                archive(m_Name, m_FilePath, typeInt, m_UUID, m_isEmbedded);
+            }
+            
+            
             m_Type = static_cast<ResourceType>(typeInt);
         }
 
@@ -124,10 +148,12 @@ namespace Coffee {
         std::filesystem::path m_FilePath; ///< The file path of the resource.
         ResourceType m_Type; ///< The type of the resource.
         UUID m_UUID; ///< The UUID of the resource.
+        bool m_isEmbedded = false; ///< Flag indicating if the resource is embedded. // TODO: Revise if this is the right place for this
     };
 
 }
 
 CEREAL_REGISTER_TYPE(Coffee::Resource);
+CEREAL_CLASS_VERSION(Coffee::Resource, 1);
 
 /** @} */

@@ -18,7 +18,7 @@ struct GradientPoint
      * @tparam Archive The type of the archive.
      * @param archive The archive to serialize to.
      */
-    template <class Archive> void serialize(Archive& archive) { archive(position, color); }
+    template <class Archive> void serialize(Archive& archive, std::uint32_t const version) { archive(position, color); }
 };
 
 /**
@@ -26,7 +26,7 @@ struct GradientPoint
  */
 struct CurvePoint
 {
-    float time;  // Range 0.0 - 1.0
+    float time;  // Range -1.0 - 1.0
     float value; // Size scale
 
     /**
@@ -34,7 +34,7 @@ struct CurvePoint
      * @tparam Archive The type of the archive.
      * @param archive The archive to serialize to.
      */
-    template <class Archive> void serialize(Archive& archive) { archive(time, value); }
+    template <class Archive> void serialize(Archive& archive, std::uint32_t const version) { archive(time, value); }
 };
 
 /**
@@ -57,13 +57,21 @@ class GradientEditor
      * @param canvas_pos Canvas position.
      * @param canvas_size Canvas size.
      */
-    static void EditGradientPoints(std::vector<GradientPoint>& points, ImVec2 canvas_pos, ImVec2 canvas_size);
+    static bool EditGradientPoints(std::vector<GradientPoint>& points, ImVec2 canvas_pos, ImVec2 canvas_size);
 
     /**
      * @brief Displays the gradient editor in ImGui.
      * @param points Gradient points.
      */
-    static void ShowGradientEditor(std::vector<GradientPoint>& points);
+    static bool ShowGradientEditor(std::vector<GradientPoint>& points);
+
+    /**
+     * @brief Gets the color at a specific position in the gradient.
+     * @param t Position in the gradient (0.0 to 1.0).
+     * @param points Gradient points.
+     * @return Interpolated color at the given position.
+     */
+    static ImVec4 GetGradientValue(float t, const std::vector<GradientPoint>& points);
 };
 
 /**
@@ -78,7 +86,7 @@ class CurveEditor
      * @param points Curve points.
      * @param graph_size Graph size.
      */
-    static void DrawCurve(const char* label, std::vector<CurvePoint>& points, ImVec2 graph_size = ImVec2(200, 50));
+    static bool DrawCurve(const char* label, std::vector<CurvePoint>& points, ImVec2 graph_size = ImVec2(200, 50));
 
     /**
      * @brief Gets the curve value at a specific time.
@@ -87,6 +95,16 @@ class CurveEditor
      * @return Curve value at the specified time.
      */
     static float GetCurveValue(float time, const std::vector<CurvePoint>& points);
+
+
+    /**
+     * @brief Gets the scale curve value at a specific range.
+     * @param curveValue Value of the curve [0,1] for the scale.
+     * @param min Min value.
+     * @param max Max value.
+     * @return Return value scaled
+     */
+    static float ScaleCurveValue(float curveValue, float min, float max);
 };
 
 /**

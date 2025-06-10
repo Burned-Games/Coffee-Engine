@@ -15,7 +15,8 @@ namespace Coffee {
         ~Gamepad();
 
         const char* GetName() const;
-        ControllerCode getId() const;
+        ControllerCode GetId() const;
+        SDL_Gamepad* GetGamepad() const;
     private:
         SDL_Gamepad* m_gamepad;
         ControllerCode m_id;

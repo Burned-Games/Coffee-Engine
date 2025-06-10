@@ -10,6 +10,7 @@
 #include "Panels/ContentBrowserPanel.h"
 #include "Panels/MonitorPanel.h"
 #include "Panels/SceneTreePanel.h"
+#include "Panels/ProjectSettingsPanel.h"
 
 #include <Panels/ImportPanel.h>
 #include <Panels/OutputPanel.h>
@@ -55,11 +56,9 @@ namespace Coffee {
         void SaveScene();
         void SaveSceneAs();
     private:
-        RenderTarget* m_ViewportRenderTarget;
+        Ref<RenderTarget> m_ViewportRenderTarget;
 
         Ref<Scene> m_EditorScene;
-        Ref<Scene> m_ActiveScene;
-
         EditorCamera m_EditorCamera;
 
         bool m_ViewportFocused = false, m_ViewportHovered = false;
@@ -74,6 +73,7 @@ namespace Coffee {
         OutputPanel m_OutputPanel;
         MonitorPanel m_MonitorPanel;
         ImportPanel m_ImportPanel;
+        ProjectSettingsPanel m_ProjectSettingsPanel;
     };
 
 }

@@ -1,6 +1,8 @@
 #include "CoffeeEngine/Renderer/RendererAPI.h"
 
+#include <cstdint>
 #include <glad/glad.h>
+#include <sys/types.h>
 #include <tracy/Tracy.hpp>
 
 namespace Coffee {
@@ -49,7 +51,16 @@ namespace Coffee {
 		glCullFace(GL_BACK);
 
 		glDepthFunc(GL_LEQUAL);
+
+		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     }
+
+	void RendererAPI::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+	{
+		ZoneScoped;
+
+		glViewport(x, y, width, height);
+	}
 
 	void RendererAPI::SetClearColor(const glm::vec4& color)
 	{
@@ -58,11 +69,36 @@ namespace Coffee {
 		glClearColor(color.r, color.g, color.b, color.a);
 	}
 
-	void RendererAPI::Clear()
+	void RendererAPI::Clear(uint32_t clearFlags)
 	{
-	    ZoneScoped;
+		ZoneScoped;
 
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		uint32_t mask = 0;
+
+		if (clearFlags & (uint32_t)ClearFlags::Color)
+		{
+			mask |= GL_COLOR_BUFFER_BIT;
+		}
+		if (clearFlags & (uint32_t)ClearFlags::Depth)
+		{
+			mask |= GL_DEPTH_BUFFER_BIT;
+		}
+		if (clearFlags & (uint32_t)ClearFlags::Stencil)
+		{
+			mask |= GL_STENCIL_BUFFER_BIT;
+		}
+		if (mask == 0)
+		{
+			return;
+		}
+		glClear(mask);
+	}
+
+	void RendererAPI::SetColorMask(bool red, bool green, bool blue, bool alpha)
+	{
+		ZoneScoped;
+
+		glColorMask(red, green, blue, alpha);
 	}
 
 	void RendererAPI::SetDepthMask(bool enabled)
@@ -70,6 +106,57 @@ namespace Coffee {
 		ZoneScoped;
 
 		glDepthMask(enabled);
+	}
+
+	void RendererAPI::SetDepthFunc(DepthFunc func)
+	{
+		ZoneScoped;
+
+		switch (func)
+		{
+			case DepthFunc::Never:        glDepthFunc(GL_NEVER); break;
+			case DepthFunc::Less:         glDepthFunc(GL_LESS); break;
+			case DepthFunc::Equal:        glDepthFunc(GL_EQUAL); break;
+			case DepthFunc::LessEqual:    glDepthFunc(GL_LEQUAL); break;
+			case DepthFunc::Greater:      glDepthFunc(GL_GREATER); break;
+			case DepthFunc::NotEqual:     glDepthFunc(GL_NOTEQUAL); break;
+			case DepthFunc::GreaterEqual: glDepthFunc(GL_GEQUAL); break;
+			case DepthFunc::Always:       glDepthFunc(GL_ALWAYS); break;
+			default: COFFEE_CORE_ASSERT(false, "Unknown depth function!"); break;
+		}
+	}
+
+	void RendererAPI::SetBlend(bool enabled)
+	{
+		ZoneScoped;
+
+		if (enabled)
+		{
+			glEnable(GL_BLEND);
+		}
+		else
+		{
+			glDisable(GL_BLEND);
+		}
+	}
+
+	void RendererAPI::SetBlendFunc(BlendFunc src, BlendFunc dst)
+	{
+		ZoneScoped;
+
+		glBlendFunc(
+			static_cast<GLenum>(src),
+			static_cast<GLenum>(dst)
+		);
+	}
+
+	void RendererAPI::SetBlendEquation(BlendEquation equation)
+	{
+		ZoneScoped;
+
+		glBlendEquation(
+			static_cast<GLenum>(equation)
+		);
 	}
 
 	void RendererAPI::SetFaceCulling(bool enabled)
@@ -83,6 +170,32 @@ namespace Coffee {
 		else
 		{
 			glDisable(GL_CULL_FACE);
+		}
+	}
+
+	void RendererAPI::SetCullFace(CullFace face)
+	{
+		ZoneScoped;
+
+		switch (face)
+		{
+			case CullFace::Front:         glCullFace(GL_FRONT); break;
+			case CullFace::Back:          glCullFace(GL_BACK); break;
+			case CullFace::FrontAndBack:  glCullFace(GL_FRONT_AND_BACK); break;
+			default: COFFEE_CORE_ASSERT(false, "Unknown cull face!"); break;
+		}
+	}
+
+	void RendererAPI::SetPolygonMode(PolygonMode mode)
+	{
+		ZoneScoped;
+
+		switch (mode)
+		{
+			case PolygonMode::Fill: glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); break;
+			case PolygonMode::Line: glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); break;
+			case PolygonMode::Point: glPolygonMode(GL_FRONT_AND_BACK, GL_POINT); break;
+			default: COFFEE_CORE_ASSERT(false, "Unknown polygon mode!"); break;
 		}
 	}
 

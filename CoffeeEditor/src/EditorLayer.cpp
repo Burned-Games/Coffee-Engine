@@ -15,10 +15,12 @@
 #include "CoffeeEngine/Project/Project.h"
 #include "CoffeeEngine/Renderer/EditorCamera.h"
 #include "CoffeeEngine/Renderer/Framebuffer.h"
+#include "CoffeeEngine/Renderer/Material.h"
 #include "CoffeeEngine/Renderer/RenderTarget.h"
 #include "CoffeeEngine/Renderer/Renderer.h"
 #include "CoffeeEngine/Renderer/Renderer2D.h"
 #include "CoffeeEngine/Renderer/Renderer3D.h"
+#include "CoffeeEngine/Renderer/Texture.h"
 #include "CoffeeEngine/Scene/Components.h"
 #include "CoffeeEngine/Scene/PrimitiveMesh.h"
 #include "CoffeeEngine/Scene/Scene.h"
@@ -57,24 +59,49 @@ namespace Coffee {
     {
         ZoneScoped;
 
-        std::initializer_list<Attachment> ForwardFramebufferAttachments = {
-            {ImageFormat::RGBA32F, "Color"},
-            {ImageFormat::RGB8, "EntityID"},
-            {ImageFormat::DEPTH24STENCIL8, "Depth"}
-        };
+        // Create texture from texture parameters
+        // Add it to the framebuffers
+        // Create the RenderTarget and set it to the Renderer
+        TextureProperties textureProperties;
+        textureProperties.Width = 1280;
+        textureProperties.Height = 720;
+        textureProperties.Format = ImageFormat::RGBA32F;
+        textureProperties.srgb = false;
+        textureProperties.GenerateMipmaps = false;
+        textureProperties.Wrapping = TextureWrap::ClampToEdge;
+        textureProperties.MinFilter = TextureFilter::Linear;
+        textureProperties.MagFilter = TextureFilter::Linear;
 
-        std::initializer_list<Attachment> PostProcessingFramebufferAttachments = {
-            {ImageFormat::RGBA8, "Color"}
-        };
+        Ref<Texture2D> forwardColorTexture = Texture2D::Create(textureProperties);
 
-        std::vector<std::pair<std::string, std::initializer_list<Attachment>>> EditorViewportRenderTargetFramebufferAttachments = {
-            {"Forward", ForwardFramebufferAttachments},
-            {"PostProcessing", PostProcessingFramebufferAttachments}
-        };
 
-        m_ViewportRenderTarget = &Renderer::AddRenderTarget("EditorViewport",
-                                                            {1280, 720}, 
-                                        EditorViewportRenderTargetFramebufferAttachments);
+        textureProperties.Format = ImageFormat::RGB8;
+        Ref<Texture2D> forwardEntityIDTexture = Texture2D::Create(textureProperties);
+
+        textureProperties.Format = ImageFormat::DEPTH24STENCIL8;
+        Ref<Texture2D> forwardDepthTexture = Texture2D::Create(textureProperties);
+
+        Ref<Framebuffer> forwardFramebuffer = Framebuffer::Create(1280, 720);
+        forwardFramebuffer->AttachColorTexture(0, forwardColorTexture);
+        forwardFramebuffer->AttachColorTexture(1, forwardEntityIDTexture);
+        forwardFramebuffer->AttachDepthTexture(forwardDepthTexture);
+
+        textureProperties.Format = ImageFormat::RGBA32F;
+        Ref<Texture2D> postProcessingColorTextureA = Texture2D::Create(textureProperties);
+        Ref<Texture2D> postProcessingColorTextureB = Texture2D::Create(textureProperties);
+
+        Ref<Framebuffer> postProcessingFramebufferA = Framebuffer::Create(1280, 720);
+        postProcessingFramebufferA->AttachColorTexture(0, postProcessingColorTextureA);
+
+        Ref<Framebuffer> postProcessingFramebufferB = Framebuffer::Create(1280, 720);
+        postProcessingFramebufferB->AttachColorTexture(0, postProcessingColorTextureB);
+
+        m_ViewportRenderTarget = CreateRef<RenderTarget>("EditorViewport", glm::vec2(1280, 720));
+        m_ViewportRenderTarget->AddFramebuffer("Forward", forwardFramebuffer);
+        m_ViewportRenderTarget->AddFramebuffer("PostProcessingA", postProcessingFramebufferA);
+        m_ViewportRenderTarget->AddFramebuffer("PostProcessingB", postProcessingFramebufferB);
+
+        Renderer::AddRenderTarget(m_ViewportRenderTarget);
 
         ScriptManager::RegisterBackend(ScriptingLanguage::Lua, CreateRef<LuaBackend>());
 
@@ -94,7 +121,8 @@ namespace Coffee {
         ZoneScoped;
         
         // Idk if this is the best place or is better in each switch case for flexibility
-        Renderer::SetCurrentRenderTarget(m_ViewportRenderTarget);
+        // Is possible that this is does not what I think it does. It should be revised.
+        Renderer::SetCurrentRenderTarget(m_ViewportRenderTarget.get());
 
         switch (SceneManager::GetSceneState())
         {
@@ -243,7 +271,7 @@ namespace Coffee {
                 if (ImGui::MenuItem(ICON_LC_FILE_PLUS_2 " New Scene", "Ctrl+N")) { NewScene(); }
                 if (ImGui::MenuItem(ICON_LC_FOLDER_OPEN " Open Scene...", "Ctrl+O")) { OpenScene(); }
                 if (ImGui::MenuItem(ICON_LC_SAVE " Save Scene", "Ctrl+S")) { SaveScene(); }
-                if (ImGui::MenuItem(ICON_LC_SAVE " Save Scene As...", "Ctrl+Shift+S")) { SaveSceneAs(); }
+                //if (ImGui::MenuItem(ICON_LC_SAVE " Save Scene As...", "Ctrl+Shift+S")) { SaveSceneAs(); }
                 if (ImGui::MenuItem(ICON_LC_X " Exit")) { Application::Get().Close(); }
                 ImGui::EndMenu();
             }
@@ -252,8 +280,8 @@ namespace Coffee {
                 if (ImGui::MenuItem(ICON_LC_FILE_PLUS_2 " New Project...", "Ctrl+N")) { NewProject(); }
                 if (ImGui::MenuItem(ICON_LC_FOLDER_OPEN " Open Project...", "Ctrl+O")) { OpenProject(); }
                 if (ImGui::MenuItem(ICON_LC_SAVE " Save Project", "Ctrl+S")) { SaveProject(); }
-                if(ImGui::MenuItem(ICON_LC_SETTINGS " Project Settings", nullptr, mainMenuWindows.ProjectSettings)) 
-                { 
+                if (ImGui::MenuItem(ICON_LC_SETTINGS " Project Settings", nullptr, mainMenuWindows.ProjectSettings))
+                {
                     mainMenuWindows.ProjectSettings = !mainMenuWindows.ProjectSettings;
                 }
                 ImGui::EndMenu();
@@ -289,6 +317,52 @@ namespace Coffee {
                 }
                 ImGui::EndMenu();
             }
+            if (ImGui::BeginMenu("Debug"))
+            {
+                Ref<Scene> activeScene = SceneManager::GetActiveScene();
+                bool isSceneActive = activeScene != nullptr;
+
+                if (!isSceneActive)
+                    ImGui::BeginDisabled();
+
+                if (ImGui::MenuItem("Debug Draw", nullptr, isSceneActive ? activeScene->GetDebugFlags().DebugDraw : false))
+                {
+                    if (isSceneActive)
+                    {
+                        // Toggle the debug draw flag
+                        bool newState = !activeScene->GetDebugFlags().DebugDraw;
+                        activeScene->GetDebugFlags().DebugDraw = newState;
+                        
+                        // Set all other debug flags to match the main debug draw flag
+                        activeScene->GetDebugFlags().ShowOctree = newState;
+                        activeScene->GetDebugFlags().ShowColliders = newState;
+                        activeScene->GetDebugFlags().ShowNavMesh = newState;
+                        activeScene->GetDebugFlags().ShowNavMeshPath = newState;
+                    }
+                }
+
+                if (ImGui::MenuItem("Show Octree", nullptr, isSceneActive ? activeScene->GetDebugFlags().ShowOctree : false))
+                    if (isSceneActive)
+                        activeScene->GetDebugFlags().ShowOctree = !activeScene->GetDebugFlags().ShowOctree;
+
+                if (ImGui::MenuItem("Show Colliders", nullptr, isSceneActive ? activeScene->GetDebugFlags().ShowColliders : false))
+                    if (isSceneActive)
+                        activeScene->GetDebugFlags().ShowColliders = !activeScene->GetDebugFlags().ShowColliders;
+
+                if (ImGui::MenuItem("Show NavMesh", nullptr, isSceneActive ? activeScene->GetDebugFlags().ShowNavMesh : false))
+                    if (isSceneActive)
+                        activeScene->GetDebugFlags().ShowNavMesh = !activeScene->GetDebugFlags().ShowNavMesh;
+
+                if (ImGui::MenuItem("Show NavMeshPath", nullptr, isSceneActive ? activeScene->GetDebugFlags().ShowNavMeshPath : false))
+                    if (isSceneActive)
+                        activeScene->GetDebugFlags().ShowNavMeshPath = !activeScene->GetDebugFlags().ShowNavMeshPath;
+
+                if (!isSceneActive)
+                    ImGui::EndDisabled();
+
+                ImGui::EndMenu();
+            }
+
             if (ImGui::BeginMenu("About"))
             {
                 if(ImGui::MenuItem("About Coffee Engine"))
@@ -329,10 +403,7 @@ namespace Coffee {
 
         if(mainMenuWindows.ProjectSettings)
         {
-            ImGui::Begin("Project Settings");
-            ImGui::Text("Project Settings");
-            ImGui::Separator();
-            ImGui::End();
+            m_ProjectSettingsPanel.OnImGuiRender();
         }
 
         // Editor Settings Popup
@@ -379,7 +450,7 @@ namespace Coffee {
         ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
         ResizeViewport(viewportPanelSize.x, viewportPanelSize.y);
 
-        uint32_t textureID = m_ViewportRenderTarget->GetFramebuffer("Forward")->GetColorTexture("Color")->GetID();
+        uint32_t textureID = m_ViewportRenderTarget->GetFramebuffer("Forward")->GetColorAttachment(0)->GetID();
         ImGui::Image((void*)textureID, ImVec2{ m_ViewportSize.x, m_ViewportSize.y }, {0, 1}, {1, 0});
 
         //Guizmo
@@ -387,62 +458,104 @@ namespace Coffee {
 
         if(selectedEntity and m_GizmoType != -1 and SceneManager::GetSceneState() == SceneManager::SceneState::Edit)
         {
-            ImGuizmo::SetGizmoSizeClipSpace(0.2);
-
-            // Customize ImGuizmo style to be more similar to Godot
-
-            auto& style = ImGuizmo::GetStyle();
-
-            //style.TranslationLineThickness = 3.0f;
-            //style.TranslationLineArrowSize = 10.0f;
-            //style.RotationLineThickness = 4.0f;
-            //style.RotationOuterLineThickness = 4.0f;
-            //style.ScaleLineThickness = 4.0f;
-            //style.ScaleLineCircleSize = 6.0f;
-
-            // Set colors
-            style.Colors[ImGuizmo::DIRECTION_X] = ImVec4(0.918f, 0.196f, 0.310f, 1.0f);
-            style.Colors[ImGuizmo::DIRECTION_Y] = ImVec4(0.153f, 0.525f, 0.918f, 1.0f);
-            style.Colors[ImGuizmo::DIRECTION_Z] = ImVec4(0.502f, 0.800f, 0.051f, 1.0f);
-            style.Colors[ImGuizmo::PLANE_X] = ImVec4(0.918f, 0.196f, 0.310f, 1.0f);
-            style.Colors[ImGuizmo::PLANE_Y] = ImVec4(0.153f, 0.525f, 0.918f, 1.0f);
-            style.Colors[ImGuizmo::PLANE_Z] = ImVec4(0.502f, 0.800f, 0.051f, 1.0f);
-            style.Colors[ImGuizmo::SELECTION] = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
-
-            ImGuizmo::SetOrthographic(false);
-            ImGuizmo::SetDrawlist();
-
-            ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
-
-            const glm::mat4& cameraProjection = m_EditorCamera.GetProjection();
-            glm::mat4 cameraView = m_EditorCamera.GetViewMatrix();
-
-            auto& transformComponent = selectedEntity.GetComponent<TransformComponent>();
-            glm::mat4 transform = transformComponent.GetWorldTransform();
-
-            ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection),
-                                (ImGuizmo::OPERATION)m_GizmoType, ImGuizmo::LOCAL,
-                         glm::value_ptr(transform));
-
-            if (ImGuizmo::IsUsing())
+            if (selectedEntity.HasComponent<UIImageComponent>())
             {
-              /*TODO: Revisit this bc this should work using the SetWorldTransform
-                but for this in the SetWorldTransform we should update the local
-                transform too and for this we need the transform of the parent.*/
+                auto& transformComponent = selectedEntity.GetComponent<TransformComponent>();
 
-                glm::mat4 localTransform = transform;
+                ImGuizmo::SetOrthographic(true);
+                ImGuizmo::SetDrawlist();
+                ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
 
-                auto& parentEntity = selectedEntity.GetComponent<HierarchyComponent>().m_Parent;
-                if(parentEntity != entt::null)
+                glm::mat4 transform = transformComponent.GetWorldTransform();
+
+                glm::mat4 cameraProjection = glm::ortho(-m_ViewportSize.x / 2.0f, m_ViewportSize.x / 2.0f,
+                                        m_ViewportSize.y / 2.0f, -m_ViewportSize.y / 2.0f,
+                                        -1.0f, 1.0f);
+
+                glm::mat4 cameraView = glm::mat4(1.0f);
+
+                ImGuizmo::SetGizmoSizeClipSpace(0.15f);
+
+                if (m_GizmoType == ImGuizmo::OPERATION::ROTATE)
+                    m_GizmoType = ImGuizmo::OPERATION::ROTATE_Z;
+
+                ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection),
+                     (ImGuizmo::OPERATION)m_GizmoType, ImGuizmo::LOCAL,
+                     glm::value_ptr(transform));
+
+                if (ImGuizmo::IsUsing())
                 {
-                    Entity e{parentEntity, SceneManager::GetActiveScene().get()};
-                    glm::mat4 parentGlobalTransform = e.GetComponent<TransformComponent>().GetWorldTransform();
-                    glm::mat4 inverseParentGlobalTransform = glm::inverse(parentGlobalTransform);
-                    localTransform = inverseParentGlobalTransform * transform;
-                }
+                    glm::vec3 translation, scale;
+                    glm::quat rotation;
+                    ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(transform),
+                                                         glm::value_ptr(translation),
+                                                         glm::value_ptr(rotation),
+                                                         glm::value_ptr(scale));
 
-                // Update the local transform component
-                transformComponent.SetLocalTransform(localTransform);
+                    transformComponent.SetLocalPosition(glm::vec3(translation.x, translation.y, 0.f));
+                    transformComponent.SetLocalRotation(glm::vec3(0.f, 0.f, rotation.z));
+                    transformComponent.SetLocalScale(glm::vec3(scale.x, scale.y, 1.f));
+                }
+            }
+            else
+            {
+                ImGuizmo::SetGizmoSizeClipSpace(0.2);
+
+                // Customize ImGuizmo style to be more similar to Godot
+
+                auto& style = ImGuizmo::GetStyle();
+
+                //style.TranslationLineThickness = 3.0f;
+                //style.TranslationLineArrowSize = 10.0f;
+                //style.RotationLineThickness = 4.0f;
+                //style.RotationOuterLineThickness = 4.0f;
+                //style.ScaleLineThickness = 4.0f;
+                //style.ScaleLineCircleSize = 6.0f;
+
+                // Set colors
+                style.Colors[ImGuizmo::DIRECTION_X] = ImVec4(0.918f, 0.196f, 0.310f, 1.0f);
+                style.Colors[ImGuizmo::DIRECTION_Y] = ImVec4(0.153f, 0.525f, 0.918f, 1.0f);
+                style.Colors[ImGuizmo::DIRECTION_Z] = ImVec4(0.502f, 0.800f, 0.051f, 1.0f);
+                style.Colors[ImGuizmo::PLANE_X] = ImVec4(0.918f, 0.196f, 0.310f, 1.0f);
+                style.Colors[ImGuizmo::PLANE_Y] = ImVec4(0.153f, 0.525f, 0.918f, 1.0f);
+                style.Colors[ImGuizmo::PLANE_Z] = ImVec4(0.502f, 0.800f, 0.051f, 1.0f);
+                style.Colors[ImGuizmo::SELECTION] = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
+
+                ImGuizmo::SetOrthographic(false);
+                ImGuizmo::SetDrawlist();
+
+                ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
+
+                const glm::mat4& cameraProjection = m_EditorCamera.GetProjection();
+                glm::mat4 cameraView = m_EditorCamera.GetViewMatrix();
+
+                auto& transformComponent = selectedEntity.GetComponent<TransformComponent>();
+                glm::mat4 transform = transformComponent.GetWorldTransform();
+
+                ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection),
+                                    (ImGuizmo::OPERATION)m_GizmoType, ImGuizmo::LOCAL,
+                             glm::value_ptr(transform));
+
+                if (ImGuizmo::IsUsing())
+                {
+                  /*TODO: Revisit this bc this should work using the SetWorldTransform
+                    but for this in the SetWorldTransform we should update the local
+                    transform too and for this we need the transform of the parent.*/
+
+                    glm::mat4 localTransform = transform;
+
+                    auto& parentEntity = selectedEntity.GetComponent<HierarchyComponent>().m_Parent;
+                    if(parentEntity != entt::null)
+                    {
+                        Entity e{parentEntity, SceneManager::GetActiveScene().get()};
+                        glm::mat4 parentGlobalTransform = e.GetComponent<TransformComponent>().GetWorldTransform();
+                        glm::mat4 inverseParentGlobalTransform = glm::inverse(parentGlobalTransform);
+                        localTransform = inverseParentGlobalTransform * transform;
+                    }
+
+                    // Update the local transform component
+                    transformComponent.SetLocalTransform(localTransform);
+                }
             }
         }
         else
@@ -531,15 +644,6 @@ namespace Coffee {
         ImGui::End();
         ImGui::PopStyleVar();
 
-        //---------TESTING---------
-        ImGui::Begin("Render Settings");
-
-        ImGui::Checkbox("Post Processing", &Renderer::GetRenderSettings().PostProcessing);
-
-        ImGui::DragFloat("Exposure", &Renderer3D::GetRenderSettings().Exposure, 0.001f, 100.0f);
-
-        ImGui::End();
-
         // Debug Window for testing the ResourceRegistry
         ImGui::Begin("Resource Registry");
         
@@ -572,7 +676,7 @@ namespace Coffee {
                     ImGui::TableSetColumnIndex(0);
                     ImGui::Text("%s", resource.second->GetName().c_str());
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%lu", resource.first);
+                    ImGui::Text("%lu", resource.second->GetUUID());
                     ImGui::TableSetColumnIndex(2);
                     ImGui::Text("%s", ResourceTypeToString(resource.second->GetType()).c_str());
                     ImGui::TableSetColumnIndex(3);
@@ -588,7 +692,7 @@ namespace Coffee {
 
     void EditorLayer::OnOverlayRender()
     {
-        Renderer::SetCurrentRenderTarget(m_ViewportRenderTarget);
+        Renderer::SetCurrentRenderTarget(m_ViewportRenderTarget.get());
 
         Entity selectedEntity = m_SceneTreePanel.GetSelectedEntity();
         static Entity lastSelectedEntity;  
@@ -663,12 +767,21 @@ namespace Coffee {
         Renderer2D::DrawLine({0.0f, -1000.0f, 0.0f}, {0.0f, 1000.0f, 0.0f}, {0.502f, 0.800f, 0.051f, 1.0f}, 2);
         Renderer2D::DrawLine({0.0f, 0.0f, -1000.0f}, {0.0f, 0.0f, 1000.0f}, {0.153f, 0.525f, 0.918f, 1.0f}, 2);
 
-        static Ref<Mesh> gridPlaneDown = PrimitiveMesh::CreatePlane({1000.0f, 1000.0f});
-        static Ref<Mesh> gridPlaneUp = PrimitiveMesh::CreatePlane({1000.0f, -1000.0f}); // FIXME this is a hack to avoid the grid not beeing rendered due to backface culling
+        static Ref<Mesh> gridPlane = PrimitiveMesh::CreatePlane({1000.0f, 1000.0f});
         static Ref<Shader> gridShader = Shader::Create("assets/shaders/SimpleGridShader.glsl");
+        static Ref<Material> gridShaderMaterialFront = ShaderMaterial::Create("GridShaderMaterialFront", gridShader);
+        static Ref<Material> gridShaderMaterialBack = ShaderMaterial::Create("GridShaderMaterialBack", gridShader);
 
-        Renderer3D::Submit(gridShader, gridPlaneUp->GetVertexArray());
-        Renderer3D::Submit(gridShader, gridPlaneDown->GetVertexArray());
+        MaterialRenderSettings& gridMaterialRenderSettingsFront = gridShaderMaterialFront->GetRenderSettings();
+        gridMaterialRenderSettingsFront.cullMode = MaterialRenderSettings::CullMode::Front;
+        gridMaterialRenderSettingsFront.transparencyMode = MaterialRenderSettings::TransparencyMode::Alpha;
+
+        MaterialRenderSettings& gridMaterialRenderSettingsBack = gridShaderMaterialBack->GetRenderSettings();
+        gridMaterialRenderSettingsBack.cullMode = MaterialRenderSettings::CullMode::Back;
+        gridMaterialRenderSettingsBack.transparencyMode = MaterialRenderSettings::TransparencyMode::Alpha;
+
+        Renderer3D::Submit(RenderCommand{.mesh = gridPlane, .material = gridShaderMaterialFront});
+        Renderer3D::Submit(RenderCommand{.mesh = gridPlane, .material = gridShaderMaterialBack});
     }
 
     void EditorLayer::ResizeViewport(float width, float height)

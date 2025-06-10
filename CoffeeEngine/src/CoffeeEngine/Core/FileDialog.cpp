@@ -23,27 +23,31 @@ namespace Coffee {
         nfdresult_t result = NFD_OpenDialogU8_With(&outPath, &nfdArgs);
         if (result == NFD_OKAY)
         {
-            return std::filesystem::path(outPath);
+            std::filesystem::path path(outPath);
+            NFD_FreePathU8(outPath);
+            NFD_Quit();
+            return path;
         }
         else if (result == NFD_CANCEL)
         {
             COFFEE_INFO("User pressed cancel.");
+            NFD_Quit();
             return "";
         }
         else
         {
             COFFEE_ERROR("Error: %s\n", NFD_GetError());
+            NFD_Quit();
             return "";
         }
 
-        NFD_Quit();
     }
 
     const std::filesystem::path FileDialog::SaveFile(const FileDialogArgs& args)
     {
         NFD_Init();
 
-        nfdchar_t *outPath = nullptr;
+        nfdchar_t* outPath = nullptr;
 
         nfdsavedialogu8args_t nfdArgs = {0};
         nfdArgs.filterCount = args.Filters.size();
@@ -54,20 +58,53 @@ namespace Coffee {
         nfdresult_t result = NFD_SaveDialogU8_With(&outPath, &nfdArgs);
         if (result == NFD_OKAY)
         {
-            return std::filesystem::path(outPath);
+            std::filesystem::path path(outPath);
+            NFD_FreePathU8(outPath);
+            NFD_Quit();
+            return path;
         }
         else if (result == NFD_CANCEL)
         {
             COFFEE_INFO("User pressed cancel.");
+            NFD_Quit();
             return "";
         }
         else
         {
             COFFEE_ERROR("Error: %s\n", NFD_GetError());
+            NFD_Quit();
             return "";
         }
 
-        NFD_Quit();
+    }
+    const std::filesystem::path FileDialog::PickFolder(const FileDialogArgs& args)
+    {
+        NFD_Init();
+
+        nfdu8char_t* outPath;
+
+        // show the dialog
+        nfdresult_t result = NFD_PickFolder(&outPath, nullptr);
+        if (result == NFD_OKAY)
+        {
+            std::filesystem::path path(outPath);
+            NFD_FreePathU8(outPath);
+            NFD_Quit();
+            return path;
+        }
+        else if (result == NFD_CANCEL)
+        {
+            COFFEE_INFO("User pressed cancel.");
+            NFD_Quit();
+            return "";
+        }
+        else
+        {
+            COFFEE_ERROR("Error: %s\n", NFD_GetError());
+            NFD_Quit();
+            return "";
+        }
+
     }
 
-}
+} // namespace Coffee

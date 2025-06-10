@@ -26,6 +26,12 @@ namespace Coffee {
             backends[language]->ExecuteScript(script);
         }
 
+        static void SetWorkingDirectory(const std::filesystem::path& path) {
+            for (auto& backend : backends) {
+                backend.second->SetWorkingDirectory(path);
+            }
+        }
+
     private:
         static std::unordered_map<ScriptingLanguage, Ref<IScriptingBackend>> backends;
     };

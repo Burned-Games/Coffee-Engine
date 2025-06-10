@@ -3,6 +3,7 @@
 #define BT_NO_SIMD_OPERATOR_OVERLOADS
 
 #include "CoffeeEngine/Core/Base.h"
+#include "CoffeeEngine/Math/BoundingBox.h"
 #include "Collider.h"
 #include "PhysicsWorld.h"
 
@@ -46,8 +47,8 @@ namespace Coffee {
                 friend class cereal::access;
                 friend class RigidBody;
 
-                template<class Archive>
-                void save(Archive& archive) const {
+                template<class Archive> void save(Archive& archive, std::uint32_t const version) const
+                {
                     archive(
                         CEREAL_NVP(type),
                         CEREAL_NVP(mass),
@@ -66,8 +67,8 @@ namespace Coffee {
                     );
                 }
 
-                template<class Archive>
-                void load(Archive& archive) {
+                template<class Archive> void load(Archive& archive, std::uint32_t const version)
+                {
                     archive(
                         CEREAL_NVP(type),
                         CEREAL_NVP(mass),
@@ -105,6 +106,7 @@ namespace Coffee {
         void ApplyTorqueImpulse(const glm::vec3& torque) const;
         void SetAngularVelocity(const glm::vec3& velocity) const;
         glm::vec3 GetAngularVelocity() const;
+        void ResizeColliderToFitAABB(const AABB& aabb);
 
         // Physics
         void ApplyForce(const glm::vec3& force) const;
@@ -173,8 +175,8 @@ namespace Coffee {
 
     private:
         friend class cereal::access;
-        template<class Archive>
-        void save(Archive& archive) const {
+        template<class Archive> void save(Archive& archive, std::uint32_t const version) const
+        {
             archive(
                 CEREAL_NVP(m_Properties),
                 CEREAL_NVP(m_Collider)
@@ -182,7 +184,8 @@ namespace Coffee {
         }
 
         template<class Archive> 
-        void load(Archive& archive) {
+        void load(Archive& archive, std::uint32_t const version)
+        {
             archive(
                 CEREAL_NVP(m_Properties),
                 CEREAL_NVP(m_Collider)
@@ -192,3 +195,5 @@ namespace Coffee {
     };
 
 } // namespace Coffee
+CEREAL_CLASS_VERSION(Coffee::RigidBody, 0);
+CEREAL_CLASS_VERSION(Coffee::RigidBody::Properties, 0);

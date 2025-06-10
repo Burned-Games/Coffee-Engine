@@ -16,8 +16,7 @@ namespace Coffee {
 
         ModelImportData() : ImportData(ResourceType::Model) {}
 
-        template<typename Archive>
-        void serialize(Archive& archive)
+        template<typename Archive> void serialize(Archive& archive, std::uint32_t const version)
         {
             archive(CEREAL_NVP(meshUUIDs), CEREAL_NVP(materialUUIDs), cereal::base_class<ImportData>(this));
         }

@@ -109,6 +109,9 @@ namespace Coffee
             //Process audio
             Audio::ProcessAudio();
 
+            //Prepare input frame
+            Input::OnFrameUpdate();
+
             //Update and render
             {
                 ZoneScopedN("LayerStack Update");

@@ -3,11 +3,12 @@
 #include "CoffeeEngine/Core/ControllerCodes.h"
 #include "CoffeeEngine/Core/KeyCodes.h"
 #include "CoffeeEngine/Core/MouseCodes.h"
-#include "CoffeeEngine/Input/Gamepad.h"
 #include "CoffeeEngine/Events/ControllerEvent.h"
 #include "CoffeeEngine/Events/KeyEvent.h"
 #include "CoffeeEngine/Events/MouseEvent.h"
+#include "CoffeeEngine/Input/Gamepad.h"
 #include "CoffeeEngine/Input/InputBinding.h"
+#include "Timer.h"
 
 #include "CoffeeEngine/Events/Event.h"
 
@@ -52,7 +53,20 @@ namespace Coffee {
             // Action count for array creation and iteration
             ActionCount
         };
-    }
+    } // namespace ActionsEnum
+
+    /**
+     * @brief Possible states for rebinding inputs
+     */
+    enum class RebindState
+    {
+        None,
+        PosButton,
+        NegButton,
+        PosKey,
+        NegKey,
+        Axis
+    };
 
     /**
      * @defgroup core Core
@@ -88,6 +102,15 @@ namespace Coffee {
          * @return True if the mouse button is pressed, false otherwise.
          */
         static bool IsMouseButtonPressed(const MouseCode button);
+
+        /**
+            * Sets the mouse cursor to be grabbed or ungrabbed.
+            * When grabbed, the mouse cursor is confined to the window and hidden.
+            * When ungrabbed, the mouse cursor is free to move outside the window.
+            * @param grabbed True to grab the mouse cursor, false to ungrab it.
+            */
+        static void SetMouseGrabbed(bool grabbed);
+
         /**
          * Retrieves the current position of the mouse.
          *
@@ -107,6 +130,8 @@ namespace Coffee {
          */
 
         static const float GetMouseY();
+
+        static glm::vec2 GetMouseDelta();
         /**
          * @brief Checks if a specific button is currently pressed on a given controller.
          *
@@ -124,12 +149,32 @@ namespace Coffee {
 
         /**
          * Gets the InputBinding object for the given action
-         * @param action The action to retrieve an InputBinding for
+         * @param actionName The action to retrieve an InputBinding for
          * @return The InputBinding containing the bounds keys, buttons and axis for the provided action
          */
-        static InputBinding& GetBinding(InputAction action);
+        static InputBinding& GetBinding(const std::string& actionName);
+
+        static std::unordered_map<std::string, InputBinding>& GetAllBindings();
+
+        /**
+         *
+         * @param lowFreqPower Strength of the left (low frequency) motor
+         * @param highFreqPower Strength of the right (high frequency) motor
+         * @param duration Vibration duration
+         */
+        static void SendRumble(uint16_t lowFreqPower, uint16_t highFreqPower, uint32_t duration);
+
+        static const char* GetKeyLabel(KeyCode key);
+        static const char* GetMouseButtonLabel(MouseCode button);
+        static const char* GetButtonLabel(ButtonCode button);
+        static const char* GetAxisLabel(AxisCode axis);
+
+        static void StartRebindMode(std::string actionName, RebindState type);
+        static void ResetRebindState();
 
         static void OnEvent(Event& e);
+
+	    static long OnFrameUpdate();
 
       private:
 
@@ -194,7 +239,7 @@ namespace Coffee {
          */
 	    static void OnMouseMoved(const MouseMovedEvent& event);
 
-        static std::vector<InputBinding> m_Bindings;
+        static std::unordered_map<std::string, InputBinding> m_BindingsMap;
 
 	    static std::vector<Ref<Gamepad>> m_Gamepads;
 	    static std::unordered_map<ButtonCode, uint8_t> m_ButtonStates;
@@ -204,6 +249,17 @@ namespace Coffee {
         static std::unordered_map<AxisCode, float> m_AxisDeadzones;
         static glm::vec2 m_MousePosition; // Position relative to window
 
+
+        // Rebind mode
+        static Timer m_RebindTimer;
+        static RebindState m_RebindState;
+	    static std::string m_RebindActionName;
+
+	    // Input timestamps to prevent recalculating values multiple times in the same frame
+	    static long m_Timestamp;
+
+	    friend class InputBinding; // Allow direct access to private variables from InputBinding
+
     };
     /** @} */
-}
+} // namespace Coffee

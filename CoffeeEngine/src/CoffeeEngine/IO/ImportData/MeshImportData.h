@@ -19,8 +19,7 @@ namespace Coffee
 
         MeshImportData() : ImportData(ResourceType::Mesh) {}
 
-        template <typename Archive>
-        void serialize(Archive& archive)
+        template <typename Archive> void serialize(Archive& archive, std::uint32_t const version)
         {
             archive(cereal::base_class<ImportData>(this));
         }

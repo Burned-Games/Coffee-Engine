@@ -165,8 +165,7 @@ namespace Coffee
          * @tparam Archive The type of the archive.
          * @param archive The archive to save the camera to.
          */
-        template <class Archive>
-        void serialize(Archive& archive)
+        template <class Archive> void serialize(Archive& archive, std::uint32_t const version)
         {
             archive(cereal::make_nvp("FOV", m_FOV), cereal::make_nvp("AspectRatio", m_AspectRatio),
                     cereal::make_nvp("NearClip", m_NearClip), cereal::make_nvp("FarClip", m_FarClip),
@@ -192,3 +191,4 @@ namespace Coffee
 }
 
 CEREAL_REGISTER_TYPE(Coffee::Camera);
+CEREAL_CLASS_VERSION(Coffee::Camera, 0);

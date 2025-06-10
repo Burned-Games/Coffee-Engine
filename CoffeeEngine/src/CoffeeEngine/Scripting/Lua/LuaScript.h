@@ -39,14 +39,14 @@ namespace Coffee {
                 COFFEE_CORE_ERROR("Lua: {0}", err.what());
             }
 
-            ParseScript();
+            //ParseScript();
         }
 
         void OnUpdate(float dt) override
         {
             const sol::protected_function& onUpdate = m_Environment["on_update"];
             if (!onUpdate.valid()) {
-                COFFEE_CORE_ERROR("Lua: on_update function is not valid.");
+                COFFEE_CORE_ERROR("Lua: on_update function is not valid. {0}", m_Path.string());
                 return;
             }
 

@@ -108,9 +108,9 @@ namespace Coffee {
             {
                 return CreateScope<ModelImportData>();
             }
-            case ResourceType::Material:
+            case ResourceType::PBRMaterial:
             {
-                return CreateScope<MaterialImportData>();
+                return CreateScope<PBRMaterialImportData>();
             }
             case ResourceType::Shader:
             {

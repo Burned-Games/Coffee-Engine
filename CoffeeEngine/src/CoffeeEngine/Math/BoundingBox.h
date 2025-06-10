@@ -138,8 +138,7 @@ namespace Coffee {
         private:
             friend class cereal::access;
 
-            template<class Archive>
-            void serialize(Archive& archive)
+            template<class Archive> void serialize(Archive& archive, std::uint32_t const version)
             {
                 archive(min, max);
             }

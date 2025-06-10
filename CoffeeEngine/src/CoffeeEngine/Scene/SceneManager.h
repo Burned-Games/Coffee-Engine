@@ -29,6 +29,7 @@ namespace Coffee {
 
         static void SetSceneState(SceneState state) { s_SceneState = state; }
         static SceneState GetSceneState() { return s_SceneState; }
+        static std::string GetSceneName() { return s_ActiveScene ? s_ActiveScene->GetFilePath().filename().string() : ""; }
     private:
         static void ExitCurrentScene();
         static void InitNewScene();

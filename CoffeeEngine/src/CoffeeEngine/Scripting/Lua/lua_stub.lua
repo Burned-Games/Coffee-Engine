@@ -269,9 +269,9 @@ input = {
         ENDCALL = 246
     },
     mousecode = {
-        LEFT = 0,
-        MIDDLE = 1,
-        RIGHT = 2,
+        Left = 0,
+        Middle = 1,
+        Right = 2,
         X1 = 3,
         X2 = 4
     },
@@ -335,10 +335,39 @@ input = {
         -- Implementation here
         return 0
     end
+    send_rumble = function(low_freq_power, high_freq_power, duration_ms)
+        -- Implementation here
+        return
+    end
 }
 
 -- Timer functions
--- Add timer functions here if any
+Stopwatch = {
+    start = function(self) end,
+    stop = function(self) end,
+    reset = function(self) end,
+    get_elapsed_time = function(self) return 0 end,
+    get_precise_elapsed_time = function(self) return 0.0 end
+}
+
+Timer = {
+    start = function(self) end,
+    stop = function(self) end,
+    set_wait_time = function(self, t) end,
+    get_wait_time = function(self) return 0.0 end,
+    set_one_shot = function(self, val) end,
+    is_one_shot = function(self) return false end,
+    set_auto_start = function(self, val) end,
+    is_auto_start = function(self) return false end,
+    set_paused = function(self, val) end,
+    is_paused = function(self) return false end,
+    get_time_left = function(self) return 0.0 end,
+    set_callback = function(self, fn) end
+}
+
+create_timer = function(waitTime, autoStart, oneShot, callback)
+    return Timer
+end
 
 -- Component stubs
 TagComponent = {
@@ -349,18 +378,18 @@ TransformComponent = {
     Position = {0.0, 0.0, 0.0},
     Rotation = {0.0, 0.0, 0.0},
     Scale = {1.0, 1.0, 1.0},
-    GetLocalTransform = function()
+    get_local_transform = function()
         -- Implementation here
         return {}
     end,
-    SetLocalTransform = function(transform)
+    set_local_transform = function(transform)
         -- Implementation here
     end,
-    GetWorldTransform = function()
+    get_world_transform = function()
         -- Implementation here
         return {}
     end,
-    SetWorldTransform = function(transform)
+    set_world_transform = function(transform)
         -- Implementation here
     end
 }
@@ -372,7 +401,7 @@ CameraComponent = {
 MeshComponent = {
     mesh = {},
     drawAABB = false,
-    GetMesh = function()
+    get_mesh = function()
         -- Implementation here
         return {}
     end
@@ -395,25 +424,277 @@ LightComponent = {
 
 -- Entity functions
 Entity = {
-    AddComponent = function(self, componentName)
+    add_component = function(self, componentName)
         -- Implementation here
     end,
-    GetComponent = function(self, componentName)
+    get_component = function(self, componentName)
         -- Implementation here
         return {}
     end,
-    HasComponent = function(self, componentName)
+    has_component = function(self, componentName)
         -- Implementation here
         return false
     end,
-    RemoveComponent = function(self, componentName)
+    remove_component = function(self, componentName)
         -- Implementation here
     end,
-    SetParent = function(self, parent)
+    set_parent = function(self, parent)
         -- Implementation here
     end,
-    IsValid = function(self)
+    is_valid = function(self)
         -- Implementation here
         return true
     end
 }
+
+-- UI Components
+
+UIAnchorPosition = {
+    TopLeft = 0,
+    TopCenter = 1,
+    TopRight = 2,
+    CenterLeft = 3,
+    Center = 4,
+    CenterRight = 5,
+    BottomLeft = 6,
+    BottomCenter = 7,
+    BottomRight = 8
+}
+
+UIImageComponent = {
+    Size = {0.0, 0.0},
+    Visible = true,
+    Layer = 0,
+    set_texture = function(self, texture)
+    end
+}
+
+UITextComponent = {
+    Text = "",
+    FontPath = "",
+    FontSize = 12,
+    Color = {1.0, 1.0, 1.0, 1.0},
+    Layer = 0,
+    Visible = true
+}
+
+UIButtonComponent = {
+    Visible = true,
+    BaseTexture = "",
+    SelectedTexture = "",
+    PressedTexture = "",
+    BaseSize = {0.0, 0.0},
+    SelectedSize = {0.0, 0.0},
+    PressedSize = {0.0, 0.0},
+    BaseColor = {1.0, 1.0, 1.0, 1.0},
+    SelectedColor = {1.0, 1.0, 1.0, 1.0},
+    PressedColor = {1.0, 1.0, 1.0, 1.0},
+    Layer = 0,
+    set_state = function(self, state)
+    end,
+    get_state = function(self)
+        return "Base"
+    end
+}
+
+UISliderComponent = {
+    BarTexture = "",
+    HandleTexture = "",
+    Size = {0.0, 0.0},
+    HandleSize = {0.0, 0.0},
+    Value = 0.0,
+    Visible = true,
+    Layer = 0,
+    on_value_changed = function(self, callback)
+    end
+}
+
+UIToggleComponent = {
+    IsActive = false,
+    Visible = true,
+    Size = {0.0, 0.0},
+    Layer = 0,
+    ActiveTexture = "",
+    InactiveTexture = "",
+    set_active = function(self, active)
+    end,
+    toggle = function(self)
+    end
+}
+
+-- Particles Component
+
+ParticlesSystemComponent = {
+    emit = function(self)
+        -- Implementation here
+    end,
+    set_looping = function(self, value)
+        -- Implementation here
+    end,
+    get_emitter = function(self)
+        return {}
+    end
+}
+
+-- Physics Component
+
+RigidBodyType = {
+    Static = 0,
+    Dynamic = 1,
+    Kinematic = 2
+}
+
+RigidBodyProperties = {
+    type = RigidBodyType.Static,
+    mass = 1.0,
+    useGravity = true,
+    freezeX = false,
+    freezeY = false,
+    freezeZ = false,
+    freezeRotX = false,
+    freezeRotY = false,
+    freezeRotZ = false,
+    isTrigger = false,
+    velocity = {0.0, 0.0, 0.0},
+    friction = 0.5,
+    linearDrag = 0.0,
+    angularDrag = 0.0
+}
+
+RigidBody = {
+    set_position = function(self, pos) end,
+    get_position = function(self) return {0.0, 0.0, 0.0} end,
+    set_rotation = function(self, rot) end,
+    get_rotation = function(self) return {0.0, 0.0, 0.0} end,
+    set_velocity = function(self, vel) end,
+    get_velocity = function(self) return {0.0, 0.0, 0.0} end,
+    add_velocity = function(self, vel) end,
+    apply_force = function(self, force) end,
+    apply_impulse = function(self, impulse) end,
+    reset_velocity = function(self) end,
+    clear_forces = function(self) end,
+    apply_torque = function(self, torque) end,
+    apply_torque_impulse = function(self, impulse) end,
+    set_angular_velocity = function(self, vel) end,
+    get_angular_velocity = function(self) return {0.0, 0.0, 0.0} end,
+    set_trigger = function(self, is_trigger) end,
+    get_body_type = function(self) return RigidBodyType.Static end,
+    set_body_type = function(self, body_type) end,
+    get_mass = function(self) return 1.0 end,
+    set_mass = function(self, mass) end,
+    get_use_gravity = function(self) return true end,
+    set_use_gravity = function(self, use) end,
+    get_freeze_x = function(self) return false end,
+    set_freeze_x = function(self, val) end,
+    get_freeze_y = function(self) return false end,
+    set_freeze_y = function(self, val) end,
+    get_freeze_z = function(self) return false end,
+    set_freeze_z = function(self, val) end,
+    get_freeze_rot_x = function(self) return false end,
+    set_freeze_rot_x = function(self, val) end,
+    get_freeze_rot_y = function(self) return false end,
+    set_freeze_rot_y = function(self, val) end,
+    get_freeze_rot_z = function(self) return false end,
+    set_freeze_rot_z = function(self, val) end,
+    get_friction = function(self) return 0.5 end,
+    set_friction = function(self, val) end,
+    get_linear_drag = function(self) return 0.0 end,
+    set_linear_drag = function(self, val) end,
+    get_angular_drag = function(self) return 0.0 end,
+    set_angular_drag = function(self, val) end,
+    get_is_trigger = function(self) return false end
+}
+
+BoxCollider = {
+    new = function(size) return {} end
+}
+SphereCollider = {
+    new = function(radius) return {} end
+}
+CapsuleCollider = {
+    new = function(radius, height) return {} end
+}
+
+Physics = {
+    raycast = function(origin, direction, maxDistance)
+        return {
+            hasHit = false,
+            hitEntity = nil,
+            hitPoint = {0.0, 0.0, 0.0},
+            hitNormal = {0.0, 1.0, 0.0},
+            hitFraction = 0.0
+        }
+    end,
+    raycast_all = function(origin, direction, maxDistance)
+        return {}
+    end,
+    raycast_any = function(origin, direction, maxDistance)
+        return false
+    end,
+    debug_draw_raycast = function(origin, direction, maxDistance, rayColor, hitColor)
+        -- Implementation here
+    end
+}
+
+create_box_collider = function(size)
+    return BoxCollider.new(size)
+end
+
+create_sphere_collider = function(radius)
+    return SphereCollider.new(radius)
+end
+
+create_capsule_collider = function(radius, height)
+    return CapsuleCollider.new(radius, height)
+end
+
+create_rigidbody = function(properties, collider)
+    return RigidBody
+end
+
+-- Audio Component
+
+AudioSourceComponent = {
+    set_volume = function(self, volume)
+        -- Implementation here
+    end,
+    play = function(self)
+        -- Implementation here
+    end,
+    pause = function(self)
+        -- Implementation here
+    end
+}
+
+-- Animator Component
+
+AnimatorComponent = {
+    set_current_animation = function(self, animationName)
+        -- Implementation here
+    end,
+    set_upper_animation = function(self, animationName)
+        -- Implementation here
+    end,
+    set_lower_animation = function(self, animationName)
+        -- Implementation here
+    end
+}
+
+
+-- Scene Management
+
+Scene = {
+    create_entity = function(self) return Entity end,
+    destroy_entity = function(self, entity) end,
+    duplicate_entity = function(self, entity) return Entity end,
+    get_entity_by_name = function(self, name) return Entity end,
+    get_all_entities = function(self) return {} end
+}
+
+SceneManager = {
+    preload_scene = function(path) end,
+    preload_scene_async = function(path) end,
+    change_scene = function(path_or_scene) end,
+    change_scene_async = function(path) end
+}
+

@@ -47,13 +47,18 @@ namespace Coffee {
             {ImageFormat::DEPTH24STENCIL8, "Depth"}
         };
 
-        std::initializer_list<Attachment> PostProcessingFramebufferAttachments = {
-            {ImageFormat::RGBA8, "Color"}
+        std::initializer_list<Attachment> PostProcessingFramebufferAttachmentsA = {
+            {ImageFormat::RGBA32F, "Color"}
+        };
+
+        std::initializer_list<Attachment> PostProcessingFramebufferAttachmentsB = {
+            {ImageFormat::RGBA32F, "Color"},
         };
 
         std::vector<std::pair<std::string, std::initializer_list<Attachment>>> EditorViewportRenderTargetFramebufferAttachments = {
             {"Forward", ForwardFramebufferAttachments},
-            {"PostProcessing", PostProcessingFramebufferAttachments}
+            {"PostProcessingA", PostProcessingFramebufferAttachmentsA},
+            {"PostProcessingB", PostProcessingFramebufferAttachmentsB}
         };
 
         m_ViewportRenderTarget = &Renderer::AddRenderTarget("EditorViewport",
@@ -66,9 +71,8 @@ namespace Coffee {
         Application::Get().GetWindow().SetTitle(Project::GetActive()->GetProjectName());
 
         // Load the default scene from the project
+        SceneManager::SetSceneState(SceneManager::SceneState::Play);
         SceneManager::ChangeScene(std::filesystem::current_path() / "gamedata" / "Default.TeaScene");
-
-        SceneManager::GetActiveScene()->OnInitRuntime();
 
         m_ViewportSize = { 1600.0f, 900.0f };
     }

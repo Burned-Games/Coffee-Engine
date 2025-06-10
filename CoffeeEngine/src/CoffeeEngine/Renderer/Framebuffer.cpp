@@ -12,8 +12,8 @@ namespace Coffee {
 
     static const uint32_t s_MaxFramebufferSize = 8192;
 
-    Framebuffer::Framebuffer(uint32_t width, uint32_t height, std::initializer_list<Attachment> attachments)
-        : m_Width(width), m_Height(height), m_Attachments(attachments)
+    Framebuffer::Framebuffer(uint32_t width, uint32_t height)
+        : m_Width(width), m_Height(height)
     {
         ZoneScoped;
 
@@ -58,60 +58,28 @@ namespace Coffee {
         {
             glDeleteFramebuffers(1, &m_fboID);
 
-            //m_ColorTextures.clear();
-            //m_DepthTexture.reset();
-
             glCreateFramebuffers(1, &m_fboID);
             glBindFramebuffer(GL_FRAMEBUFFER, m_fboID);
 
-            for (size_t i = 0; i < m_Attachments.size(); i++)
+            for (int i = 0; i < m_ColorTextures.size(); i++)
             {
-                Attachment& attachment = m_Attachments[i];
-                ImageFormat imageFormat = attachment.format;
+                if(!m_ColorTextures[i]) continue;
 
-                if(imageFormat == ImageFormat::DEPTH24STENCIL8)
-                {
-                    if(m_DepthTexture)
-                    {
-                        m_DepthTexture->Resize(m_Width, m_Height);
-                        glNamedFramebufferTexture(m_fboID, GL_DEPTH_STENCIL_ATTACHMENT, m_DepthTexture->GetID(), 0);
-                        continue;
-                    }
-                    else
-                    {
-                        Ref<Texture2D> depthTexture = Texture2D::Create(m_Width, m_Height, imageFormat);
-                        m_DepthTexture = depthTexture;
-                        attachment.texture = depthTexture;
-                        glNamedFramebufferTexture(m_fboID, GL_DEPTH_STENCIL_ATTACHMENT, depthTexture->GetID(), 0);
-                    }
-                }
-                else
-                {
-                    if(m_ColorTextures.size() > i)
-                    {
-                        m_ColorTextures[i]->Resize(m_Width, m_Height);
-                        glNamedFramebufferTexture(m_fboID, GL_COLOR_ATTACHMENT0 + i, m_ColorTextures[i]->GetID(), 0);
-                        continue;
-                    }
-                    else
-                    {
-                        Ref<Texture2D> colorTexture = Texture2D::Create(m_Width, m_Height, imageFormat);
-                        m_ColorTextures.push_back(colorTexture);
-                        attachment.texture = colorTexture;
-                        glNamedFramebufferTexture(m_fboID, GL_COLOR_ATTACHMENT0 + m_ColorTextures.size() - 1, colorTexture->GetID(), 0);
-                    }
-                }
-            }
-            //Set all the render buffers to be drawn to (Wrap it in a function)
-            /* std::vector<GLenum> drawBuffers;
-            for (size_t i = 0; i < m_ColorTextures.size(); ++i)
-            {
-                drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
+                m_ColorTextures[i]->Resize(m_Width, m_Height);
+                glNamedFramebufferTexture(m_fboID, GL_COLOR_ATTACHMENT0 + i, m_ColorTextures[i]->GetID(), 0);
             }
 
-            glNamedFramebufferDrawBuffers(m_fboID, drawBuffers.size(), drawBuffers.data());
+            /* if(m_ColorTextures.size() == 0)
+            {
+                glDrawBuffer(GL_NONE);
+                glReadBuffer(GL_NONE);
+            } */
 
-            glBindFramebuffer(GL_FRAMEBUFFER, 0); */
+            if(m_DepthTexture)
+            {
+                m_DepthTexture->Resize(m_Width, m_Height);
+                glNamedFramebufferTexture(m_fboID, GL_DEPTH_STENCIL_ATTACHMENT, m_DepthTexture->GetID(), 0);
+            }
         }
     }
 
@@ -147,32 +115,11 @@ namespace Coffee {
         return result;
     }
 
-    void Framebuffer::SetDrawBuffers(std::initializer_list<Ref<Texture2D>> colorAttachments)
-    {
-        ZoneScoped;
-
-        //TODO: Improve this code, double for loop is not efficient at all a map would be better i think
-        std::vector<GLenum> drawBuffers;
-        for (int i = 0; i < colorAttachments.size(); i++)
-        {
-            for (int j = 0; j < m_ColorTextures.size(); j++)
-            {
-                if(colorAttachments.begin()[i]->GetID() == m_ColorTextures[j]->GetID())
-                {
-                    drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + j);
-                    break;
-                }
-            }
-        }
-
-        glNamedFramebufferDrawBuffers(m_fboID, drawBuffers.size(), drawBuffers.data());
-    }
-
     void Framebuffer::SetDrawBuffers(std::initializer_list<uint32_t> colorAttachments)
     {
         ZoneScoped;
 
-        std::vector<GLenum> drawBuffers;
+        std::vector<uint32_t> drawBuffers;
         for (int i = 0; i < colorAttachments.size(); i++)
         {
             drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + colorAttachments.begin()[i]);
@@ -181,9 +128,53 @@ namespace Coffee {
         glNamedFramebufferDrawBuffers(m_fboID, drawBuffers.size(), drawBuffers.data());
     }
 
-    Ref<Framebuffer> Framebuffer::Create(uint32_t width, uint32_t height, std::initializer_list<Attachment> attachments)
+    void Framebuffer::AttachColorTexture(const Ref<Texture2D>& texture, uint32_t mipLevel)
     {
-        return CreateRef<Framebuffer>(width, height, attachments);
+        ZoneScoped;
+
+        m_ColorTextures.push_back(texture);
+        glNamedFramebufferTexture(m_fboID, GL_COLOR_ATTACHMENT0 + m_ColorTextures.size() - 1, texture->GetID(), mipLevel);
+    }
+
+    void Framebuffer::AttachColorTexture(uint32_t attachmentIndex, const Ref<Texture2D>& texture, uint32_t mipLevel)
+    {
+        if(m_ColorTextures.size() <= attachmentIndex)
+        {
+            m_ColorTextures.resize(attachmentIndex + 1);
+        }
+
+        m_ColorTextures[attachmentIndex] = texture;
+
+        glNamedFramebufferTexture(m_fboID, GL_COLOR_ATTACHMENT0 + attachmentIndex, texture->GetID(), mipLevel);
+    }
+
+    const Ref<Texture2D>& Framebuffer::GetColorAttachment(uint32_t attachmentIndex)
+    {
+        ZoneScoped;
+
+        COFFEE_CORE_ASSERT(attachmentIndex < m_ColorTextures.size(), "Attachment index out of bounds");
+        return m_ColorTextures[attachmentIndex];
+    }
+
+    void Framebuffer::AttachDepthTexture(const Ref<Texture2D>& texture)
+    {
+        ZoneScoped;
+
+        m_DepthTexture = texture;
+        glNamedFramebufferTexture(m_fboID, GL_DEPTH_STENCIL_ATTACHMENT, texture->GetID(), 0);
+    }
+
+    const Ref<Texture2D>& Framebuffer::GetDepthTexture()
+    {
+        ZoneScoped;
+
+        COFFEE_CORE_ASSERT(m_DepthTexture, "Depth texture not set");
+        return m_DepthTexture;
+    }
+
+    Ref<Framebuffer> Framebuffer::Create(uint32_t width, uint32_t height)
+    {
+        return CreateRef<Framebuffer>(width, height);
     }
 
 }

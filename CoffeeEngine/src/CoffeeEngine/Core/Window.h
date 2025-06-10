@@ -15,6 +15,15 @@ namespace Coffee {
      */
 
     /**
+     * @brief Enum to represent the window display mode.
+     */
+    enum class WindowMode
+    {
+        Windowed,
+        Fullscreen
+    };
+
+    /**
      * @brief Structure to hold window properties such as title, width, and height.
      */
     struct WindowProps
@@ -102,6 +111,18 @@ namespace Coffee {
         void SetIcon(const std::string& path);
 
         /**
+         * @brief Sets the window mode (windowed, fullscreen).
+         * @param mode The desired window mode.
+         */
+        void SetWindowMode(WindowMode mode);
+
+        /**
+         * @brief Gets the current window mode.
+         * @return The current window mode.
+         */
+        WindowMode GetWindowMode() const;
+
+        /**
          * @brief Gets the native window handle.
          * @return A pointer to the native window.
          */
@@ -141,6 +162,7 @@ namespace Coffee {
         };
 
         WindowData m_Data; ///< The window data.
+        WindowMode m_Mode = WindowMode::Windowed; ///< The current window mode.
     };
 
     /** @} */

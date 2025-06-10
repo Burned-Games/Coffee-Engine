@@ -44,6 +44,8 @@ namespace Coffee {
     {
     public:
 
+        static const std::filesystem::path DefaultAudioPath;
+
         /**
          * @brief Initializes the audio system.
          */
@@ -130,13 +132,13 @@ namespace Coffee {
              * @tparam Archive The type of the archive.
              * @param archive The archive to serialize to.
              */
-            template<class Archive>
-            void serialize(Archive& archive)
+            template<class Archive> void serialize(Archive& archive, std::uint32_t const version)
             {
                 archive(cereal::make_nvp("Name", name), cereal::make_nvp("Events", events));
             }
         };
-
+        
+        
         /**
          * @brief Audio banks.
          */
@@ -193,7 +195,22 @@ namespace Coffee {
          */
         static void StopAllEvents();
 
+        /**
+         * @brief Sets the volume of an audio bus.
+         * @param busName The name of the bus.
+         * @param volume The volume value (0.0 to 1.0).
+         */
+        static void SetBusVolume(const char* busName, float volume);
+
+        static const std::filesystem::path& GetAudioPath() { return m_ActiveAudioPath; }
+
+        static void OnProjectLoad();
+
+        static void OnProjectUnload();
+
     private:
+
+        static std::filesystem::path m_ActiveAudioPath;
 
         /**
          * @brief Initializes the memory manager.
@@ -242,6 +259,8 @@ namespace Coffee {
          * @return True if successful, false otherwise.
          */
         static bool LoadAudioBanks();
-    };
 
-}
+        static bool ReloadAudioBanks();
+    };
+} // namespace Coffee
+CEREAL_CLASS_VERSION(Coffee::Audio::AudioBank, 0);

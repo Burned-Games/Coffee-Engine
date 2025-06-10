@@ -119,6 +119,14 @@ namespace Coffee
          */
         float TriArea2D(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c) const;
 
+        /**
+         * @brief Projects a point to the closest point on the navigation mesh.
+         * @param point The point to project.
+         * @param triangleIndex The index of the starting triangle to check.
+         * @return The projected point on the navigation mesh.
+         */
+        glm::vec3 ProjectPointToNavMesh(const glm::vec3& point, int triangleIndex) const;
+
     private:
         Ref<NavMesh> m_NavMesh; ///< The navigation mesh used for pathfinding
     };

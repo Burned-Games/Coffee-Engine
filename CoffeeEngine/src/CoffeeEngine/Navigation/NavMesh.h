@@ -15,8 +15,7 @@ struct NavMeshTriangle
     glm::vec3 normal; ///< Normal of the triangle
     std::vector<int> neighbors; ///< Indices of neighboring triangles
 
-    template<class Archive>
-    void serialize(Archive& archive)
+    template<class Archive> void serialize(Archive& archive, std::uint32_t const version)
     {
         archive(cereal::make_nvp("Vertices", vertices), cereal::make_nvp("Center", center), cereal::make_nvp("Normal", normal), cereal::make_nvp("Neighbors", neighbors));
     }
@@ -70,8 +69,7 @@ namespace Coffee
          */
         bool IsCalculated() const { return m_Calculated; }
 
-        template <class Archive>
-        void save(Archive& archive) const
+        template <class Archive> void save(Archive& archive, std::uint32_t const version) const
         {
             std::ostringstream ss;
             cereal::BinaryOutputArchive outputArchive(ss);
@@ -81,8 +79,7 @@ namespace Coffee
             archive(cereal::make_nvp("NavMesh", cereal::base64::encode(reinterpret_cast<const unsigned char*>(binData.data()), binData.size())));
         }
 
-        template <class Archive>
-        void load(Archive& archive)
+        template <class Archive> void load(Archive& archive, std::uint32_t const version)
         {
             std::string serializedData;
             archive(cereal::make_nvp("NavMesh", serializedData));
@@ -128,4 +125,6 @@ namespace Coffee
         std::vector<NavMeshTriangle> m_Triangles; ///< Triangles in the navigation mesh
         bool m_Calculated = false; ///< Flag indicating if the navigation mesh has been calculated
     };
-}
+} // namespace Coffee
+CEREAL_CLASS_VERSION(NavMeshTriangle, 0);
+CEREAL_CLASS_VERSION(Coffee::NavMesh, 0);

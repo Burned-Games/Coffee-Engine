@@ -14,12 +14,12 @@ namespace Coffee
         return transformMatrix;
     }
 
-    void Particle::SetPosition(glm::vec3 position)
+    void Particle::SetPosition(const glm::vec3& position)
     {
         transformMatrix[3] = glm::vec4(position, 1.0f);
     }
 
-    void Particle::SetRotation(glm::vec3 rotation)
+    void Particle::SetRotation(const glm::vec3& rotation)
     {
         glm::vec3 position = GetPosition();
         glm::vec3 scale = GetSize();
@@ -33,7 +33,7 @@ namespace Coffee
         SetPosition(position);
     }
 
-    void Particle::SetSize(glm::vec3 scale)
+    void Particle::SetSize(const glm::vec3& scale)
     {
         glm::vec3 position = GetPosition();
         glm::mat3 rotationMatrix = glm::mat3(glm::normalize(transformMatrix[0]), glm::normalize(transformMatrix[1]),
@@ -70,11 +70,12 @@ namespace Coffee
         {
             particleMesh = Coffee::PrimitiveMesh::CreatePlane(glm::vec2(1,1));
         }
+        particleTexture = Texture2D::Load("assets/textures/UVMap-Grid.jpg");
     }
 
-    void ParticleEmitter::InitParticle(Ref<Particle> particle)
+    void ParticleEmitter::InitParticle(const Ref<Particle>& particle)
     {
-        glm::vec3 startPos = glm::linearRand(minSpread, maxSpread);
+        glm::vec3 startPos = GetRandomPointByShape(shape);
         glm::vec4 startPosVec4 = glm::vec4(startPos.x, startPos.y, startPos.z, 0);
 
         glm::mat4 auxMatrix = transformComponentMatrix;
@@ -82,11 +83,36 @@ namespace Coffee
 
         particle->transformMatrix = auxMatrix;
 
-        particle->direction = useDirectionRandom ? glm::linearRand(direction, directionRandom) : direction;
-        particle->color = useColorRandom ? glm::linearRand(colorNormal, colorRandom) : colorNormal;
-        if (particleMaterial)
-            particleMaterial->GetMaterialProperties().color = particle->color;
+        if (shape != ShapeType::Cone)
+        {
+            if (goCenter)
+            {
+                glm::vec3 localCenter = glm::vec3(0.0f);
+                glm::vec3 dirLocal = glm::normalize(localCenter - startPos);
+                particle->direction = dirLocal; // <- En espacio local, sin transformar
+            }
+            else
+            {
+                glm::vec3 worldDirection = useDirectionRandom ? glm::linearRand(direction, directionRandom) : direction;
+                particle->direction = glm::vec3(transformComponentMatrix * glm::vec4(worldDirection, 0));
+            }
+        }
+        else
+        {
+            float cosAngle = cos(shapeAngle);
+            glm::vec3 direction;
+            do
+            {
+                direction = glm::normalize(glm::vec3(glm::linearRand(-1.0f, 1.0f),
+                                                     glm::linearRand(0.0f, 1.0f), 
+                                                     glm::linearRand(-1.0f, 1.0f)));
+            } while (glm::dot(direction, glm::vec3(0, 1, 0)) < cosAngle); 
+            particle->direction = glm::vec3(transformComponentMatrix * glm::vec4(direction,0));
+        }
 
+        particle->localPosition = startPos;
+        particle->color = useColorRandom ? glm::linearRand(colorNormal, colorRandom) : colorNormal;
+        particle->current_texture = particleTexture;
         particle->lifetime = useRandomLifeTime ? glm::linearRand(startLifeTimeMin, startLifeTimeMax) : startLifeTime;
         particle->startLifetime = particle->lifetime;
 
@@ -102,17 +128,28 @@ namespace Coffee
         particle->startRotation =
             useRandomRotation ? glm::linearRand(startRotationMin, startRotationMax) : startRotation;
         particle->SetRotation(particle->startRotation);
+
+        particle->startRotationRadians = glm::radians(particle->startRotation);
+
+        if (!useRotationOverLifetime) {
+            particle->startRotationMatrix =
+                glm::rotate(glm::mat4(1.0f), particle->startRotationRadians.x, glm::vec3(1, 0, 0)) *
+                glm::rotate(glm::mat4(1.0f), particle->startRotationRadians.y, glm::vec3(0, 1, 0)) *
+                glm::rotate(glm::mat4(1.0f), particle->startRotationRadians.z, glm::vec3(0, 0, 1));
+        }
     }
 
     void ParticleEmitter::GenerateParticle()
     {
-        Ref<Particle> particle = CreateRef<Particle>();
+        const Ref<Particle> particle = CreateRef<Particle>();
         InitParticle(particle);
         activeParticles.push_back(particle);
     }
 
     void ParticleEmitter::Update(float deltaTime)
     {
+        GenerateCurves();
+
         elapsedTime += deltaTime;
 
         if (looping)
@@ -123,6 +160,21 @@ namespace Coffee
                 GenerateParticle();
                 accumulatedParticles -= 1.0f;
             }
+
+            for (auto burst : bursts)
+            {
+                if (burst->initialTime <= elapsedTime)
+                {
+                    burst->intervalTimer += deltaTime;
+
+                    if (burst->intervalTimer > burst->interval)
+                    {
+                        Emit(burst->count);
+                        burst->intervalTimer = 0;
+                    }
+                }
+            }
+
         }
 
         for (size_t i = 0; i < activeParticles.size();)
@@ -139,28 +191,51 @@ namespace Coffee
         }
     }
 
-    void ParticleEmitter::UpdateParticle(Ref<Particle> particle, float deltaTime)
+    void ParticleEmitter::UpdateParticle(const Ref<Particle>& particle, float deltaTime)
     {
-        float normalizedLife = 1.0f - (particle->lifetime / particle->startLifetime);
+        const float normalizedLife = 1.0f - (particle->lifetime / particle->startLifetime);
 
         if (renderAlignment == RenderAligment::Billboard) // Assume 0 is billboarding
         {
-            glm::mat4 viewMatrix = cameraViewMatrix; // Get the camera's view matrix
-            glm::mat4 billboardTransform = CalculateBillboardTransform(particle->transformMatrix, viewMatrix);
+            glm::mat4 billboardTransform = CalculateBillboardTransform(particle->transformMatrix);
+
+            if (!useRotationOverLifetime) {
+                billboardTransform *= particle->startRotationMatrix;
+            }
+            else
+            {
+                glm::vec3 curveRotation = {
+                    GetGeneratedCurveValue(generatedCurves.rotationX, normalizedLife),
+                    GetGeneratedCurveValue(generatedCurves.rotationZ, normalizedLife),
+                    GetGeneratedCurveValue(generatedCurves.rotationY, normalizedLife)
+                };
+
+                glm::vec3 finalRotation = glm::vec3(
+                    curveRotation.x * particle->startRotationRadians.x,
+                    curveRotation.z * particle->startRotationRadians.y,
+                    curveRotation.y * particle->startRotationRadians.z
+                );
+
+                glm::mat4 rotationMatrix =
+                    glm::rotate(glm::mat4(1.0f), finalRotation.x, glm::vec3(1, 0, 0)) *
+                    glm::rotate(glm::mat4(1.0f), finalRotation.y, glm::vec3(0, 1, 0)) *
+                    glm::rotate(glm::mat4(1.0f), finalRotation.z, glm::vec3(0, 0, 1));
+
+                billboardTransform *= rotationMatrix;
+            }
 
             //Fix for the rotation primitive plane
-            glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-            billboardTransform = billboardTransform * rotationMatrix;
+            //glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+            //billboardTransform = billboardTransform * rotationMatrix;
             //End fix
 
             particle->transformMatrix = billboardTransform;
-           
         }
         else
         {
             // Handle other alignment modes if needed
         }
-        particle->SetSize(particle->startSize);
+        glm::vec3 finalSize = particle->startSize;
 
         glm::vec3 newVelocity = glm::vec3(1, 1, 1);
 
@@ -168,101 +243,147 @@ namespace Coffee
         {
             if (velocityOverLifeTimeSeparateAxes)
             {
-                newVelocity.x = CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeX);
-                newVelocity.y = CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeY);
-                newVelocity.z = CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeZ);
+                newVelocity = {
+                    GetGeneratedCurveValue(generatedCurves.velocityX, normalizedLife),
+                    GetGeneratedCurveValue(generatedCurves.velocityZ, normalizedLife),
+                    GetGeneratedCurveValue(generatedCurves.velocityY, normalizedLife)
+                };
             }
             else
             {
-                float uniformSize = CurveEditor::GetCurveValue(normalizedLife, speedOverLifeTimeGeneral);
-                newVelocity = glm::vec3(uniformSize);
+                float uniformSpeed = GetGeneratedCurveValue(generatedCurves.velocityGeneral, normalizedLife);
+
+                newVelocity = glm::vec3(uniformSpeed);
             }
         }
-
+        
         if (useSizeOverLifetime)
         {
             glm::vec3 newSize;
             if (sizeOverLifeTimeSeparateAxes)
             {
-                newSize.x = CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeX);
-                newSize.y = CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeY);
-                newSize.z = CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeZ);
+                newSize = {
+                    GetGeneratedCurveValue(generatedCurves.sizeX, normalizedLife),
+                    GetGeneratedCurveValue(generatedCurves.sizeZ, normalizedLife),
+                    GetGeneratedCurveValue(generatedCurves.sizeY, normalizedLife)
+                };
             }
             else
             {
-                float uniformSize = CurveEditor::GetCurveValue(normalizedLife, sizeOverLifetimeGeneral);
+                float uniformSize = GetGeneratedCurveValue(generatedCurves.sizeGeneral, normalizedLife);
+
                 newSize = glm::vec3(uniformSize);
             }
-            particle->SetSize(newSize * particle->startSize);
+            particle->SetSize(finalSize * newSize);
         }
 
-        if (useRotationOverLifetime)
+        if (useColorOverLifetime)
         {
-            glm::vec3 newRotation;
-            newRotation.x = CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeX);
-            newRotation.y = CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeY);
-            newRotation.z = CurveEditor::GetCurveValue(normalizedLife, rotationOverLifetimeZ);
+            particle->color = GetGeneratedGradientValue(generatedCurves.colorGradient, normalizedLife);
 
-            particle->SetRotation(newRotation + particle->startRotation);
         }
 
+        newVelocity += gravity * (particle->lifetime - particle->startLifetime);
+        glm::vec3 velocityDelta = particle->direction * deltaTime * newVelocity * particle->startSpeed;
+        particle->localPosition += velocityDelta;
+
+        glm::vec3 finalPosition;
         if (simulationSpace == SimulationSpace::Local)
         {
-            particle->SetPosition(particle->GetPosition() +
-                                  particle->direction * deltaTime * newVelocity * particle->startSpeed);
+            glm::vec3 emissorPosition = transformComponentMatrix[3];
+            finalPosition = emissorPosition + particle->localPosition;
         }
         else
         {
-            particle->SetPosition(particle->GetPosition() +
-                                  particle->direction * deltaTime * newVelocity * particle->startSpeed);
+            finalPosition = particle->GetPosition() + velocityDelta;
         }
+        particle->SetPosition(finalPosition);
 
         particle->lifetime -= deltaTime;
 
-
-
         DrawParticles(particle);
-
     }
 
-
-    glm::mat4 ParticleEmitter::CalculateBillboardTransform(const glm::mat4& particleTransform,
-                                                           const glm::mat4& viewMatrix)
+    glm::mat4 ParticleEmitter::CalculateBillboardTransform(const glm::mat4& particleTransform) const
     {
-        // Extract the particle's position
         glm::vec3 position = glm::vec3(particleTransform[3]);
 
-        // Remove the particle's rotation (keep only scale and position)
-        glm::mat4 billboardTransform = glm::mat4(1.0f);
+        glm::mat4 rotationMatrix = glm::mat4(glm::mat3(cameraViewMatrix));
+
+        glm::mat4 billboardTransform = glm::inverse(rotationMatrix);
         billboardTransform[3] = glm::vec4(position, 1.0f);
-
-        // Apply the inverse of the camera's rotation to make the particle face the camera
-        glm::mat4 inverseView = glm::inverse(viewMatrix);
-        inverseView[3] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f); // Ignore the camera's translation
-
-        billboardTransform = billboardTransform * inverseView;
 
         return billboardTransform;
     }
 
-
-    void ParticleEmitter::DrawParticles() {
-        for (size_t i = 0; i < activeParticles.size(); i++)
+    void ParticleEmitter::DrawParticles() const {
+        for (const auto& particle : activeParticles)
         {
-            Ref<Particle> p = activeParticles.at(i);
-            Renderer3D::Submit(RenderCommand{p->GetWorldTransform(), ParticleEmitter::particleMesh, particleMaterial});
+            DrawParticles(particle);
         }
     }
 
-    void ParticleEmitter::DrawParticles(Ref<Particle> p)
-    {  
-       Renderer3D::Submit(RenderCommand{p->GetWorldTransform(), ParticleEmitter::particleMesh, particleMaterial}); 
+    void ParticleEmitter::DrawParticles(const Ref<Particle>& p)
+    {
+        if (p->current_texture)
+        {
+            Renderer2D::DrawQuad(p->GetWorldTransform(), p->current_texture, 1, p->color,
+                                 Renderer2D::RenderMode::World);
+        }
     }
 
     void ParticleEmitter::DrawDebug()
     {
+        glm::vec4 colorDebug = glm::vec4(0.0f, 0.5f, 1.0f, 1.0f);
+
         glm::vec3 auxTransformPosition = glm::vec3(transformComponentMatrix[3]);
-        Renderer2D::DrawBox(minSpread + auxTransformPosition, maxSpread + auxTransformPosition, glm::vec4(1.0f), 1.0f);
+        glm::vec3 direction = glm::normalize(glm::vec3(transformComponentMatrix[1]));
+        glm::mat3 rotationMatrix;
+        glm::quat rotation90X;
+        glm::quat rotation;
+        float distance;
+        float dispersionRadius;
+
+        switch (shape)
+        {
+        case Coffee::ParticleEmitter::ShapeType::Circle:
+            rotationMatrix = glm::mat3(transformComponentMatrix);
+            rotation90X = glm::angleAxis(glm::radians(90.0f), glm::vec3(1, 0, 0));
+            rotation = glm::quat_cast(rotationMatrix) * rotation90X;
+            
+            Renderer2D::DrawCircle(auxTransformPosition, shapeRadius, rotation, colorDebug);
+            Renderer2D::DrawCircle(auxTransformPosition, shapeRadiusThickness, rotation, colorDebug);
+            break;
+        case Coffee::ParticleEmitter::ShapeType::Cone:
+
+            rotationMatrix = glm::mat3(transformComponentMatrix);
+            rotation90X = glm::angleAxis(glm::radians(90.0f), glm::vec3(1, 0, 0));
+            rotation = glm::quat_cast(rotationMatrix) * rotation90X;
+
+
+            distance = 3.0f;
+            dispersionRadius = tan(shapeAngle) * distance;
+
+            /*Renderer2D::DrawCircle(auxTransformPosition, shapeRadius, rotation, colorDebug);
+
+            Renderer2D::DrawCone(auxTransformPosition + (rotation * glm::vec3(0, 0, -distance)),
+                                 glm::quat_cast(rotationMatrix) * rotation90X * rotation90X, dispersionRadius, distance,
+                                 colorDebug);*/
+
+            Renderer2D::DrawTruncatedCone(auxTransformPosition,
+                                          glm::quat_cast(rotationMatrix), shapeRadius,
+                                          dispersionRadius, distance, colorDebug);
+
+            break;
+        case Coffee::ParticleEmitter::ShapeType::Box:
+            Renderer2D::DrawBox(minSpread + auxTransformPosition, maxSpread + auxTransformPosition, colorDebug);
+            break;
+        default:
+            break;
+        }
+       
+        Renderer2D::DrawArrow(transformComponentMatrix[3], direction, 1.5f);
+
     }
 
     void ParticleEmitter::Emit(int quantity)
@@ -276,5 +397,142 @@ namespace Coffee
             }
         }
     }
+
+
+    glm::vec3 ParticleEmitter::GetRandomPointInCircle() const {
+
+        //float minRadius = shapeRadius * (1.0f - shapeRadiusThickness);
+        float randomRadius = glm::mix(shapeRadiusThickness, shapeRadius, static_cast<float>(rand()) / RAND_MAX);
+        float angle = glm::linearRand(0.0f, glm::two_pi<float>());
+
+        float x = randomRadius * cos(angle);
+        float z = randomRadius * sin(angle);
+
+        return glm::mat3(transformComponentMatrix) * glm::vec3(x, 0.0f, z);
+    }
+
+    glm::vec3 ParticleEmitter::GetRandomPointInCone() const
+    {
+
+        // float minRadius = shapeRadius * (1.0f - shapeRadiusThickness);
+        float randomRadius = glm::mix(0.0f, shapeRadius, static_cast<float>(rand()) / RAND_MAX);
+        float angle = glm::linearRand(0.0f, glm::two_pi<float>());
+
+        float x = randomRadius * cos(angle);
+        float z = randomRadius * sin(angle);
+
+        return glm::mat3(transformComponentMatrix) * glm::vec3(x, 0.0f, z);
+    }
+
+
+    glm::vec3 ParticleEmitter::GetRandomPointInBox() const {
+        return glm::linearRand(minSpread, maxSpread);
+    }
+
+    glm::vec3 ParticleEmitter::GetRandomPointByShape(ShapeType type) const
+    {
+        switch (type)
+        {
+        case Coffee::ParticleEmitter::ShapeType::Circle:
+            return GetRandomPointInCircle();
+        case Coffee::ParticleEmitter::ShapeType::Cone:
+            return GetRandomPointInCone();
+        case Coffee::ParticleEmitter::ShapeType::Box:
+            return GetRandomPointInBox();
+        default:
+            return glm::vec3(0, 0, 0);
+        }
+    }
+
+    void ParticleEmitter::GenerateCurves()
+    {
+        if (generatedCurves.isValid) return;
+
+
+        generatedCurves.velocityX.resize(CURVE_RESOLUTION);
+        generatedCurves.velocityY.resize(CURVE_RESOLUTION);
+        generatedCurves.velocityZ.resize(CURVE_RESOLUTION);
+        generatedCurves.velocityGeneral.resize(CURVE_RESOLUTION);
+
+        generatedCurves.sizeX.resize(CURVE_RESOLUTION);
+        generatedCurves.sizeY.resize(CURVE_RESOLUTION);
+        generatedCurves.sizeZ.resize(CURVE_RESOLUTION);
+        generatedCurves.sizeGeneral.resize(CURVE_RESOLUTION);
+
+        generatedCurves.rotationX.resize(CURVE_RESOLUTION);
+        generatedCurves.rotationY.resize(CURVE_RESOLUTION);
+        generatedCurves.rotationZ.resize(CURVE_RESOLUTION);
+
+        generatedCurves.colorGradient.resize(CURVE_RESOLUTION);
+
+        GenerateCurve(speedOverLifeTimeX, generatedCurves.velocityX, velocityMultiplier);
+        GenerateCurve(speedOverLifeTimeY, generatedCurves.velocityY, velocityMultiplier);
+        GenerateCurve(speedOverLifeTimeZ, generatedCurves.velocityZ, velocityMultiplier);
+        GenerateCurve(speedOverLifeTimeGeneral, generatedCurves.velocityGeneral, velocityMultiplier);
+
+        GenerateCurve(sizeOverLifetimeX, generatedCurves.sizeX, sizeMultiplier);
+        GenerateCurve(sizeOverLifetimeY, generatedCurves.sizeY, sizeMultiplier);
+        GenerateCurve(sizeOverLifetimeZ, generatedCurves.sizeZ, sizeMultiplier);
+        GenerateCurve(sizeOverLifetimeGeneral, generatedCurves.sizeGeneral, sizeMultiplier);
+
+        GenerateCurve(rotationOverLifetimeX, generatedCurves.rotationX, rotationMultiplier);
+        GenerateCurve(rotationOverLifetimeY, generatedCurves.rotationY, rotationMultiplier);
+        GenerateCurve(rotationOverLifetimeZ, generatedCurves.rotationZ, rotationMultiplier);
+
+        GenerateGradient(colorOverLifetime_gradientPoints, generatedCurves.colorGradient);
+
+        generatedCurves.isValid = true;
+    }
+
+    void ParticleEmitter::GenerateCurve(const std::vector<CurvePoint>& points, std::vector<float>& output, float multiplier)
+    {
+
+        for (int i = 0; i < CURVE_RESOLUTION; ++i)
+        {
+            float t = static_cast<float>(i) / (CURVE_RESOLUTION - 1);
+            float curveValue = CurveEditor::GetCurveValue(t, points);
+            output[i] = CurveEditor::ScaleCurveValue(curveValue, -multiplier, multiplier);
+        }
+    }
+
+    void ParticleEmitter::GenerateGradient(const std::vector<GradientPoint>& points, std::vector<glm::vec4>& output)
+    {
+
+        for (int i = 0; i < CURVE_RESOLUTION; ++i)
+        {
+            float t = static_cast<float>(i) / (CURVE_RESOLUTION - 1);
+            ImVec4 color = GradientEditor::GetGradientValue(t, points);
+            output[i] = glm::vec4(color.x, color.y, color.z, color.w);
+        }
+    }
+
+    float ParticleEmitter::GetGeneratedCurveValue(const std::vector<float>& curve, float normalizedTime) const
+    {
+        normalizedTime = glm::clamp(normalizedTime, 0.0f, 1.0f);
+
+        float indexFloat = normalizedTime * (CURVE_RESOLUTION - 1);
+        int index = static_cast<int>(indexFloat);
+        float fraction = indexFloat - index;
+
+        if (index >= CURVE_RESOLUTION - 1)
+            return curve[CURVE_RESOLUTION - 1];
+
+        return curve[index] * (1.0f - fraction) + curve[index + 1] * fraction;
+    }
+
+    glm::vec4 ParticleEmitter::GetGeneratedGradientValue(const std::vector<glm::vec4>& gradient, float normalizedTime) const
+    {
+        normalizedTime = glm::clamp(normalizedTime, 0.0f, 1.0f);
+
+        float indexFloat = normalizedTime * (CURVE_RESOLUTION - 1);
+        int index = static_cast<int>(indexFloat);
+        float fraction = indexFloat - index;
+
+        if (index >= CURVE_RESOLUTION - 1)
+            return gradient[CURVE_RESOLUTION - 1];
+
+        return gradient[index] * (1.0f - fraction) + gradient[index + 1] * fraction;
+    }
+
 
 } // namespace Coffee

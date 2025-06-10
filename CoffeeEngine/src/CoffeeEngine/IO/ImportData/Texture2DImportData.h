@@ -13,8 +13,7 @@ namespace Coffee
 
         Texture2DImportData() : ImportData(ResourceType::Texture2D) {}
 
-        template <typename Archive>
-        void serialize(Archive& archive)
+        template <typename Archive> void serialize(Archive& archive, std::uint32_t const version)
         {
             archive(cereal::base_class<ImportData>(this), CEREAL_NVP(sRGB));
         }
