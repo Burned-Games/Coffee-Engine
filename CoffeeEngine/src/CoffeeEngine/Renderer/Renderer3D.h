@@ -101,10 +101,9 @@ namespace Coffee {
         float FogHeightDensity = 0.0f; ///< Fog height density.
 
         bool Bloom = false; ///< Enable or disable bloom.
-        float BloomThreshold = 1.0f; ///< Bloom threshold.
-        float BloomIntensity = 1.0f; ///< Bloom intensity.
+        float BloomIntensity = 0.1f; ///< Bloom intensity.
         float BloomRadius = 1.0f; ///< Bloom radius.
-        float BloomScale = 1.0f; ///< Bloom scale.
+        int BloomMaxMipLevels = 5; ///< Maximum number of mip levels for bloom.
 
         bool FXAA = true; ///< Enable or disable FXAA.
 
@@ -145,13 +144,13 @@ namespace Coffee {
 
         static void SetEnvironmentMap(const Ref<Cubemap>& environmentMap) { s_RendererData.EnvironmentMap = environmentMap; }
         
-        static void DepthPrePass(const RenderTarget& target);
-        //static void SSAOPass(const RenderTarget& target);
-        static void ShadowPass(const RenderTarget& target);
-        static void ForwardPass(const RenderTarget& target);
-        static void SkyboxPass(const RenderTarget& target);
-        static void TransparentPass(const RenderTarget& target);
-        static void PostProcessingPass(const RenderTarget& target);
+        static void DepthPrePass(const Ref<RenderTarget>& target);
+        //static void SSAOPass(const Ref<RenderTarget>& target);
+        static void ShadowPass(const Ref<RenderTarget>& target);
+        static void ForwardPass(const Ref<RenderTarget>& target);
+        static void SkyboxPass(const Ref<RenderTarget>& target);
+        static void TransparentPass(const Ref<RenderTarget>& target);
+        static void PostProcessingPass(const Ref<RenderTarget>& target);
 
         /**
          * @brief Gets the renderer data.
@@ -197,6 +196,11 @@ namespace Coffee {
         static Ref<Shader> s_SkyboxShader; ///< Skybox shader.
         static Ref<Shader> depthShader; ///< Depth shader.
         static Ref<Shader> brdfShader; ///< BRDF shader.
+        static Ref<Shader> s_BloomShader; ///< Bloom downsample shader.
+
+        static Ref<Framebuffer> s_BloomFramebuffer; ///< Bloom framebuffer.
+        static Ref<Texture2D> s_BloomDownsampleTexture; ///< Bloom downsampled texture.
+        static Ref<Texture2D> s_BloomUpsampleTexture; ///< Bloom upsampled texture.
     };
 
     /** @} */

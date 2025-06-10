@@ -634,7 +634,6 @@ namespace Coffee
         // Tonemapping
         float TonemappingExposure = 1.0f; ///< The exposure for tonemapping.
 
-        // Mockup
         bool Fog = false;                        ///< Flag to enable fog.
         glm::vec3 FogColor = {0.5f, 0.5f, 0.5f}; ///< The color of the fog.
         float FogDensity = 0.1f;                 ///< The density of the fog.
@@ -649,9 +648,8 @@ namespace Coffee
         float SSAOScale = 1.0f;     ///< The scale of the SSAO.
         float SSAOBias = 0.1f;      ///< The bias of the SSAO.
 
-        // Mockup
         bool Bloom = false;          ///< Flag to enable bloom.
-        float BloomThreshold = 1.0f; ///< The threshold of the bloom.
+        int BloomMaxMipLevels = 5; ///< The maximum number of mip levels for bloom.
         float BloomIntensity = 1.0f; ///< The intensity of the bloom.
         float BloomRadius = 1.0f;    ///< The radius of the bloom.
 
@@ -669,6 +667,10 @@ namespace Coffee
             archive(cereal::make_nvp("Fog", Fog), cereal::make_nvp("FogColor", FogColor),
                     cereal::make_nvp("FogDensity", FogDensity), cereal::make_nvp("FogHeight", FogHeight),
                     cereal::make_nvp("FogHeightDensity", FogHeightDensity));
+            archive(cereal::make_nvp("Bloom", Bloom),
+                    cereal::make_nvp("BloomIntensity", BloomIntensity),
+                    cereal::make_nvp("BloomRadius", BloomRadius),
+                    cereal::make_nvp("MaxMipLevels", BloomMaxMipLevels));
         }
 
         template <class Archive> void load(Archive& archive, std::uint32_t const version)
@@ -685,6 +687,14 @@ namespace Coffee
                 archive(cereal::make_nvp("Fog", Fog), cereal::make_nvp("FogColor", FogColor),
                         cereal::make_nvp("FogDensity", FogDensity), cereal::make_nvp("FogHeight", FogHeight),
                         cereal::make_nvp("FogHeightDensity", FogHeightDensity));
+            }
+
+            if (version >= 2)
+            {
+                archive(cereal::make_nvp("Bloom", Bloom),
+                        cereal::make_nvp("BloomIntensity", BloomIntensity),
+                        cereal::make_nvp("BloomRadius", BloomRadius),
+                        cereal::make_nvp("MaxMipLevels", BloomMaxMipLevels));
             }
         }
     };
@@ -1428,7 +1438,7 @@ CEREAL_CLASS_VERSION(Coffee::AnimatorComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::MeshComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::MaterialComponent, 1);
 CEREAL_CLASS_VERSION(Coffee::LightComponent, 2);
-CEREAL_CLASS_VERSION(Coffee::WorldEnvironmentComponent, 1);
+CEREAL_CLASS_VERSION(Coffee::WorldEnvironmentComponent, 2);
 CEREAL_CLASS_VERSION(Coffee::AudioSourceComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::AudioListenerComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::AudioZoneComponent, 0);

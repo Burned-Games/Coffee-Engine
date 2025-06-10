@@ -20,6 +20,7 @@
 #include "CoffeeEngine/Renderer/Renderer.h"
 #include "CoffeeEngine/Renderer/Renderer2D.h"
 #include "CoffeeEngine/Renderer/Renderer3D.h"
+#include "CoffeeEngine/Renderer/Texture.h"
 #include "CoffeeEngine/Scene/Components.h"
 #include "CoffeeEngine/Scene/PrimitiveMesh.h"
 #include "CoffeeEngine/Scene/Scene.h"
@@ -58,29 +59,49 @@ namespace Coffee {
     {
         ZoneScoped;
 
-        std::initializer_list<Attachment> ForwardFramebufferAttachments = {
-            {ImageFormat::RGBA32F, "Color"},
-            {ImageFormat::RGB8, "EntityID"},
-            {ImageFormat::DEPTH24STENCIL8, "Depth"}
-        };
+        // Create texture from texture parameters
+        // Add it to the framebuffers
+        // Create the RenderTarget and set it to the Renderer
+        TextureProperties textureProperties;
+        textureProperties.Width = 1280;
+        textureProperties.Height = 720;
+        textureProperties.Format = ImageFormat::RGBA32F;
+        textureProperties.srgb = false;
+        textureProperties.GenerateMipmaps = false;
+        textureProperties.Wrapping = TextureWrap::ClampToEdge;
+        textureProperties.MinFilter = TextureFilter::Linear;
+        textureProperties.MagFilter = TextureFilter::Linear;
 
-        std::initializer_list<Attachment> PostProcessingFramebufferAttachmentsA = {
-            {ImageFormat::RGBA32F, "Color"}
-        };
+        Ref<Texture2D> forwardColorTexture = Texture2D::Create(textureProperties);
 
-        std::initializer_list<Attachment> PostProcessingFramebufferAttachmentsB = {
-            {ImageFormat::RGBA32F, "Color"},
-        };
 
-        std::vector<std::pair<std::string, std::initializer_list<Attachment>>> EditorViewportRenderTargetFramebufferAttachments = {
-            {"Forward", ForwardFramebufferAttachments},
-            {"PostProcessingA", PostProcessingFramebufferAttachmentsA},
-            {"PostProcessingB", PostProcessingFramebufferAttachmentsB}
-        };
+        textureProperties.Format = ImageFormat::RGB8;
+        Ref<Texture2D> forwardEntityIDTexture = Texture2D::Create(textureProperties);
 
-        m_ViewportRenderTarget = &Renderer::AddRenderTarget("EditorViewport",
-                                                            {1280, 720}, 
-                                        EditorViewportRenderTargetFramebufferAttachments);
+        textureProperties.Format = ImageFormat::DEPTH24STENCIL8;
+        Ref<Texture2D> forwardDepthTexture = Texture2D::Create(textureProperties);
+
+        Ref<Framebuffer> forwardFramebuffer = Framebuffer::Create(1280, 720);
+        forwardFramebuffer->AttachColorTexture(0, forwardColorTexture);
+        forwardFramebuffer->AttachColorTexture(1, forwardEntityIDTexture);
+        forwardFramebuffer->AttachDepthTexture(forwardDepthTexture);
+
+        textureProperties.Format = ImageFormat::RGBA32F;
+        Ref<Texture2D> postProcessingColorTextureA = Texture2D::Create(textureProperties);
+        Ref<Texture2D> postProcessingColorTextureB = Texture2D::Create(textureProperties);
+
+        Ref<Framebuffer> postProcessingFramebufferA = Framebuffer::Create(1280, 720);
+        postProcessingFramebufferA->AttachColorTexture(0, postProcessingColorTextureA);
+
+        Ref<Framebuffer> postProcessingFramebufferB = Framebuffer::Create(1280, 720);
+        postProcessingFramebufferB->AttachColorTexture(0, postProcessingColorTextureB);
+
+        m_ViewportRenderTarget = CreateRef<RenderTarget>("EditorViewport", glm::vec2(1280, 720));
+        m_ViewportRenderTarget->AddFramebuffer("Forward", forwardFramebuffer);
+        m_ViewportRenderTarget->AddFramebuffer("PostProcessingA", postProcessingFramebufferA);
+        m_ViewportRenderTarget->AddFramebuffer("PostProcessingB", postProcessingFramebufferB);
+
+        Renderer::AddRenderTarget(m_ViewportRenderTarget);
 
         ScriptManager::RegisterBackend(ScriptingLanguage::Lua, CreateRef<LuaBackend>());
 
@@ -100,7 +121,8 @@ namespace Coffee {
         ZoneScoped;
         
         // Idk if this is the best place or is better in each switch case for flexibility
-        Renderer::SetCurrentRenderTarget(m_ViewportRenderTarget);
+        // Is possible that this is does not what I think it does. It should be revised.
+        Renderer::SetCurrentRenderTarget(m_ViewportRenderTarget.get());
 
         switch (SceneManager::GetSceneState())
         {
@@ -428,7 +450,7 @@ namespace Coffee {
         ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
         ResizeViewport(viewportPanelSize.x, viewportPanelSize.y);
 
-        uint32_t textureID = m_ViewportRenderTarget->GetFramebuffer("Forward")->GetColorTexture("Color")->GetID();
+        uint32_t textureID = m_ViewportRenderTarget->GetFramebuffer("Forward")->GetColorAttachment(0)->GetID();
         ImGui::Image((void*)textureID, ImVec2{ m_ViewportSize.x, m_ViewportSize.y }, {0, 1}, {1, 0});
 
         //Guizmo
@@ -670,7 +692,7 @@ namespace Coffee {
 
     void EditorLayer::OnOverlayRender()
     {
-        Renderer::SetCurrentRenderTarget(m_ViewportRenderTarget);
+        Renderer::SetCurrentRenderTarget(m_ViewportRenderTarget.get());
 
         Entity selectedEntity = m_SceneTreePanel.GetSelectedEntity();
         static Entity lastSelectedEntity;  

@@ -2,13 +2,9 @@
 
 namespace Coffee {
 
-    RenderTarget::RenderTarget(const std::string& name, const glm::vec2& size, const std::vector<std::pair<std::string, std::initializer_list<Attachment>>>& framebufferAttachments)
+    RenderTarget::RenderTarget(const std::string& name, const glm::vec2& size)
         : m_Name(name), m_Size(size)
     {
-        for (const auto& attachments : framebufferAttachments)
-        {
-            m_Framebuffers[attachments.first] = Framebuffer::Create(size.x, size.y, attachments.second);
-        }
     }
 
     void RenderTarget::Resize(uint32_t width, uint32_t height)

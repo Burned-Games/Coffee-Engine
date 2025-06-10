@@ -126,6 +126,39 @@ namespace Coffee {
 		}
 	}
 
+	void RendererAPI::SetBlend(bool enabled)
+	{
+		ZoneScoped;
+
+		if (enabled)
+		{
+			glEnable(GL_BLEND);
+		}
+		else
+		{
+			glDisable(GL_BLEND);
+		}
+	}
+
+	void RendererAPI::SetBlendFunc(BlendFunc src, BlendFunc dst)
+	{
+		ZoneScoped;
+
+		glBlendFunc(
+			static_cast<GLenum>(src),
+			static_cast<GLenum>(dst)
+		);
+	}
+
+	void RendererAPI::SetBlendEquation(BlendEquation equation)
+	{
+		ZoneScoped;
+
+		glBlendEquation(
+			static_cast<GLenum>(equation)
+		);
+	}
+
 	void RendererAPI::SetFaceCulling(bool enabled)
 	{
 		ZoneScoped;

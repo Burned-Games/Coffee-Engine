@@ -37,6 +37,11 @@ namespace Coffee {
     Ref<Shader> Renderer3D::s_SkyboxShader;
     Ref<Shader> Renderer3D::depthShader;
     Ref<Shader> Renderer3D::brdfShader;
+    Ref<Shader> Renderer3D::s_BloomShader;
+
+    Ref<Framebuffer> Renderer3D::s_BloomFramebuffer;
+    Ref<Texture2D> Renderer3D::s_BloomDownsampleTexture;
+    Ref<Texture2D> Renderer3D::s_BloomUpsampleTexture;
 
     void Renderer3D::Init()
     {
@@ -60,7 +65,7 @@ namespace Coffee {
         shadowMapProperties.Wrapping = TextureWrap::ClampToEdge;
         shadowMapProperties.BorderColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
-        s_RendererData.ShadowMapFramebuffer = Framebuffer::Create(4096, 4096, {});
+        s_RendererData.ShadowMapFramebuffer = Framebuffer::Create(4096, 4096);
         for (int i = 0; i < 4; i++)
         {
             s_RendererData.DirectionalShadowMapTextures[i] = Texture2D::Create(shadowMapProperties);
@@ -83,6 +88,22 @@ namespace Coffee {
         s_FXAAShader = CreateRef<Shader>("assets/shaders/FXAAShader.glsl"); // Shader source is too large
         s_FinalPassShader = CreateRef<Shader>("FinalPassShader", std::string(finalPassShaderSource));
 
+        s_BloomShader = CreateRef<Shader>("assets/shaders/BloomShader.glsl");
+
+        TextureProperties bloomTextureProperties;
+        bloomTextureProperties.srgb = false;
+        bloomTextureProperties.GenerateMipmaps = true;
+        bloomTextureProperties.Format = ImageFormat::RGB16F; // Use a floating point format for bloom
+        bloomTextureProperties.Width = 1280; // Initial size, will be resized later
+        bloomTextureProperties.Height = 720; // Initial size, will be resized later
+        bloomTextureProperties.Wrapping = TextureWrap::ClampToEdge;
+        bloomTextureProperties.MinFilter = TextureFilter::LinearMipmapLinear;
+        bloomTextureProperties.MagFilter = TextureFilter::Linear;
+
+        s_BloomDownsampleTexture = Texture2D::Create(bloomTextureProperties);
+        s_BloomUpsampleTexture = Texture2D::Create(bloomTextureProperties);
+        
+        s_BloomFramebuffer = Framebuffer::Create(1280, 720);
         GenerateBRDFLUT();
     }
 
@@ -143,17 +164,17 @@ namespace Coffee {
         s_Stats.DrawCalls++;
     }
 
-    void Renderer3D::DepthPrePass(const RenderTarget &target)
+    void Renderer3D::DepthPrePass(const Ref<RenderTarget>& target)
     {
         ZoneScoped;
 
-        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        const Ref<Framebuffer>& forwardBuffer = target->GetFramebuffer("Forward");
         forwardBuffer->Bind();
 
 
     }
 
-    void Renderer3D::ShadowPass(const RenderTarget& target)
+    void Renderer3D::ShadowPass(const Ref<RenderTarget>& target)
     {
         ZoneScoped;
 
@@ -175,7 +196,7 @@ namespace Coffee {
                 RendererAPI::Clear();
 
                 // Calculate light position based on camera and scene bounds
-                glm::vec3 cameraPos = target.GetCameraTransform()[3];
+                glm::vec3 cameraPos = target->GetCameraTransform()[3];
                 float shadowDistance = light.ShadowMaxDistance;
                 
                 // Position the light to cover the camera's view frustum
@@ -244,11 +265,11 @@ namespace Coffee {
         s_RendererData.SceneRenderDataUniformBuffer->SetData(&s_RendererData.RenderData, sizeof(Renderer3DData::RenderData));
     }
 
-    void Renderer3D::ForwardPass(const RenderTarget& target)
+    void Renderer3D::ForwardPass(const Ref<RenderTarget>& target)
     {
         ZoneScoped;
 
-        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        const Ref<Framebuffer>& forwardBuffer = target->GetFramebuffer("Forward");
 
         forwardBuffer->Bind();
         forwardBuffer->SetDrawBuffers({0, 1}); //TODO: This should only be done in the editor
@@ -256,7 +277,7 @@ namespace Coffee {
         RendererAPI::SetClearColor({0.03f,0.03f,0.03f,1.0});
         RendererAPI::Clear();
         
-        forwardBuffer->GetColorTexture("EntityID")->Clear({-1.0f,0.0f,0.0f,0.0f}); //TODO: This should only be done in the editor
+        forwardBuffer->GetColorAttachment(1)->Clear({-1.0f,0.0f,0.0f,0.0f}); //TODO: This should only be done in the editor
 
         if (!s_RendererData.EnvironmentMap)
         {
@@ -384,12 +405,12 @@ namespace Coffee {
         RendererAPI::SetPolygonMode(PolygonMode::Fill);
     }
 
-    void Renderer3D::SkyboxPass(const RenderTarget& target)
+    void Renderer3D::SkyboxPass(const Ref<RenderTarget>& target)
     {
         ZoneScoped;
 
         // TODO: Think if this should be done here another time
-        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        const Ref<Framebuffer>& forwardBuffer = target->GetFramebuffer("Forward");
 
         forwardBuffer->Bind();
         forwardBuffer->SetDrawBuffers({0, 1});
@@ -405,11 +426,11 @@ namespace Coffee {
         forwardBuffer->UnBind();
     }
 
-    void Renderer3D::TransparentPass(const RenderTarget& target)
+    void Renderer3D::TransparentPass(const Ref<RenderTarget>& target)
     {
         ZoneScoped;
 
-        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        const Ref<Framebuffer>& forwardBuffer = target->GetFramebuffer("Forward");
         forwardBuffer->Bind();
         forwardBuffer->SetDrawBuffers({0, 1}); //TODO: This should only be done in the editor
 
@@ -421,7 +442,7 @@ namespace Coffee {
         s_RendererData.BRDFLUT->Bind(8);
 
         // Render transparent objects (back to front)
-        glm::vec3 cameraPos = target.GetCameraTransform()[3];
+        glm::vec3 cameraPos = target->GetCameraTransform()[3];
         std::sort(s_RendererData.transparentRenderQueue.begin(), s_RendererData.transparentRenderQueue.end(), [&cameraPos](const RenderCommand& a, const RenderCommand& b) {
             float distA = glm::length(cameraPos - glm::vec3(a.transform[3]));
             float distB = glm::length(cameraPos - glm::vec3(b.transform[3]));
@@ -514,21 +535,21 @@ namespace Coffee {
         RendererAPI::SetPolygonMode(PolygonMode::Fill);
     }
 
-    void Renderer3D::PostProcessingPass(const RenderTarget &target)
+    void Renderer3D::PostProcessingPass(const Ref<RenderTarget>& target)
     {
         ZoneScoped;
 
         //Render All the fancy effects :D
-        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        const Ref<Framebuffer>& forwardBuffer = target->GetFramebuffer("Forward");
         
-        Ref<Framebuffer> lastBuffer = target.GetFramebuffer("PostProcessingA");
-        Ref<Framebuffer> postBuffer = target.GetFramebuffer("PostProcessingB");
+        Ref<Framebuffer> lastBuffer = target->GetFramebuffer("PostProcessingA");
+        Ref<Framebuffer> postBuffer = target->GetFramebuffer("PostProcessingB");
 
         // Copy the forward buffer to the last buffer (think if is necessary)
         lastBuffer->Bind();
         s_FinalPassShader->Bind();
         s_FinalPassShader->setInt("screenTexture", 0);
-        forwardBuffer->GetColorTexture("Color")->Bind(0);
+        forwardBuffer->GetColorAttachment(0)->Bind(0);
 
         RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
         s_FinalPassShader->Unbind();
@@ -546,12 +567,12 @@ namespace Coffee {
             s_FogShader->setFloat("FogDensity", s_RenderSettings.FogDensity);
             s_FogShader->setFloat("FogHeight", s_RenderSettings.FogHeight);
             s_FogShader->setFloat("FogHeightDensity", s_RenderSettings.FogHeightDensity);
-            s_FogShader->setMat4("invProjection", glm::inverse(target.GetCamera().GetProjection()));
-            s_FogShader->setMat4("invView", target.GetCameraTransform());
+            s_FogShader->setMat4("invProjection", glm::inverse(target->GetCamera().GetProjection()));
+            s_FogShader->setMat4("invView", target->GetCameraTransform());
             s_FogShader->setInt("colorTexture", 0);
             s_FogShader->setInt("depthTexture", 1);
-            postBuffer->GetColorTexture("Color")->Bind(0);
-            forwardBuffer->GetColorTexture("Depth")->Bind(1);
+            postBuffer->GetColorAttachment(0)->Bind(0);
+            forwardBuffer->GetDepthTexture()->Bind(1);
 
             RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
             s_FogShader->Unbind();
@@ -560,12 +581,133 @@ namespace Coffee {
             std::swap(lastBuffer, postBuffer);
         }
 
+        // Bloom
+        if (s_RenderSettings.Bloom)
+        {
+            // Bind the framebuffer for downsampling with a color texture
+            // Iterate over all the downsampling passes, binding each mip as output and the previous mip as input
+            // In other framebuffer (output), we set as input the texture of the downsampling pass and
+
+            glm::vec2 currentTargetSize = target->GetSize()/*  * 0.75f */;
+
+            // TODO: Do it only when the resolution changes not every frame
+            //s_BloomFramebuffer->Resize(currentTargetSize.x, currentTargetSize.y);
+            static glm::vec2 lastTargetSize = {0, 0};
+            if (currentTargetSize != lastTargetSize)
+            {
+                lastTargetSize = currentTargetSize;
+                s_BloomDownsampleTexture->Resize(currentTargetSize.x, currentTargetSize.y);
+                s_BloomUpsampleTexture->Resize(currentTargetSize.x, currentTargetSize.y);
+            }
+
+            s_BloomShader->Bind();
+            s_BloomShader->setInt("sourceTexture", 0);
+            postBuffer->GetColorAttachment(0)->Bind(0); // Bind the post-processing texture as the source
+            s_BloomShader->setInt("downsamplingTexture", 1);
+            s_BloomDownsampleTexture->Bind(1); // Bind the downsample texture to texture unit 1
+            s_BloomShader->setInt("upsamplingTexture", 2);
+            s_BloomUpsampleTexture->Bind(2); // Bind the upsample texture to texture unit 2
+
+            // Copy the scene texture to the bloom downsample texture
+            s_BloomShader->setInt("mode", 0); // 0 for copy
+            s_BloomShader->setInt("mipmapLevel", 0); // Use mip level 0 for the initial copy
+            s_BloomShader->setFloat("bloomIntensity", s_RenderSettings.BloomIntensity);
+
+            s_BloomFramebuffer->AttachColorTexture(0, s_BloomDownsampleTexture, 0);
+            s_BloomFramebuffer->Bind();
+            s_BloomFramebuffer->SetDrawBuffers({0});
+            RendererAPI::SetViewport(0, 0, currentTargetSize.x, currentTargetSize.y);
+            RendererAPI::Clear();
+            
+            RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+
+            // Downsampling Passes
+            int maxMipLevel = s_RenderSettings.BloomMaxMipLevels; // Number of downsampling passes
+            for (int mip = 1; mip < maxMipLevel; mip++)
+            {
+                // Resize the bloom downsample texture for the current mip level
+                uint32_t mipWidth = static_cast<uint32_t>(currentTargetSize.x) >> mip;
+                uint32_t mipHeight = static_cast<uint32_t>(currentTargetSize.y) >> mip;
+
+                // Attach the current mip level to the framebuffer
+                s_BloomFramebuffer->AttachColorTexture(0, s_BloomDownsampleTexture, mip);
+                s_BloomFramebuffer->Bind();
+
+                RendererAPI::SetViewport(0, 0, mipWidth, mipHeight);
+                RendererAPI::Clear();
+
+                // Set the shader for downsampling
+                s_BloomShader->setInt("mode", 1); // 1 for downsampling
+                s_BloomShader->setInt("mipmapLevel", mip);
+
+                RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+
+                s_BloomFramebuffer->UnBind();
+            }
+
+            // Copy the last downsampled texture to the upsample texture
+            s_BloomFramebuffer->AttachColorTexture(0, s_BloomUpsampleTexture, maxMipLevel - 1);
+            s_BloomFramebuffer->Bind();
+            uint32_t mipWidth = static_cast<uint32_t>(currentTargetSize.x) >> (maxMipLevel - 1);
+            uint32_t mipHeight = static_cast<uint32_t>(currentTargetSize.y) >> (maxMipLevel - 1);
+            RendererAPI::SetViewport(0, 0, mipWidth, mipHeight);
+            RendererAPI::Clear();
+            s_BloomShader->setInt("mode", 0); // 0 for copy
+            s_BloomShader->setInt("mipmapLevel", maxMipLevel - 1); // Use the last downsampled mip level
+            s_BloomDownsampleTexture->Bind(0); // Bind the last downsampled texture to texture unit 0
+
+            RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+
+            s_BloomShader->setFloat("filterRadius", s_RenderSettings.BloomRadius); // Set a filter radius for the bloom effect
+
+            //RendererAPI::SetBlendFunc(BlendFunc::One, BlendFunc::One);
+
+            // Upsampling Passes
+            for (int mip = maxMipLevel - 2; mip >= 0; --mip)
+            {
+                // Resize the bloom upsample texture for the current mip level
+                uint32_t mipWidth = static_cast<uint32_t>(currentTargetSize.x) >> mip;
+                uint32_t mipHeight = static_cast<uint32_t>(currentTargetSize.y) >> mip;
+
+                // Attach the current mip level to the framebuffer
+                s_BloomFramebuffer->AttachColorTexture(0, s_BloomUpsampleTexture, mip);
+                s_BloomFramebuffer->Bind();
+
+                RendererAPI::SetViewport(0, 0, mipWidth, mipHeight);
+                RendererAPI::Clear();
+
+                // Set the shader for upsampling
+                s_BloomShader->setInt("mode", 2); // 2 for upsampling
+                s_BloomShader->setInt("mipmapLevel", mip);
+
+                RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+
+                s_BloomFramebuffer->UnBind();
+            }
+
+            //RendererAPI::SetBlendFunc(BlendFunc::SrcAlpha, BlendFunc::OneMinusSrcAlpha);
+
+            // Final Composition Pass
+            lastBuffer->Bind();
+            s_BloomShader->setInt("mode", 3); // 3 for final composition
+
+            RendererAPI::SetViewport(0, 0, static_cast<uint32_t>(target->GetSize().x), static_cast<uint32_t>(target->GetSize().y));
+            RendererAPI::Clear();
+
+            RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
+
+            s_BloomShader->Unbind();
+            s_BloomFramebuffer->UnBind();
+            lastBuffer->UnBind();
+            std::swap(lastBuffer, postBuffer);
+        }
+
         //ToneMapping
         lastBuffer->Bind();
         s_ToneMappingShader->Bind();
         s_ToneMappingShader->setInt("screenTexture", 0);
         s_ToneMappingShader->setFloat("exposure", s_RenderSettings.Exposure);
-        postBuffer->GetColorTexture("Color")->Bind(0);
+        postBuffer->GetColorAttachment(0)->Bind(0);
 
         RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
@@ -583,7 +725,7 @@ namespace Coffee {
             s_FXAAShader->Bind();
             s_FXAAShader->setInt("screenTexture", 0);
             s_FXAAShader->setVec2("screenSize", {forwardBuffer->GetWidth(), forwardBuffer->GetHeight()});
-            postBuffer->GetColorTexture("Color")->Bind(0);
+            postBuffer->GetColorAttachment(0)->Bind(0);
 
             RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
@@ -604,7 +746,9 @@ namespace Coffee {
 
         s_FinalPassShader->Bind();
         s_FinalPassShader->setInt("screenTexture", 0);
-        postBuffer->GetColorTexture("Color")->Bind(0);
+        postBuffer->GetColorAttachment(0)->Bind(0);
+        //s_BloomDownsampleTexture->Bind(0);
+        //s_BloomUpsampleTexture->Bind(0); // Use the downsampled texture for final pass
 
         RendererAPI::DrawIndexed(s_ScreenQuad->GetVertexArray());
 
@@ -637,8 +781,8 @@ namespace Coffee {
 
         s_RendererData.BRDFLUT = Texture2D::Create(properties);
         
-        Framebuffer framebuffer = Framebuffer(properties.Width, properties.Height, {{ImageFormat::DEPTH24STENCIL8, "Depth"}});
-        framebuffer.AttachColorTexture(s_RendererData.BRDFLUT, "BRDFLUT");
+        Framebuffer framebuffer = Framebuffer(properties.Width, properties.Height);
+        framebuffer.AttachColorTexture(0, s_RendererData.BRDFLUT);
         framebuffer.Bind();
         framebuffer.SetDrawBuffers({0});
 
