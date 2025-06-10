@@ -86,6 +86,7 @@ namespace Coffee {
 
         Project::Load(std::filesystem::current_path() / "gamedata" / "Default.TeaProject");
         Application::Get().GetWindow().SetTitle(Project::GetActive()->GetProjectName());
+        Application::Get().GetWindow().SetIcon("icon.png");
 
         // Load the default scene from the project
         SceneManager::SetSceneState(SceneManager::SceneState::Play);
