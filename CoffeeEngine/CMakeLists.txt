@@ -6,23 +6,23 @@ set(INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src")
 file(GLOB_RECURSE SOURCES "${SRC_DIR}/*.cpp" "${SRC_DIR}/*.h")
 
 # Workaround for a bug in rapidjson that causes a crash in release mode
-if(UNIX)
-    #Currently assimp crashes in full release build
-
-    # Remove the /O2 optimization flag from the default Release flags
-    string(REPLACE "-O2" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
-    string(REPLACE "-O2" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-    # Set lower optimization level for Release mode (for MSVC)
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O1")  # Optimize for size (lower optimization than /O2)
-    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O1")
-
-    # Remove the /O2 optimization flag from the default RelWithDebInfo flags
-    string(REPLACE "-O2" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
-    string(REPLACE "-O2" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-    # Set lower optimization level for RelWithDebInfo mode (for MSVC)
-    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O1")  # Optimize for size (lower optimization than /O2)
-    set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O1")
-endif()
+#if(UNIX)
+#    #Currently assimp crashes in full release build
+#
+#    # Remove the /O2 optimization flag from the default Release flags
+#    string(REPLACE "-O2" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+#    string(REPLACE "-O2" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+#    # Set lower optimization level for Release mode (for MSVC)
+#    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O1")  # Optimize for size (lower optimization than /O2)
+#    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O1")
+#
+#    # Remove the /O2 optimization flag from the default RelWithDebInfo flags
+#    string(REPLACE "-O2" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+#    string(REPLACE "-O2" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+#    # Set lower optimization level for RelWithDebInfo mode (for MSVC)
+#    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O1")  # Optimize for size (lower optimization than /O2)
+#    set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O1")
+#endif()
 
 find_package(SDL3 REQUIRED)
 find_package(spdlog REQUIRED)
