@@ -41,29 +41,46 @@ namespace Coffee {
         s_ScreenQuad = PrimitiveMesh::CreateQuad();
         s_FinalPassShader = CreateRef<Shader>("FinalPassShader", std::string(finalPassShaderSource));
 
-        std::initializer_list<Attachment> ForwardFramebufferAttachments = {
-            {ImageFormat::RGBA32F, "Color"},
-            {ImageFormat::RGB8, "EntityID"},
-            {ImageFormat::DEPTH24STENCIL8, "Depth"}
-        };
+        // Create texture from texture parameters
+        TextureProperties textureProperties;
+        textureProperties.Width = 1600;
+        textureProperties.Height = 900;
+        textureProperties.Format = ImageFormat::RGBA32F;
+        textureProperties.srgb = false;
+        textureProperties.GenerateMipmaps = false;
+        textureProperties.Wrapping = TextureWrap::ClampToEdge;
+        textureProperties.MinFilter = TextureFilter::Linear;
+        textureProperties.MagFilter = TextureFilter::Linear;
 
-        std::initializer_list<Attachment> PostProcessingFramebufferAttachmentsA = {
-            {ImageFormat::RGBA32F, "Color"}
-        };
+        Ref<Texture2D> forwardColorTexture = Texture2D::Create(textureProperties);
 
-        std::initializer_list<Attachment> PostProcessingFramebufferAttachmentsB = {
-            {ImageFormat::RGBA32F, "Color"},
-        };
+        textureProperties.Format = ImageFormat::RGB8;
+        Ref<Texture2D> forwardEntityIDTexture = Texture2D::Create(textureProperties);
 
-        std::vector<std::pair<std::string, std::initializer_list<Attachment>>> EditorViewportRenderTargetFramebufferAttachments = {
-            {"Forward", ForwardFramebufferAttachments},
-            {"PostProcessingA", PostProcessingFramebufferAttachmentsA},
-            {"PostProcessingB", PostProcessingFramebufferAttachmentsB}
-        };
+        textureProperties.Format = ImageFormat::DEPTH24STENCIL8;
+        Ref<Texture2D> forwardDepthTexture = Texture2D::Create(textureProperties);
 
-        m_ViewportRenderTarget = &Renderer::AddRenderTarget("EditorViewport",
-                                                            {1600, 900}, 
-                                        EditorViewportRenderTargetFramebufferAttachments);
+        Ref<Framebuffer> forwardFramebuffer = Framebuffer::Create(1600, 900);
+        forwardFramebuffer->AttachColorTexture(0, forwardColorTexture);
+        forwardFramebuffer->AttachColorTexture(1, forwardEntityIDTexture);
+        forwardFramebuffer->AttachDepthTexture(forwardDepthTexture);
+
+        textureProperties.Format = ImageFormat::RGBA32F;
+        Ref<Texture2D> postProcessingColorTextureA = Texture2D::Create(textureProperties);
+        Ref<Texture2D> postProcessingColorTextureB = Texture2D::Create(textureProperties);
+
+        Ref<Framebuffer> postProcessingFramebufferA = Framebuffer::Create(1600, 900);
+        postProcessingFramebufferA->AttachColorTexture(0, postProcessingColorTextureA);
+
+        Ref<Framebuffer> postProcessingFramebufferB = Framebuffer::Create(1600, 900);
+        postProcessingFramebufferB->AttachColorTexture(0, postProcessingColorTextureB);
+
+        m_ViewportRenderTarget = CreateRef<RenderTarget>("EditorViewport", glm::vec2(1600, 900));
+        m_ViewportRenderTarget->AddFramebuffer("Forward", forwardFramebuffer);
+        m_ViewportRenderTarget->AddFramebuffer("PostProcessingA", postProcessingFramebufferA);
+        m_ViewportRenderTarget->AddFramebuffer("PostProcessingB", postProcessingFramebufferB);
+
+        Renderer::AddRenderTarget(m_ViewportRenderTarget);
 
         ScriptManager::RegisterBackend(ScriptingLanguage::Lua, CreateRef<LuaBackend>());
 
@@ -81,14 +98,14 @@ namespace Coffee {
     {
         ZoneScoped;
 
-        Renderer::SetCurrentRenderTarget(m_ViewportRenderTarget);
+        Renderer::SetCurrentRenderTarget(m_ViewportRenderTarget.get());
 
         SceneManager::GetActiveScene()->OnUpdateRuntime(dt);
 
         Renderer::SetCurrentRenderTarget(nullptr);
 
         // Render the scene to backbuffer
-        const Ref<Texture2D>& finalTexture = m_ViewportRenderTarget->GetFramebuffer("Forward")->GetColorTexture("Color");
+        const Ref<Texture2D>& finalTexture = m_ViewportRenderTarget->GetFramebuffer("Forward")->GetColorAttachment(0);
         finalTexture->Bind(0);
 
         s_FinalPassShader->Bind();
