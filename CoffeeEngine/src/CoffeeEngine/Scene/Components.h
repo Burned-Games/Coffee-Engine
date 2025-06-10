@@ -1437,7 +1437,7 @@ CEREAL_CLASS_VERSION(Coffee::CameraComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::AnimatorComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::MeshComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::MaterialComponent, 1);
-CEREAL_CLASS_VERSION(Coffee::LightComponent, 1);
+CEREAL_CLASS_VERSION(Coffee::LightComponent, 2);
 CEREAL_CLASS_VERSION(Coffee::WorldEnvironmentComponent, 2);
 CEREAL_CLASS_VERSION(Coffee::AudioSourceComponent, 0);
 CEREAL_CLASS_VERSION(Coffee::AudioListenerComponent, 0);
