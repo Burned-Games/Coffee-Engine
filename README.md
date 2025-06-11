@@ -12,6 +12,17 @@
 
 ---
 
+# Documentation
+
+📚 **[Read the full documentation](https://brewing-team.github.io/Coffee-Engine/)** - Complete API reference, tutorials, and guides
+
+he documentation includes:
+- **Getting Started**: Setup guides for different IDEs (CLion, Visual Studio, VS Code)
+- **API Reference**: Complete class documentation generated with Doxygen
+- **Architecture**: Core systems, rendering pipeline, and engine modules
+- **Contributing**: Code style guidelines and development setup
+
+
 # Getting Started
 
 Any IDE or Text Editor that supports CMake Projects (and vcpkg) should work for developing the project.
@@ -105,11 +116,12 @@ cd ../bin/CoffeeEditor/Release
 
 # Screenshots
 
-![](Resources/Release1/screenshot_1.png)
-![](Resources/Release1/screenshot_2.png)
-![](Resources/Release1/screenshot_3.png)
+## Editor
 
----
+![](Resources/Release2/screenshot_3.png)
+![](Resources/Release2/screenshot_4.png)
+![](Resources/Release2/screenshot_1.webp)
+![](Resources/Release2/screenshot_2.webp)
 
 ## Acknowledgements
 
@@ -128,3 +140,7 @@ This project makes use of several open-source libraries and resources that have 
 - **[Hazel](https://github.com/TheCherno/Hazel)**: A small game engine developed by TheCherno as part of his game engine series.
 - **[Godot](https://godotengine.org/)**: An advanced, feature-packed, multi-platform 2D and 3D open-source game engine.
 - **[skypjack on software](https://skypjack.github.io/)**: Blog and resources on software development by skypjack. 
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
