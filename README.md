@@ -94,23 +94,108 @@ cd ../bin/CoffeeEditor/Release
 
 ---
 
-# Features (WIP)
-> [!WARNING]
-> This is outdated, please Brewing-Team update it!
-- [x] Compatible with Windows and Linux.
-- [x] 3D Rendering
-  - [x] Textures
-  - [x] Materials
-  - [x] Shaders
-  - [x] PBR Rendering
-  - [x] Lights
-  - [ ] Environment
-- [x] Scene System
-  - [x] Scene Tree
-  - [x] ECS System
-  - [x] Model Loading
-- [x] Editor
-- [ ] Save And Loading
+# Features
+
+## **Architecture**
+- [x] **CoffeeEngine Core Library**: Modular engine architecture
+- [x] **CoffeeEditor**: Full-featured game editor
+- [x] **Cross-Platform Support**: Windows and Linux compatibility
+
+## **Rendering**
+
+### **3D Rendering**
+- [x] **Forward Rendering Pipeline**: Modern Renderer3D implementation
+- [x] **PBR Materials**: Physically-based rendering workflow
+- [x] **Shader Materials**: Custom shader support
+- [x] **Textures**: Complete texture loading and management
+- [x] **Skybox**: HDR environment mapping
+- [x] **HDR Rendering**: High dynamic range pipeline
+
+### **Post-Processing**
+- [x] **FXAA**: Fast approximate anti-aliasing
+- [x] **Bloom**: Physically Based Bloom
+- [x] **Fog**: Atmospheric depth rendering
+- [x] **Tone Mapping**: AgX tone mapping for cinematic color
+
+### **Lighting & Shadows**
+- [x] **Directional Lights**: Sun-like lighting with shadows
+- [x] **Point Lights (Omni)**: 360-degree light sources
+- [x] **Spot Lights**: Cone-based directional lighting
+- [x] **Directional Shadows**: Real-time shadow mapping
+- [x] **Image-Based Lighting (IBL)**: Environment lighting
+- [x] **Frustum Culling**: Octree-based optimization
+
+### **2D Rendering**
+- [x] **Renderer2D**: Optimized 2D sprite rendering
+- [x] **2D Batching**: Automatic draw call optimization
+
+## **Game Systems**
+
+### **Entity Component System (ECS)**
+- [x] **EnTT Integration**: High-performance entity management
+- [x] **Scene Tree**: Hierarchical scene organization
+- [x] **Component System**: Modular game object composition
+- [x] **Model Loading**: 3D asset import and management
+
+### **Animation System**
+- [x] **3D Skeletal Animation**: Bone-based character animation
+- [x] **Animation Blending**: Smooth state transitions
+- [x] **Partial Animation Blending**: Layer-based body part animation
+
+### **Prefab System**
+- [x] **Reusable Templates**: Component-based game object templates
+- [x] **Hierarchy Preservation**: Parent-child relationships
+- [x] **Cross-Component References**: Automatic reference integrity
+- [x] **Human-Readable Serialization**: `.prefab` format with version control
+- [x] **Runtime Instantiation**: Dynamic prefab spawning
+
+## **Audio**
+- [x] **Wwise Integration**: Professional audio middleware
+- [x] **3D Spatial Audio**: Positional audio with distance attenuation
+- [x] **RTPCs**: Real-time parameter controls
+- [x] **Audio Banks & Events**: Organized audio asset management
+- [x] **Auxiliary Sends**: Game-defined audio routing
+
+## **Navigation**
+- [x] **Pathfinding System**: AI navigation with obstacle avoidance
+- [x] **Navmesh Generation**: Automatic navigation mesh creation
+
+## **Physics**
+- [x] **Bullet Physics Integration**: Industry-standard physics simulation
+- [x] **Rigid Body System**: Static, dynamic, and kinematic bodies
+- [x] **Collision Detection**: Enter/stay/exit events with manifolds
+- [x] **Multiple Collider Types**: Box, Sphere, Capsule, Cylinder, Cone
+- [x] **Raycasting API**: Single/multiple hit detection
+- [x] **Physics Debugging**: Visual collision shapes and raycast debug
+
+## **Scripting**
+- [x] **Lua Integration**: Sol2-powered C++/Lua interoperability
+- [x] **Advanced Bindings**: Automatic type conversions and error handling
+- [x] **IntelliSense Support**: Auto-generated stub files
+- [x] **Language-Agnostic Design**: Extensible for additional languages
+- [x] **Entity Integration**: Direct script binding to game objects
+
+## **Development Tools**
+
+### **Resource Management**
+- [x] **Asset Pipeline**: Automatic import and processing
+- [x] **Resource Caching**: Intelligent asset loading
+- [x] **Hot Reloading**: Real-time asset updates
+
+### **Editor Features**
+- [x] **Scene Hierarchy**: Visual scene graph management
+- [x] **Component Inspectors**: Real-time property editing
+- [x] **Asset Browser**: Resource management interface
+- [x] **Viewport**: 3D scene visualization
+
+### **Profiling & Debugging**
+- [x] **Tracy Integration**: Real-time performance profiling
+- [x] **Debug Rendering**: Visual debugging systems
+- [x] **Console & Logging**: Integrated debugging tools
+
+### **Serialization & Persistence**
+- [x] **Scene Serialization**: Complete scene save/load system
+- [x] **Cereal Library**: Robust versioned serialization
 
 ---
 
