@@ -1,5 +1,5 @@
 # Coffee Engine
-[![Publish Documentation](https://github.com/Brewing-Team/Coffee-Engine/actions/workflows/publish-docs.yml/badge.svg)](https://github.com/Brewing-Team/Coffee-Engine/actions/workflows/publish-docs.yml)
+[![Publish Documentation](https://github.com/Burned-Games/Coffee-Engine/actions/workflows/publish-docs.yml/badge.svg)](https://github.com/Burned-Games/Coffee-Engine/actions/workflows/publish-docs.yml)
 
 <p align="center">
     <img src="/Resources/logo-wip.png?raw=true" width="350" height="350">
