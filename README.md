@@ -12,10 +12,9 @@
 
 # Screenshots
 
-![](Resources/Release2/screenshot_3.png)
-![](Resources/Release2/screenshot_4.png)
-![](Resources/Release2/screenshot_1.webp)
-![](Resources/Release2/screenshot_2.webp)
+| ![](Resources/Release2/screenshot_3.png) | ![](Resources/Release2/screenshot_4.png) |
+| --- | --- |
+| ![](Resources/Release2/screenshot_1.webp) | ![](Resources/Release2/screenshot_2.webp) |
 
 # Documentation
 
