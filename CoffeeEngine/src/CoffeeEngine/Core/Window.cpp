@@ -130,6 +130,7 @@ namespace Coffee {
     void Window::SetIcon(const std::string& path)
     {
         int width, height, channels;
+        stbi_set_flip_vertically_on_load(false);
         unsigned char* pixels = stbi_load(path.c_str(), &width, &height, &channels, 4);
         if (!pixels)
         {
@@ -138,7 +139,7 @@ namespace Coffee {
         }
         
         SDL_Surface* icon = SDL_CreateSurfaceFrom(
-            width, height, SDL_PIXELFORMAT_RGBA8888, pixels, width * 4);
+            width, height, SDL_PIXELFORMAT_RGBA32, pixels, width * 4);
         
         if(!icon)
         {

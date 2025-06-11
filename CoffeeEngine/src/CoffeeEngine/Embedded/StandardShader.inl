@@ -269,10 +269,12 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
     return ggx1 * ggx2;
 }
 
+int directionalShadowCount = 0;
+
 float ShadowCalculation(int lightIdx)
 {
     // perform perspective divide
-    vec4 fragPosLightSpace = VertexInput.FragPosLightSpace[lightIdx];
+    vec4 fragPosLightSpace = VertexInput.FragPosLightSpace[directionalShadowCount];
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     // transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
@@ -281,7 +283,7 @@ float ShadowCalculation(int lightIdx)
         return 0.0;
     
     // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-    float closestDepth = texture(shadowMaps[lightIdx], projCoords.xy).r; 
+    float closestDepth = texture(shadowMaps[directionalShadowCount], projCoords.xy).r;
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
     // calculate bias (based on depth map resolution and slope)
@@ -292,12 +294,12 @@ float ShadowCalculation(int lightIdx)
     // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
     // PCF
     float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(shadowMaps[lightIdx], 0);
+    vec2 texelSize = 1.0 / textureSize(shadowMaps[directionalShadowCount], 0);
     for(int x = -1; x <= 1; ++x)
     {
         for(int y = -1; y <= 1; ++y)
         {
-            float pcfDepth = texture(shadowMaps[lightIdx], projCoords.xy + vec2(x, y) * texelSize).r; 
+            float pcfDepth = texture(shadowMaps[directionalShadowCount], projCoords.xy + vec2(x, y) * texelSize).r;
             shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
         }    
     }
@@ -306,7 +308,9 @@ float ShadowCalculation(int lightIdx)
     // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
     if(projCoords.z > 1.0)
         shadow = 0.0;
-        
+
+    directionalShadowCount++;
+
     return shadow;
 }
 
