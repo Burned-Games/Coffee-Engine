@@ -447,7 +447,7 @@ namespace Coffee {
         m_ViewportFocused = ImGui::IsWindowFocused();
         m_ViewportHovered = ImGui::IsWindowHovered();
 
-        Application::Get().GetImGuiLayer()->BlockEvents(!m_ViewportHovered);
+        Application::Get().GetImGuiLayer()->BlockEvents(!(m_ViewportHovered || m_ProjectSettingsPanel.IsPanelVisible(PanelDisplayEnum::Input)));
 
         ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
         ResizeViewport(viewportPanelSize.x, viewportPanelSize.y);
@@ -861,6 +861,8 @@ namespace Coffee {
         {
             Project::Load(path);
             Application::Get().GetWindow().SetTitle(Project::GetActive()->GetProjectName() + " - Coffee Engine");
+
+
         }
         else
         {

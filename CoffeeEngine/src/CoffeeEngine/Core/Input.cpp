@@ -58,7 +58,7 @@ namespace Coffee {
         if (Project::GetActive() == nullptr)
             return;
 
-        auto path = Project::GetProjectDirectory() / MAPPING_FILE_PATH;
+        auto path = Project::GetActive()->GetProjectDirectory() / MAPPING_FILE_PATH;
 
         std::ofstream file(path);
 
@@ -72,7 +72,7 @@ namespace Coffee {
         if (Project::GetActive() == nullptr)
             return;
 
-        auto path = Project::GetProjectDirectory() / MAPPING_FILE_PATH;
+        auto path = Project::GetActive()->GetProjectDirectory() / MAPPING_FILE_PATH;
 
         if (!std::filesystem::exists(path))
         {

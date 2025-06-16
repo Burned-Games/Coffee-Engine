@@ -1,9 +1,10 @@
 #include "ProjectSettingsPanel.h"
 
+#include "CoffeeEngine/Core/Application.h"
 #include "CoffeeEngine/Core/FileDialog.h"
-#include <imgui.h>
-
 #include "CoffeeEngine/Core/Input.h"
+#include "CoffeeEngine/Project/Project.h"
+#include <imgui.h>
 
 namespace Coffee {
 
@@ -23,8 +24,10 @@ namespace Coffee {
     }
     void ProjectSettingsPanel::RenderInputSettings(const ImGuiWindowFlags flags)
     {
-        if (!(m_VisiblePanels & PanelDisplayEnum::Input))
-            return;
+        bool isInputPanelVisible = (m_VisiblePanels & PanelDisplayEnum::Input);
+        Application::Get().GetImGuiLayer()->BlockEvents(!isInputPanelVisible);
+
+        if (!isInputPanelVisible) return;
 
         BeginHorizontalChild("Input", flags);
         ImGui::Text("Input Settings");
@@ -240,6 +243,21 @@ namespace Coffee {
             }
             ImGui::Checkbox("Inverted axis", &m_SelectedInputBinding->invertedAxis);
 
+            static bool deletionConfirmation = false;
+            std::string deletionLabel = deletionConfirmation ? "Are you sure?":"Delete";
+            deletionLabel += "##ActionDeleteButton";
+            if (ImGui::Button(deletionLabel.c_str()))
+            {
+                if (!deletionConfirmation)
+                    deletionConfirmation = true;
+                else
+                {
+                    bindings.erase(m_SelectedInputKey);
+                    deletionConfirmation = false;
+                    m_SelectedInputKey = "";
+                    m_SelectedInputBinding = nullptr;
+                }
+            }
         }
         else
         {
@@ -258,27 +276,66 @@ namespace Coffee {
         ImGui::EndChild();
     }
 
-    void ProjectSettingsPanel::RenderGeneralSettings(const ImGuiWindowFlags flags)
+    void ProjectSettingsPanel::RenderGeneralSettings(Ref<Project>& project, const ImGuiWindowFlags flags)
     {
         if (!(m_VisiblePanels & PanelDisplayEnum::General))
             return;
 
+        if (m_RefreshPanels & PanelDisplayEnum::General)
+        {
+            // Refresh values (in case of new project loaded)
+            std::string s = project->GetProjectName();
+            m_NewProjectName.fill('\0');
+            std::copy_n(s.begin(), min(s.size(), 255),m_NewProjectName.begin());
+
+            m_RefreshPanels ^= PanelDisplayEnum::General;
+        }
+
         BeginHorizontalChild("General", flags);
 
         ImGui::Text("General settings for this project (WIP)");
-        std::string str = Coffee::Project::GetRelativeAudioDirectory().string();
-        char* strData = str.data();
-        ImGui::InputText("##AudioBanksPath", strData, str.size(), ImGuiInputTextFlags_ReadOnly);
+
+        ImGui::Text("Game name: ");
+        ImGui::SameLine();
+        if (ImGui::InputText("##gamename", m_NewProjectName.data(), 255, ImGuiInputTextFlags_EnterReturnsTrue))
+        {
+            // no need to check for active project, this window is only accessible when a project is active
+            // NOT a redundant call to c_str(). It is being used to trim extra null characters at the end of the string
+            project->SetProjectName(std::string(m_NewProjectName.begin(), m_NewProjectName.end()).c_str());
+        }
+
+        std::string defScenePath = project->GetProjectDefaultScene().string();
+        ImGui::Text("Default scene path: ");
+        ImGui::SameLine();
+        ImGui::InputText("##DefaultScenePath", defScenePath.data(), defScenePath.size(), ImGuiInputTextFlags_ReadOnly);
+        ImGui::SameLine();
+        if (ImGui::Button("Select...##DefaultScenePathButton"))
+        {
+            FileDialogArgs args;
+            args.DefaultPath = project->GetProjectDirectory().string();
+            args.Filters.push_back({"Coffee Engine Scene", "TeaScene"});
+            std::filesystem::path path = FileDialog::OpenFile(args);
+            if (!path.empty())
+            {
+                path = std::filesystem::relative(path, project->GetProjectDirectory());
+                project->SetProjectDefaultScene(path);
+            }
+        }
+
+        std::string audioDirPath = project->GetRelativeAudioDirectory().string();
+        ImGui::Text("Audio directory: ");
+        ImGui::SameLine();
+        ImGui::InputText("##AudioBanksPath", audioDirPath.data(), audioDirPath.size(), ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();
         if (ImGui::Button("Select...##AudioBanksPathButton"))
         {
             FileDialogArgs args;
-            args.DefaultPath = Project::GetProjectDirectory().string();
+            args.DefaultPath = project->GetProjectDirectory().string();
             std::filesystem::path path = FileDialog::PickFolder(args);
             if (is_directory(path))
             {
-                path = std::filesystem::relative(path, Project::GetProjectDirectory());
-                Project::SetRelativeAudioDirectory(path);
+                path = std::filesystem::relative(path, project->GetProjectDirectory());
+                project->SetRelativeAudioDirectory(path);
                 Audio::OnProjectLoad();
             }
         }
@@ -309,23 +366,27 @@ namespace Coffee {
 
         ImGui::PushID("ProjectSettings");
 
-        if (ImGui::TreeNodeEx("Project", ImGuiTreeNodeFlags_Leaf))
+        ImGui::SetNextWindowSizeConstraints(ImVec2(100,0), ImVec2(100,INT_MAX));
+        ImGui::BeginChild("Module List");
+        if (ImGui::TreeNodeEx("General", ImGuiTreeNodeFlags_Leaf))
         {
             if (ImGui::IsItemClicked())
-                m_VisiblePanels = PanelDisplayEnum::General;
+                SetPanelVisible(PanelDisplayEnum::General);
             ImGui::TreePop();
         }
         if (ImGui::TreeNodeEx("Input", ImGuiTreeNodeFlags_Leaf))
         {
             if (ImGui::IsItemClicked())
-                m_VisiblePanels = PanelDisplayEnum::Input;
+                SetPanelVisible(PanelDisplayEnum::Input);
             ImGui::TreePop();
         }
+
+        ImGui::EndChild();
 
         ImGui::SameLine();
         ImGui::Separator();
 
-        RenderGeneralSettings(flags);
+        RenderGeneralSettings(project, flags);
         RenderInputSettings(flags);
 
         ImGui::PopID();
