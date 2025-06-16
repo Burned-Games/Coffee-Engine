@@ -1,9 +1,11 @@
 #pragma once
 
+#include "CoffeeEngine/Core/Assert.h"
 #include "CoffeeEngine/Renderer/Mesh.h"
 #include "CoffeeEngine/Renderer/RenderTarget.h"
 #include "CoffeeEngine/Renderer/UniformBuffer.h"
 #include <glm/fwd.hpp>
+#include <unordered_map>
 #include <vector>
 namespace Coffee {
 
@@ -16,7 +18,7 @@ namespace Coffee {
 
     struct RendererData
     {
-        std::vector<RenderTarget> RenderTargets;
+        std::unordered_map<std::string, Ref<RenderTarget>> RenderTargets;
         RenderTarget* CurrentRenderTarget = nullptr;
 
         Ref<UniformBuffer> CameraUniformBuffer; ///< Uniform buffer for camera data.
@@ -40,13 +42,24 @@ namespace Coffee {
         static void Render();
         static void Shutdown();
 
-        static const RenderTarget& GetRenderTarget(const std::string& name);
-        static RenderTarget& AddRenderTarget(const std::string& name, const glm::vec2& size, const std::vector<std::pair<std::string, std::initializer_list<Attachment>>>& framebufferAttachments);
+        static void AddRenderTarget(const Ref<RenderTarget>& renderTarget);
+        static void RemoveRenderTarget(const std::string& name);
+        static Ref<RenderTarget> GetRenderTarget(const std::string& name);
+
+        static void SetCurrentRenderTarget(const std::string& name)
+        { 
+            s_RendererData.CurrentRenderTarget = GetRenderTarget(name).get();
+            COFFEE_ASSERT(s_RendererData.CurrentRenderTarget && "Render target not found");
+        }
+
+        // This is more dangerous bc the renderTarget can not be in the map but is convenient
+        static void SetCurrentRenderTarget(RenderTarget* renderTarget)
+        {
+            s_RendererData.CurrentRenderTarget = renderTarget;
+            COFFEE_ASSERT(s_RendererData.CurrentRenderTarget && "Render target not found");
+        }
 
         static RenderTarget* GetCurrentRenderTarget() { return s_RendererData.CurrentRenderTarget; }
-        static void SetCurrentRenderTarget(RenderTarget* renderTarget) { s_RendererData.CurrentRenderTarget = renderTarget; }
-
-        static std::vector<RenderTarget>& GetRenderTargets() { return s_RendererData.RenderTargets; }
 
         static RendererSettings& GetRenderSettings() { return s_RenderSettings; }
 

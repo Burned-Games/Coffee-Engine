@@ -44,20 +44,6 @@ namespace Coffee {
     std::vector<MeshComponent*> Scene::s_MeshComponents;
     std::vector<AnimatorComponent*> Scene::s_AnimatorComponents;
 
-    void Scene::FixHierarchy()
-    {
-        auto view = m_Registry.view<HierarchyComponent>();
-
-        for (auto& entity : view)
-        {
-            auto& hierarchyComponent = view.get<HierarchyComponent>(entity);
-            if (hierarchyComponent.m_Parent != entt::null) continue;
-
-            hierarchyComponent.FixNode(m_Registry, entt::null);
-        }
-
-    }
-
     Scene::Scene()
     {
         m_SceneTree = CreateScope<SceneTree>(this);
@@ -79,8 +65,8 @@ namespace Coffee {
     void CopyComponentIfExists<ActiveComponent>(entt::entity destinyEntity, entt::entity sourceEntity, entt::registry& registry)
     {
         // ActiveComponent is empty, just place it
-        if (!registry.all_of<ActiveComponent>(destinyEntity)) {
-            registry.emplace<ActiveComponent>(destinyEntity);
+        if (!registry.all_of<ActiveComponent>(sourceEntity)) {
+            registry.remove<ActiveComponent>(destinyEntity);
         }
     }
 
@@ -88,7 +74,7 @@ namespace Coffee {
     void CopyComponentIfExists<StaticComponent>(entt::entity destinyEntity, entt::entity sourceEntity, entt::registry& registry)
     {
         // StaticComponent is empty, just place it
-        if (!registry.all_of<StaticComponent>(destinyEntity)) {
+        if (registry.all_of<StaticComponent>(sourceEntity)) {
             registry.emplace<StaticComponent>(destinyEntity);
         }
     }
@@ -152,6 +138,39 @@ namespace Coffee {
             {
                 Scene::s_MeshComponents.push_back(&registry.get<MeshComponent>(destinyEntity));
             }
+        }
+    }
+
+    template <>
+    void CopyComponentIfExists<AudioSourceComponent>(entt::entity destinyEntity, entt::entity sourceEntity, entt::registry& registry)
+    {
+        if(registry.all_of<AudioSourceComponent>(sourceEntity))
+        {
+            const auto& srcComponent = registry.get<AudioSourceComponent>(sourceEntity);
+
+            AudioSourceComponent newComponent = AudioSourceComponent::CreateCopy(srcComponent);
+
+            registry.emplace<AudioSourceComponent>(destinyEntity, std::move(newComponent));
+
+            auto& audioSourceComponent = registry.get<AudioSourceComponent>(destinyEntity);
+            Audio::RegisterAudioSourceComponent(audioSourceComponent);
+            AudioZone::RegisterObject(audioSourceComponent.gameObjectID, audioSourceComponent.transform[3]);
+        }
+    }
+
+    template <>
+    void CopyComponentIfExists<AudioListenerComponent>(entt::entity destinyEntity, entt::entity sourceEntity, entt::registry& registry)
+    {
+        if(registry.all_of<AudioListenerComponent>(sourceEntity))
+        {
+            const auto& srcComponent = registry.get<AudioListenerComponent>(sourceEntity);
+
+            AudioListenerComponent newComponent = AudioListenerComponent::CreateCopy(srcComponent);
+
+            registry.emplace<AudioListenerComponent>(destinyEntity, std::move(newComponent));
+
+            auto& audioListenerComponent = registry.get<AudioListenerComponent>(destinyEntity);
+            Audio::RegisterAudioListenerComponent(audioListenerComponent);
         }
     }
 
@@ -299,6 +318,18 @@ namespace Coffee {
             }
         }
 
+        if (entity.HasComponent<AudioSourceComponent>())
+        {
+            auto& audioSourceComponent = entity.GetComponent<AudioSourceComponent>();
+            Audio::UnregisterAudioSourceComponent(audioSourceComponent);
+        }
+
+        if (entity.HasComponent<AudioListenerComponent>())
+        {
+            auto& audioListenerComponent = entity.GetComponent<AudioListenerComponent>();
+            Audio::UnregisterAudioListenerComponent(audioListenerComponent);
+        }
+
         auto& hierarchyComponent = m_Registry.get<HierarchyComponent>(entity);
         auto curr = hierarchyComponent.m_First;
 
@@ -347,6 +378,19 @@ namespace Coffee {
 
         CollisionSystem::Initialize(this);
 
+        auto audioListenerView = m_Registry.view<AudioListenerComponent>();
+        for (auto& entity : audioListenerView)
+        {
+            auto& audioListenerComponent = audioListenerView.get<AudioListenerComponent>(entity);
+            Audio::RegisterAudioListenerComponent(audioListenerComponent);
+        }
+        auto audioSourceView = m_Registry.view<AudioSourceComponent>();
+        for (auto& entity : audioSourceView)
+        {
+            auto& audioSourceComponent = audioSourceView.get<AudioSourceComponent>(entity);
+            Audio::RegisterAudioSourceComponent(audioSourceComponent);
+            AudioZone::RegisterObject(audioSourceComponent.gameObjectID, audioSourceComponent.transform[3]);
+        }
     }
 
     void Scene::OnInitRuntime()
@@ -412,7 +456,19 @@ namespace Coffee {
             m_Octree->Insert(object);
         }
 
-        Audio::StopAllEvents();
+        auto audioListenerView = m_Registry.view<AudioListenerComponent>();
+        for (auto& entity : audioListenerView)
+        {
+            auto& audioListenerComponent = audioListenerView.get<AudioListenerComponent>(entity);
+            Audio::RegisterAudioListenerComponent(audioListenerComponent);
+        }
+        auto audioSourceView = m_Registry.view<AudioSourceComponent>();
+        for (auto& entity : audioSourceView)
+        {
+            auto& audioSourceComponent = audioSourceView.get<AudioSourceComponent>(entity);
+            Audio::RegisterAudioSourceComponent(audioSourceComponent);
+            AudioZone::RegisterObject(audioSourceComponent.gameObjectID, audioSourceComponent.transform[3]);
+        }
         Audio::PlayInitialAudios();
 
         // Get all entities with ScriptComponent
@@ -446,6 +502,19 @@ namespace Coffee {
             auto& firstWorldEnv = cubemapView.get<WorldEnvironmentComponent>(cubemapView.front());
             Renderer3D::SetEnvironmentMap(firstWorldEnv.Skybox);
             Renderer3D::GetRenderSettings().EnvironmentExposure = firstWorldEnv.SkyboxIntensity;
+
+            // FOG
+            Renderer3D::GetRenderSettings().DepthFog = firstWorldEnv.Fog;
+            Renderer3D::GetRenderSettings().FogColor = firstWorldEnv.FogColor;
+            Renderer3D::GetRenderSettings().FogDensity = firstWorldEnv.FogDensity;
+            Renderer3D::GetRenderSettings().FogHeight = firstWorldEnv.FogHeight;
+            Renderer3D::GetRenderSettings().FogHeightDensity = firstWorldEnv.FogHeightDensity;
+
+            // Bloom
+            Renderer3D::GetRenderSettings().Bloom = firstWorldEnv.Bloom;
+            Renderer3D::GetRenderSettings().BloomIntensity = firstWorldEnv.BloomIntensity;
+            Renderer3D::GetRenderSettings().BloomRadius = firstWorldEnv.BloomRadius;
+            Renderer3D::GetRenderSettings().BloomMaxMipLevels = firstWorldEnv.BloomMaxMipLevels;
         }
 
         // TEMPORAL - Navigation
@@ -642,6 +711,19 @@ namespace Coffee {
             auto& firstWorldEnv = cubemapView.get<WorldEnvironmentComponent>(cubemapView.front());
             Renderer3D::SetEnvironmentMap(firstWorldEnv.Skybox);
             Renderer3D::GetRenderSettings().EnvironmentExposure = firstWorldEnv.SkyboxIntensity;
+
+            // FOG
+            Renderer3D::GetRenderSettings().DepthFog = firstWorldEnv.Fog;
+            Renderer3D::GetRenderSettings().FogColor = firstWorldEnv.FogColor;
+            Renderer3D::GetRenderSettings().FogDensity = firstWorldEnv.FogDensity;
+            Renderer3D::GetRenderSettings().FogHeight = firstWorldEnv.FogHeight;
+            Renderer3D::GetRenderSettings().FogHeightDensity = firstWorldEnv.FogHeightDensity;
+
+            // Bloom
+            Renderer3D::GetRenderSettings().Bloom = firstWorldEnv.Bloom;
+            Renderer3D::GetRenderSettings().BloomIntensity = firstWorldEnv.BloomIntensity;
+            Renderer3D::GetRenderSettings().BloomRadius = firstWorldEnv.BloomRadius;
+            Renderer3D::GetRenderSettings().BloomMaxMipLevels = firstWorldEnv.BloomMaxMipLevels;
         }
 
         Camera* camera = nullptr;
@@ -737,7 +819,7 @@ namespace Coffee {
 
                 auto& scriptComponent = scriptView.get<ScriptComponent>(entity);
                 ZoneScoped;
-                ZoneText(scriptComponent.script->GetPath().filename().string().c_str(), scriptComponent.script->GetPath().filename().string().length());
+                //ZoneText(scriptComponent.script->GetPath().filename().string().c_str(), scriptComponent.script->GetPath().filename().string().length());
                 scriptComponent.script->OnUpdate(dt);
                 if(SceneManager::GetActiveScene().get() != this)
                     return;
@@ -815,8 +897,8 @@ namespace Coffee {
 
             for (auto& entity : particleSystemView)
             {
-                /*if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
-                    continue;*/
+                if (staticView.contains(entity) && visibleEntitySet.find(entity) == visibleEntitySet.end())
+                    continue;
 
                 auto& particlesSystemComponent = particleSystemView.get<ParticlesSystemComponent>(entity);
                 auto& transformComponent = particleSystemView.get<TransformComponent>(entity);
@@ -917,7 +999,6 @@ namespace Coffee {
     {
         // Clear collision system state
         CollisionSystem::Shutdown();
-        Audio::StopAllEvents();
     }
 
     Ref<Scene> Scene::Load(const std::filesystem::path& path)

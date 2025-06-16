@@ -20,9 +20,6 @@ namespace Coffee {
      */
     struct HierarchyComponent
     {
-        // TODO delete this function once it's not needed anymore
-        void FixNode(entt::registry& registry, entt::entity previous);
-
         /**
          * @brief Constructor with parent entity.
          * @param parent The parent entity.

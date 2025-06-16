@@ -38,10 +38,17 @@ namespace Coffee {
         /**
          * @brief Structure containing render data.
          */
+
+        static constexpr int MAX_DIRECTIONAL_SHADOWS = 4;
+
+        static constexpr int MAX_LIGHTS = 32;
+
         struct SceneRenderData
         {
-            LightComponent lights[32]; ///< Array of light components.
+            LightComponent lights[MAX_LIGHTS]; ///< Array of light components.
             int lightCount = 0; ///< Number of lights.
+            float padding[3]; ///< Padding to align to 16 bytes.
+            glm::mat4 LightSpaceMatrices[MAX_DIRECTIONAL_SHADOWS]; ///< Light space matrices for shadow mapping.
         };
 
         SceneRenderData RenderData; ///< Render data.
@@ -55,7 +62,6 @@ namespace Coffee {
         Ref<Texture2D> BRDFLUT; ///< BRDF LUT texture.
 
         Ref<Framebuffer> ShadowMapFramebuffer;
-        static constexpr int MAX_DIRECTIONAL_SHADOWS = 4;
         Ref<Texture2D> DirectionalShadowMapTextures[4];
 
         Ref<Cubemap> EnvironmentMap;
@@ -87,12 +93,20 @@ namespace Coffee {
     struct Renderer3DSettings
     {
         bool SSAO = false; ///< Enable or disable SSAO.
+
+        bool DepthFog = false; ///< Enable or disable depth fog.
+        glm::vec3 FogColor = {0.5f, 0.5f, 0.5f}; ///< Fog color.
+        float FogDensity = 0.1f; ///< Fog density.
+        float FogHeight = 0.0f; ///< Fog height.
+        float FogHeightDensity = 0.0f; ///< Fog height density.
+
         bool Bloom = false; ///< Enable or disable bloom.
-        float BloomThreshold = 1.0f; ///< Bloom threshold.
-        float BloomIntensity = 1.0f; ///< Bloom intensity.
+        float BloomIntensity = 0.1f; ///< Bloom intensity.
         float BloomRadius = 1.0f; ///< Bloom radius.
-        float BloomScale = 1.0f; ///< Bloom scale.
-        bool FXAA = false; ///< Enable or disable FXAA.
+        int BloomMaxMipLevels = 5; ///< Maximum number of mip levels for bloom.
+
+        bool FXAA = true; ///< Enable or disable FXAA.
+
         float Exposure = 1.0f; ///< Exposure value.
         float EnvironmentExposure = 1.0f; ///< Environment exposure value.
 
@@ -130,13 +144,13 @@ namespace Coffee {
 
         static void SetEnvironmentMap(const Ref<Cubemap>& environmentMap) { s_RendererData.EnvironmentMap = environmentMap; }
         
-        //static void DepthPrePass(const RenderTarget& target);
-        //static void SSAOPass(const RenderTarget& target);
-        static void ShadowPass(const RenderTarget& target);
-        static void ForwardPass(const RenderTarget& target);
-        static void SkyboxPass(const RenderTarget& target);
-        static void TransparentPass(const RenderTarget& target);
-        static void PostProcessingPass(const RenderTarget& target);
+        static void DepthPrePass(const Ref<RenderTarget>& target);
+        //static void SSAOPass(const Ref<RenderTarget>& target);
+        static void ShadowPass(const Ref<RenderTarget>& target);
+        static void ForwardPass(const Ref<RenderTarget>& target);
+        static void SkyboxPass(const Ref<RenderTarget>& target);
+        static void TransparentPass(const Ref<RenderTarget>& target);
+        static void PostProcessingPass(const Ref<RenderTarget>& target);
 
         /**
          * @brief Gets the renderer data.
@@ -175,9 +189,18 @@ namespace Coffee {
         static Ref<Mesh> s_ScreenQuad; ///< Screen quad mesh.
         static Ref<Mesh> s_CubeMesh; ///< Cube mesh.
 
+        static Ref<Shader> s_FogShader; ///< Fog shader.
         static Ref<Shader> s_ToneMappingShader; ///< Tone mapping shader.
+        static Ref<Shader> s_FXAAShader; ///< Fast Approximate AntiAliasing shader
         static Ref<Shader> s_FinalPassShader; ///< Final pass shader.
         static Ref<Shader> s_SkyboxShader; ///< Skybox shader.
+        static Ref<Shader> depthShader; ///< Depth shader.
+        static Ref<Shader> brdfShader; ///< BRDF shader.
+        static Ref<Shader> s_BloomShader; ///< Bloom downsample shader.
+
+        static Ref<Framebuffer> s_BloomFramebuffer; ///< Bloom framebuffer.
+        static Ref<Texture2D> s_BloomDownsampleTexture; ///< Bloom downsampled texture.
+        static Ref<Texture2D> s_BloomUpsampleTexture; ///< Bloom upsampled texture.
     };
 
     /** @} */

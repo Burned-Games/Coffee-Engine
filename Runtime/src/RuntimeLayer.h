@@ -27,7 +27,8 @@ namespace Coffee {
         void ResizeViewport(float width, float height);
 
     private:
-        RenderTarget* m_ViewportRenderTarget;
+        Ref<RenderTarget> m_ViewportRenderTarget = nullptr;
+
 
         bool m_ViewportFocused = false, m_ViewportHovered = false;
 		glm::vec2 m_ViewportSize = { 0.0f, 0.0f };

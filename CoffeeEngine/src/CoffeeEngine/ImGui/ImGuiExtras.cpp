@@ -22,8 +22,9 @@ void GradientEditor::DrawGradientBar(const std::vector<GradientPoint>& points, I
 }
 
 
-void GradientEditor::EditGradientPoints(std::vector<GradientPoint>& points, ImVec2 canvas_pos, ImVec2 canvas_size)
+bool GradientEditor::EditGradientPoints(std::vector<GradientPoint>& points, ImVec2 canvas_pos, ImVec2 canvas_size)
 {
+    bool changed = false;
     int pointToDelete = -1;
 
     // Sort points by time before drawing
@@ -39,10 +40,12 @@ void GradientEditor::EditGradientPoints(std::vector<GradientPoint>& points, ImVe
         ImGui::SetCursorScreenPos(handle_pos);
         ImGui::PushID(static_cast<int>(i));
 
-
+        ImVec4 prevColor = p.color;
         ImGui::ColorEdit4("##color", (float*)&p.color,
                           ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar |
                               ImGuiColorEditFlags_NoDragDrop);
+        if (memcmp(&prevColor, &p.color, sizeof(ImVec4)) != 0)
+            changed = true;
 
         if (i != 0 && i != points.size() - 1)
         {
@@ -50,7 +53,10 @@ void GradientEditor::EditGradientPoints(std::vector<GradientPoint>& points, ImVe
             if (ImGui::IsItemHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
             {
                 float new_pos = ((ImGui::GetMousePos().x - 5) - canvas_pos.x) / canvas_size.x;
+                float prev = p.position;
                 p.position = ImClamp(new_pos, 0.0f, 1.0f);
+                if (prev != p.position)
+                    changed = true;
             }
 
             // Clic derecho para eliminar
@@ -66,13 +72,14 @@ void GradientEditor::EditGradientPoints(std::vector<GradientPoint>& points, ImVe
     if (pointToDelete >= 0 && points.size() > 2)
     {
         points.erase(points.begin() + pointToDelete);
+        changed = true;
     }
+    return changed;
 }
 
-
-
-void GradientEditor::ShowGradientEditor(std::vector<GradientPoint>& points)
+bool GradientEditor::ShowGradientEditor(std::vector<GradientPoint>& points)
 {
+    bool changed = false;
     if (ImGui::TreeNodeEx("Gradient Editor", ImGuiTreeNodeFlags_None))
     {
         ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
@@ -81,7 +88,8 @@ void GradientEditor::ShowGradientEditor(std::vector<GradientPoint>& points)
         DrawGradientBar(points, canvas_pos, canvas_size);
 
         // Llama al editor de puntos
-        EditGradientPoints(points, canvas_pos, canvas_size);
+        if (EditGradientPoints(points, canvas_pos, canvas_size))
+            changed = true;
 
         ImGui::Dummy(ImVec2(0, 10)); // Espacio visual
         if (ImGui::Button("Add Point"))
@@ -89,10 +97,12 @@ void GradientEditor::ShowGradientEditor(std::vector<GradientPoint>& points)
             points.push_back({0.5f, ImVec4(1, 1, 1, 1)});
             std::sort(points.begin(), points.end(),
                       [](const GradientPoint& a, const GradientPoint& b) { return a.position < b.position; });
+            changed = true;
         }
 
         ImGui::TreePop();
     }
+    return changed;
 }
 
 ImVec4 GradientEditor::GetGradientValue(float t, const std::vector<GradientPoint>& points)
@@ -130,8 +140,9 @@ ImVec4 GradientEditor::GetGradientValue(float t, const std::vector<GradientPoint
 }
 
 
-void CurveEditor::DrawCurve(const char* label, std::vector<CurvePoint>& points, ImVec2 graph_size)
+bool CurveEditor::DrawCurve(const char* label, std::vector<CurvePoint>& points, ImVec2 graph_size)
 {
+    bool changed = false;
     ImVec2 graph_pos = ImGui::GetCursorScreenPos();
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     ImU32 lineColor = IM_COL32(255, 165, 0, 255);     // Orange
@@ -201,15 +212,21 @@ void CurveEditor::DrawCurve(const char* label, std::vector<CurvePoint>& points, 
         {
             points.erase(points.begin() + i);
             --i;
+            changed = true;
+            continue;
         }
 
         // If a point is selected and the mouse is held, move the point
         if (selectedPoint == (int)i && mouse_held)
         {
+            float prevTime = points[i].time;
+            float prevValue = points[i].value;
             float newTime = (mouse_pos.x - graph_pos.x) / graph_size.x;
             float newValue = 1.0f - (mouse_pos.y - graph_pos.y) / graph_size.y;
             points[i].time = std::clamp(newTime, 0.0f, 1.0f);
             points[i].value = std::clamp(newValue, 0.0f, 1.0f); // Configurable upper limit
+            if (prevTime != points[i].time || prevValue != points[i].value)
+                changed = true;
         }
 
         // Draw control points
@@ -229,9 +246,10 @@ void CurveEditor::DrawCurve(const char* label, std::vector<CurvePoint>& points, 
     if (ImGui::Button(std::string("Add Point##").append(label).c_str())) // Unique label for each button
     {
         points.push_back({0.5f, 1.0f}); // New point in the middle
+        changed = true;
     }
+    return changed;
 }
-
 
 float CurveEditor::GetCurveValue(float time, const std::vector<CurvePoint>& points)
 {

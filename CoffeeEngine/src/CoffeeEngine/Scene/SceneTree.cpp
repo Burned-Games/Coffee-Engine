@@ -8,25 +8,6 @@
 
 namespace Coffee {
 
-    void HierarchyComponent::FixNode(entt::registry& registry, entt::entity previous)
-    {
-        // fix m_Prev pointing to the same entity this component is attached to
-        m_Prev = previous;
-
-        // Iterate children and fix recursively
-        entt::entity currentChild = m_First;
-        entt::entity previousChild = entt::null;
-        while (currentChild != entt::null)
-        {
-            auto& hierarchyComponent = registry.get<HierarchyComponent>(currentChild);
-
-            hierarchyComponent.FixNode(registry, previousChild);
-
-            previousChild = currentChild;
-            currentChild = hierarchyComponent.m_Next;
-        }
-    }
-
     HierarchyComponent::HierarchyComponent(entt::entity parent)
     {
         m_Parent = parent;

@@ -394,7 +394,8 @@ namespace Coffee {
 
         if(joints.empty())
         {
-            std::cerr << "Failed to extract joints" << std::endl;
+            COFFEE_CORE_ERROR("OZZ: Failed to extract joints");
+            
             return false;
         }
 
@@ -426,7 +427,7 @@ namespace Coffee {
 
         if (!rawSkeleton.Validate())
         {
-            std::cerr <<  "Failed to validate Ozz Skeleton" << std::endl;
+            COFFEE_CORE_ERROR("OZZ: Failed to validate Ozz Skeleton");
             return false;
         }
 
@@ -465,7 +466,8 @@ namespace Coffee {
 
             if (!rawAnimation.Validate())
             {
-                std::cerr << "Failed to validate Ozz Animation: " << aiAnim->mName.C_Str() << std::endl;
+                std::string error = std::string("OZZ: Failed to validate Ozz Skeleton ") + aiAnim->mName.C_Str();
+                COFFEE_CORE_ERROR(error);
                 continue;
             }
 

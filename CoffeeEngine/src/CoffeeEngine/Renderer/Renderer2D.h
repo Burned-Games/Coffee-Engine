@@ -40,8 +40,8 @@ namespace Coffee {
         static UIPass();
         */
 
-        static void WorldPass(const RenderTarget& target);
-        static void ScreenPass(const RenderTarget& target);
+        static void WorldPass(const Ref<RenderTarget>& target);
+        static void ScreenPass(const Ref<RenderTarget>& target);
 
         static void Shutdown();
 

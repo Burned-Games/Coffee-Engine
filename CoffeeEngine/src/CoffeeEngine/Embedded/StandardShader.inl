@@ -20,6 +20,37 @@ layout (std140, binding = 0) uniform camera
     vec3 cameraPos;
 };
 
+#define MAX_LIGHTS 32
+#define MAX_DIRECTIONAL_SHADOWS 4
+
+struct Light
+{
+    vec3 color;
+    vec3 direction;
+    vec3 position;
+
+    float range;
+    float attenuation;
+    float intensity;
+
+    float angle;
+    float cone_attenuation;
+
+    int type;
+
+    // Shadows
+    bool shadow;
+    float shadowBias;
+    float shadowMaxDistance;
+};
+
+layout (std140, binding = 1) uniform RenderData
+{
+    Light lights[MAX_LIGHTS];
+    int lightCount;
+    mat4 lightSpaceMatrices[MAX_DIRECTIONAL_SHADOWS];
+};
+
 struct VertexData
 {
     vec2 TexCoords;
@@ -27,15 +58,13 @@ struct VertexData
     vec3 WorldPos;
     vec3 camPos;
     mat3 TBN;
-    vec4 FragPosLightSpace[4];
+    vec4 FragPosLightSpace[MAX_DIRECTIONAL_SHADOWS];
 };
 
 layout (location = 2) out VertexData Output;
 
 uniform mat4 model;
 uniform mat3 normalMatrix;
-
-uniform mat4 lightSpaceMatrices[4];
 
 uniform bool animated;
 const int MAX_BONES = 100;
@@ -159,6 +188,7 @@ uniform samplerCube prefilterMap;
 uniform sampler2D brdfLUT;
 
 #define MAX_LIGHTS 32
+#define MAX_DIRECTIONAL_SHADOWS 4
 
 struct Light
 {
@@ -171,6 +201,7 @@ struct Light
     float intensity;
 
     float angle;
+    float cone_attenuation;
 
     int type;
 
@@ -184,9 +215,10 @@ layout (std140, binding = 1) uniform RenderData
 {
     Light lights[MAX_LIGHTS];
     int lightCount;
+    mat4 lightSpaceMatrices[MAX_DIRECTIONAL_SHADOWS];
 };
 
-uniform sampler2D shadowMaps[4];
+uniform sampler2D shadowMaps[MAX_DIRECTIONAL_SHADOWS];
 
 uniform bool showNormals;
 
@@ -237,10 +269,12 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
     return ggx1 * ggx2;
 }
 
+int directionalShadowCount = 0;
+
 float ShadowCalculation(int lightIdx)
 {
     // perform perspective divide
-    vec4 fragPosLightSpace = VertexInput.FragPosLightSpace[lightIdx];
+    vec4 fragPosLightSpace = VertexInput.FragPosLightSpace[directionalShadowCount];
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     // transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
@@ -249,23 +283,23 @@ float ShadowCalculation(int lightIdx)
         return 0.0;
     
     // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-    float closestDepth = texture(shadowMaps[lightIdx], projCoords.xy).r; 
+    float closestDepth = texture(shadowMaps[directionalShadowCount], projCoords.xy).r;
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
     // calculate bias (based on depth map resolution and slope)
     vec3 normal = normalize(VertexInput.Normal);
     vec3 lightDir = normalize(lights[lightIdx].position - VertexInput.WorldPos);
-    float bias = max(lights[lightIdx].shadowBias * (1.0 - dot(normal, lightDir)), 0.005);
+    float bias = max(lights[lightIdx].shadowBias * (1.0 - dot(normal, lightDir)), 0.0005);
     // check whether current frag pos is in shadow
     // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
     // PCF
     float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(shadowMaps[lightIdx], 0);
+    vec2 texelSize = 1.0 / textureSize(shadowMaps[directionalShadowCount], 0);
     for(int x = -1; x <= 1; ++x)
     {
         for(int y = -1; y <= 1; ++y)
         {
-            float pcfDepth = texture(shadowMaps[lightIdx], projCoords.xy + vec2(x, y) * texelSize).r; 
+            float pcfDepth = texture(shadowMaps[directionalShadowCount], projCoords.xy + vec2(x, y) * texelSize).r;
             shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
         }    
     }
@@ -274,7 +308,9 @@ float ShadowCalculation(int lightIdx)
     // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
     if(projCoords.z > 1.0)
         shadow = 0.0;
-        
+
+    directionalShadowCount++;
+
     return shadow;
 }
 
@@ -341,7 +377,47 @@ void main()
         else if(lights[i].type == 2)
         {
             /*====Spot Light====*/
+                        
+/*             vec3 lightDir = normalize(lights[i].position - VertexInput.WorldPos);
+                        
+            // check if lighting is inside the spotlight cone
+            float theta = dot(lightDir, normalize(-lights[i].direction));
+                        
+            if(theta > lights[i].angle) // Compare theta with lights[i].angle
+            {
+                float distance = length(lights[i].position - VertexInput.WorldPos);
+                float attenuation = getOmniAttenuation(distance, 1.0 / lights[i].range, lights[i].attenuation);
+                attenuation *= max(0.0, dot(N, lightDir));
+                
+                // Calculate spot rim and cone attenuation
+                float spot_rim = max(0.0001, (1.0 - theta) / (1.0 - lights[i].angle));
+                attenuation *= 1.0 - pow(spot_rim, lights[i].cone_attenuation);
+            
+                if(attenuation <= 0.0001)
+                    continue;
+            
+                L = lightDir;
+                radiance = lights[i].color * attenuation * lights[i].intensity;
+            } */
 
+            // Temporal implementation
+            vec3 lightDir = normalize(lights[i].position - VertexInput.WorldPos);
+            
+            // check if lighting is inside the spotlight cone
+            float theta = dot(lightDir, normalize(-lights[i].direction)); 
+            float epsilon = (cos(radians(lights[i].angle)) - cos(radians(lights[i].cone_attenuation)));
+            float intensity = clamp((theta - cos(radians(lights[i].cone_attenuation))) / epsilon, 0.0, 1.0);
+            
+            // attenuation
+            float distance = length(lights[i].position - VertexInput.WorldPos);
+            float attenuation = 1.0 / (1.0 + 0.09 * distance + 0.032 * (distance * distance));
+            attenuation *= max(0.0, dot(N, lightDir)) * intensity;
+            
+            if(attenuation <= 0.0001)
+                continue;
+            
+            L = lightDir;
+            radiance = lights[i].color * attenuation * lights[i].intensity;
         }
 
         vec3 H = normalize(V + L);

@@ -50,8 +50,6 @@ namespace Coffee {
         ZoneScoped;
     
         ExitCurrentScene();
-
-        Audio::StopAllEvents();
     
         s_ActiveScene = scene;
     
@@ -95,6 +93,10 @@ namespace Coffee {
             {
                 s_ActiveScene->OnExitEditor();
             }
+
+            Audio::StopAllEvents();
+            AudioZone::RemoveAllReverbZones();
+            Audio::UnregisterAllGameObjects();
         }
     }
 

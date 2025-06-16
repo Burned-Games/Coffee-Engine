@@ -57,10 +57,10 @@ namespace Coffee {
 
     struct Batch
     {
-        static const uint32_t MaxQuadCount = 10000; // Think of increasing this number to 20000
+        static const uint32_t MaxQuadCount = 20000; // Think of increasing this number to 20000
         static const uint32_t MaxVertices = MaxQuadCount * 4;
         static const uint32_t MaxIndices = MaxQuadCount * 6;
-        static const uint32_t MaxTextureSlots = 32;
+        static const uint32_t MaxTextureSlots = 64;
 
         std::vector<QuadVertex> QuadVertices;
         uint32_t QuadIndexCount = 0;
@@ -180,9 +180,9 @@ namespace Coffee {
         s_Renderer2DData.TextShader = CreateRef<Shader>("TextShader", std::string(textShaderSource));
     }
 
-    void Renderer2D::WorldPass(const RenderTarget& target)
+    void Renderer2D::WorldPass(const Ref<RenderTarget>& target)
     {
-        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        const Ref<Framebuffer>& forwardBuffer = target->GetFramebuffer("Forward");
 
         forwardBuffer->Bind();
         //forwardBuffer->SetDrawBuffers({0, 1}); //TODO: This should only be done in the editor
@@ -230,10 +230,10 @@ namespace Coffee {
         forwardBuffer->UnBind();
     }
 
-    void Renderer2D::ScreenPass(const RenderTarget& target)
+    void Renderer2D::ScreenPass(const Ref<RenderTarget>& target)
     {
         // TODO: Modify the target to have a framebuffer for 2D elements
-        const Ref<Framebuffer>& forwardBuffer = target.GetFramebuffer("Forward");
+        const Ref<Framebuffer>& forwardBuffer = target->GetFramebuffer("Forward");
 
         forwardBuffer->Bind();
         //forwardBuffer->SetDrawBuffers({0, 1}); //TODO: This should only be done in the editor
